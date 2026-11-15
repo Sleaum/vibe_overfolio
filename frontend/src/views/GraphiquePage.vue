@@ -10,6 +10,12 @@
           <router-link to="/graphiques" class="rounded-md hover:text-ink hover:underline">Graphiques</router-link>
         </li>
         <li aria-hidden="true">/</li>
+        <template v-if="parent">
+          <li>
+            <router-link :to="parent.to" class="rounded-md hover:text-ink hover:underline">{{ parent.title }}</router-link>
+          </li>
+          <li aria-hidden="true">/</li>
+        </template>
         <li aria-current="page" class="text-ink">{{ spec ? spec.title : 'Graphique introuvable' }}</li>
       </ol>
     </nav>
@@ -49,12 +55,13 @@ import { computed, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import AppButton from '../components/ui/AppButton.vue'
 import ChartView from '../components/charts/ChartView.vue'
-import { getChart, neighbours } from '../lib/charts/index.js'
+import { getChart, neighbours, parentPage } from '../lib/charts/index.js'
 
 const route = useRoute()
 
 const slug = computed(() => String(route.params.slug ?? ''))
 const spec = computed(() => getChart(slug.value))
+const parent = computed(() => (spec.value ? parentPage(spec.value.slug) : null))
 const around = computed(() => (spec.value ? neighbours(spec.value.slug) : { previous: null, next: null }))
 
 const linkTo = (chart) => ({ name: 'ChartPage', params: { slug: chart.slug } })

@@ -44,7 +44,6 @@ export default {
   slug: 'flux-budget',
   title: 'Flux du budget',
   summary: 'D’où vient l’argent et où il va.',
-  group: 'evolution',
   thumb: 'sankey',
   table: 'budget',
   minWidth: 560,

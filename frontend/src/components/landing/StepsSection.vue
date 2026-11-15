@@ -35,7 +35,7 @@ const STEPS = [
   },
   {
     title: 'Suis ton patrimoine',
-    text: 'Ouvre les graphiques : évolution, répartition par type d’actif, zone, compte, plus grosses positions, flux du budget, entrées et sorties.',
+    text: 'Ouvre les graphiques : l’historique mois par mois, ton patrimoine d’aujourd’hui, ta stratégie sur les actions et le flux de ton budget.',
   },
 ]
 </script>

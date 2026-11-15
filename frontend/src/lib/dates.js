@@ -51,19 +51,3 @@ export function isoToTimestamp(iso) {
 export function monthKey(iso) {
   return iso.slice(0, 7)
 }
-
-/** Liste continue des mois entre deux clés "AAAA-MM" incluses. */
-export function monthsBetween(firstKey, lastKey) {
-  const keys = []
-  let [y, m] = firstKey.split('-').map(Number)
-  const [endY, endM] = lastKey.split('-').map(Number)
-  while (y < endY || (y === endY && m <= endM)) {
-    keys.push(`${y}-${pad(m)}`)
-    m += 1
-    if (m > 12) {
-      m = 1
-      y += 1
-    }
-  }
-  return keys
-}

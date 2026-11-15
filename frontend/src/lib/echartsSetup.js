@@ -3,11 +3,12 @@
 
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { BarChart, LineChart, PieChart, SankeyChart, ScatterChart } from 'echarts/charts'
+import { BarChart, LineChart, PieChart, SankeyChart, ScatterChart, SunburstChart } from 'echarts/charts'
 import {
   DataZoomComponent,
   GridComponent,
   LegendComponent,
+  MarkLineComponent,
   TitleComponent,
   TooltipComponent,
 } from 'echarts/components'
@@ -19,9 +20,11 @@ use([
   PieChart,
   SankeyChart,
   ScatterChart,
+  SunburstChart,
   DataZoomComponent,
   GridComponent,
   LegendComponent,
+  MarkLineComponent,
   TitleComponent,
   TooltipComponent,
 ])

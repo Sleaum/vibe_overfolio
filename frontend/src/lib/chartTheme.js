@@ -1,4 +1,4 @@
-// Briques ECharts communes : mêmes axes, mêmes filets, mêmes infobulles sur les 7 graphiques.
+// Briques ECharts communes : mêmes axes, mêmes filets, mêmes infobulles sur tous les graphiques.
 // Règles appliquées : marques fines, filets de 1 px pleins et discrets, texte en encre (jamais en couleur de série).
 
 import { esc } from './format.js'

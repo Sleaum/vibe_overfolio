@@ -44,7 +44,7 @@ const ITEMS = [
   {
     question: 'Que doit contenir ma feuille Google Sheets ?',
     answer:
-      'Overfolio cherche cinq onglets par leur nom : portfolio, inout, stock, budget et _history. Chaque graphique indique les colonnes dont il a besoin. S’il en manque une, il te dit laquelle, et les autres graphiques continuent de s’afficher.',
+      'Overfolio cherche cinq onglets par leur nom : portfolio, inout, stock, budget et _history. Chaque page indique les colonnes dont elle a besoin. S’il en manque une, elle te dit laquelle, et les autres pages continuent de s’afficher.',
   },
   {
     question: 'Overfolio peut-il modifier ma feuille ou voir mes comptes bancaires ?',

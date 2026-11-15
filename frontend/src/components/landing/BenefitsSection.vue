@@ -42,7 +42,7 @@ const BENEFITS = [
   {
     icon: 'split',
     title: 'Ta répartition en un coup d’œil',
-    text: 'Types d’actifs, zones géographiques, comptes et courtiers : vois où se trouve ton patrimoine sans refaire un tableau croisé.',
+    text: 'Types d’actifs, enveloppes, secteurs, zones géographiques : vois où se trouve ton patrimoine sans refaire un tableau croisé.',
   },
   {
     icon: 'check',

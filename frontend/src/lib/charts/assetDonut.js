@@ -1,12 +1,10 @@
-// 2. Répartition par type d'actif : table `portfolio`, colonne Asset, montants « Assets Master Currency » > 0.
+// Anneau des types d'actifs, utilisé par la page Portfolio Snapshot (SnapshotPage.vue, lib/snapshot.js).
 // L'anneau suit l'ordre fixe des couleurs (jamais l'ordre de taille) pour que chaque type garde sa place et sa
 // couleur d'une synchronisation à l'autre ; la liste à côté donne les montants, du plus gros au plus petit.
 
-import { requireColumns, rowsOf, splitBy } from '../aggregate.js'
 import { baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { capitalize, euro, percent } from '../format.js'
 import { CONTEXT, FONT, INK, INK_2, SURFACE, assignAssetColors } from '../palette.js'
-import { dataSubtitle } from './common.js'
 
 /** Regroupe les types sans couleur libre en « Autres » et prépare les parts. */
 export function assetParts(entries, total) {
@@ -73,51 +71,4 @@ export function donutOption(parts, total) {
       },
     ],
   }
-}
-
-export default {
-  slug: 'repartition-actifs',
-  title: 'Répartition par type d’actif',
-  summary: 'Ce que pèse chaque type d’actif dans ton patrimoine.',
-  group: 'repartition',
-  thumb: 'donut',
-  table: 'portfolio',
-  explain: [
-    'Chaque part de l’anneau est un type d’actif (actions, immobilier, liquidités, crypto…). Sa taille est son poids dans le total de tes actifs. Les dettes ne sont pas comptées ici.',
-    'La liste à côté donne les montants exacts et les parts, du plus gros au plus petit. Chaque type garde la même couleur d’un graphique à l’autre.',
-  ],
-  source: 'Table portfolio, colonnes Asset et Assets Master Currency (lignes supérieures à 0).',
-
-  build(table) {
-    const cols = requireColumns(table, { asset: ['Asset'], value: ['Assets Master Currency'] })
-    const { entries, total } = splitBy(rowsOf(table), cols.asset, cols.value)
-    if (!entries.length) {
-      return { empty: 'Aucun montant supérieur à 0 dans la table portfolio.' }
-    }
-
-    const parts = assetParts(entries, total)
-    const byValue = [...parts].sort((a, b) => b.value - a.value)
-    const biggest = byValue[0]
-
-    return {
-      subtitle: dataSubtitle(table, 'Positions au'),
-      summary: `Anneau de ${parts.length} types d’actifs pour ${euro(total)} au total. Le plus gros : ${biggest.name}, ${percent(biggest.share)}.`,
-      option: donutOption(parts, total),
-      height: 320,
-      legend: byValue.map((part) => ({
-        name: part.name,
-        color: part.color,
-        amount: euro(part.value),
-        share: percent(part.share),
-      })),
-      table: {
-        columns: ['Type d’actif', 'Montant', 'Part'],
-        numeric: [false, true, true],
-        rows: [
-          ...byValue.map((part) => [part.name, euro(part.value), percent(part.share)]),
-          ['Total', euro(total), percent(1)],
-        ],
-      },
-    }
-  },
 }

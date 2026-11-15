@@ -23,8 +23,8 @@
           <li v-for="link in LINKS" :key="link.label">
             <router-link
               :to="link.to"
-              :class="linkClasses"
-              active-class="!text-ink after:!bg-accent"
+              :class="[linkClasses, isActive(link) ? '!text-ink after:!bg-accent' : '']"
+              :aria-current="isActive(link) ? 'page' : undefined"
             >
               {{ link.label }}
             </router-link>
@@ -67,7 +67,8 @@
           <router-link
             :to="link.to"
             class="flex h-12 items-center rounded-lg px-3 text-base font-medium text-ink-2 hover:bg-wash hover:text-ink"
-            active-class="bg-accent-wash !text-accent"
+            :class="isActive(link) ? 'bg-accent-wash !text-accent' : ''"
+            :aria-current="isActive(link) ? 'page' : undefined"
           >
             {{ link.label }}
           </router-link>
@@ -87,10 +88,17 @@ import { useRoute } from 'vue-router'
 import AppButton from './ui/AppButton.vue'
 
 // Les chemins existants restent valides : /sheet (alias /source) et /graphiques (alias /echart)
+// `under` : adresses qui font partie de la rubrique (la page d'un graphique est sous /graphiques/…)
 const LINKS = [
-  { label: 'GoogleSheet', to: '/sheet' },
-  { label: 'Graphiques', to: '/graphiques' },
+  { label: 'GoogleSheet', to: '/sheet', under: ['/sheet', '/source'] },
+  {
+    label: 'Graphiques',
+    to: '/graphiques',
+    under: ['/graphiques', '/echart', '/portfolio-flow', '/portfolio-snapshot', '/strategie'],
+  },
 ]
+
+const isActive = (link) => link.under.some((base) => route.path === base || route.path.startsWith(`${base}/`))
 
 // Lien actif : trait d'accent sous le texte, collé au bord bas de l'en-tête
 const linkClasses =

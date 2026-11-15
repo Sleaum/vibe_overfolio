@@ -1,17 +1,8 @@
-// 1. Évolution du patrimoine : table `_history`, une ligne par date.
+// Courbe du patrimoine net : utilisée par l'aperçu de la page d'accueil (components/landing/HeroPreview.vue).
+// Ce n'est plus un graphique de la page /graphiques ; la fonction garde les deux modes (aperçu et version complète).
 
-import { buildEvolution, findColumn, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider, axisLabelStyle } from '../chartTheme.js'
-import {
-  axisEuroFormatter,
-  euro,
-  formatDateLong,
-  formatDateNumeric,
-  formatDateShort,
-  formatDayMonth,
-  formatMonthYear,
-  plural,
-} from '../format.js'
+import { axisEuroFormatter, euro, formatDateLong, formatDayMonth, formatMonthYear } from '../format.js'
 import { AXIS, CONTEXT, FONT, INK, SERIES, SURFACE } from '../palette.js'
 
 const DAY = 86_400_000
@@ -112,48 +103,4 @@ export function evolutionOption(points, { preview = false } = {}) {
     dataZoom: zoom ? [zoomSlider()] : undefined,
     series: preview ? [net, endPoint] : [assets, net, endPoint],
   }
-}
-
-export default {
-  slug: 'evolution-patrimoine',
-  title: 'Évolution du patrimoine',
-  summary: 'Ton patrimoine net, date après date.',
-  group: 'evolution',
-  thumb: 'line',
-  table: '_history',
-  explain: [
-    'Chaque point de la courbe bleue est le total de tes actifs à une date, moins tes dettes : c’est ton patrimoine net. La courbe grise montre les actifs seuls.',
-    'L’écart entre les deux courbes correspond à tes dettes. Passe la souris sur la courbe (ou touche-la) pour lire les montants d’une date.',
-  ],
-  source:
-    'Table _history, colonnes Date, Assets Master Currency et Liabilities Master Currency, additionnées par date. Patrimoine net = actifs + dettes (les dettes sont négatives).',
-
-  build(table) {
-    const cols = requireColumns(table, { date: ['Date'], assets: ['Assets Master Currency'] })
-    const liabilities = findColumn(table.columns, ['Liabilities Master Currency'])
-    const points = buildEvolution(rowsOf(table), cols.date, cols.assets, liabilities)
-
-    if (points.length < 2) {
-      return { empty: 'Il faut au moins deux dates dans la table _history pour tracer une courbe.' }
-    }
-
-    const first = points[0]
-    const last = points[points.length - 1]
-    return {
-      subtitle: `Données au ${formatDateLong(last.date)}, ${plural(points.length, 'relevé')} depuis le ${formatDateShort(first.date)}.`,
-      summary: `Courbe du patrimoine net : ${euro(first.net)} le ${formatDateShort(first.date)}, ${euro(last.net)} le ${formatDateShort(last.date)}.`,
-      option: evolutionOption(points),
-      height: 400,
-      table: {
-        columns: ['Date', 'Patrimoine net', 'Actifs', 'Dettes'],
-        numeric: [false, true, true, true],
-        rows: [...points]
-          .reverse()
-          .map((p) => [formatDateNumeric(p.date), euro(p.net), euro(p.assets), euro(p.liabilities)]),
-      },
-      note: liabilities
-        ? ''
-        : 'La colonne « Liabilities Master Currency » est absente de la table : le patrimoine net est égal aux actifs.',
-    }
-  },
 }

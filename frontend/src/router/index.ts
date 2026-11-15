@@ -22,6 +22,9 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/EchartPage.vue'),
     meta: { title: 'Graphiques' },
   },
+  { path: '/portfolio-snapshot', name: 'PortfolioSnapshot', component: () => import('../views/SnapshotPage.vue'), meta: { title: 'Portfolio Snapshot' } },
+  { path: '/portfolio-flow', name: 'PortfolioFlow', component: () => import('../views/PortfolioFlowPage.vue'), meta: { title: 'Portfolio Flow' } },
+  { path: '/strategie', name: 'Strategy', component: () => import('../views/StrategyPage.vue'), meta: { title: 'Stratégie CTO' } },
   // Pas de meta.title : la page du graphique donne elle-même son titre
   { path: '/graphiques/:slug', name: 'ChartPage', component: () => import('../views/GraphiquePage.vue') },
   { path: '/board', name: 'BoardPage', component: () => import('../views/DashboardPage.vue'), meta: { title: 'Tableau de bord' } },

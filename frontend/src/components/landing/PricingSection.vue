@@ -9,7 +9,7 @@
         <div class="col-span-12 lg:col-span-5">
           <h2 id="titre-tarifs" class="text-h2 text-ink">Un seul abonnement</h2>
           <p class="mt-4 max-w-md text-lead text-ink-2">
-            Tu paies à l’année et tu retrouves tout Overfolio : la page GoogleSheet et les sept graphiques.
+            Tu paies à l’année et tu retrouves tout Overfolio : la page GoogleSheet et les quatre pages de graphiques.
           </p>
         </div>
 
@@ -60,7 +60,7 @@ const PRICE = '35 €'
 
 const INCLUDED = [
   'Les cinq onglets de ta feuille en tableau, avec recherche et pagination',
-  'Les sept graphiques, chacun avec son explication',
+  'Les quatre pages de graphiques, chacune avec son explication',
   'L’actualisation d’un clic depuis la page GoogleSheet',
   'Ta feuille n’est jamais modifiée',
 ]

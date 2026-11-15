@@ -2,7 +2,7 @@
 // Règle de la feuille : on ne somme que « Assets Master Currency » et « Liabilities Master Currency ».
 // « Equity » mélange les devises et « Currency Price » n'est que la devise de cotation : jamais pour un total.
 
-import { isoToTimestamp, monthKey, monthsBetween, toIsoDate } from './dates.js'
+import { isoToTimestamp, toIsoDate } from './dates.js'
 
 /** Erreur dont le message est destiné à être lu tel quel dans la page. */
 export class DataError extends Error {
@@ -96,44 +96,6 @@ export function splitBy(rows, keyColumn, valueColumn, emptyLabel = 'Non renseign
   return { entries, total }
 }
 
-/**
- * Totaux croisés : une barre par `groupColumn`, découpée par `seriesColumn`.
- * Groupes et séries sont triés du plus gros au plus petit total.
- */
-export function stackBy(rows, groupColumn, seriesColumn, valueColumn, emptyLabel = 'Non renseigné') {
-  const groups = new Map()
-  const series = new Map()
-  const cells = new Map()
-
-  for (const row of rows) {
-    const value = toNumber(row[valueColumn])
-    if (!(value > 0)) continue
-    const groupName = toLabel(row[groupColumn], emptyLabel)
-    const seriesName = toLabel(row[seriesColumn], emptyLabel)
-    const groupKey = groupName.toLowerCase()
-    const seriesKey = seriesName.toLowerCase()
-
-    const group = groups.get(groupKey) ?? { name: groupName, total: 0 }
-    group.total += value
-    groups.set(groupKey, group)
-
-    const serie = series.get(seriesKey) ?? { name: seriesName, total: 0 }
-    serie.total += value
-    series.set(seriesKey, serie)
-
-    const cellKey = `${groupKey}\u0000${seriesKey}`
-    cells.set(cellKey, (cells.get(cellKey) ?? 0) + value)
-  }
-
-  const byTotal = (a, b) => b.total - a.total || a.name.localeCompare(b.name, 'fr')
-  return {
-    groups: [...groups.values()].sort(byTotal),
-    series: [...series.values()].sort(byTotal),
-    value: (groupName, seriesName) =>
-      cells.get(`${groupName.toLowerCase()}\u0000${seriesName.toLowerCase()}`) ?? 0,
-  }
-}
-
 /** Courbe : une ligne par date, somme des actifs, somme des dettes, patrimoine net = actifs + dettes. */
 export function buildEvolution(rows, dateColumn, assetsColumn, liabilitiesColumn = null) {
   const byDate = new Map()
@@ -197,25 +159,4 @@ export function buildFlow(rows, sourceColumn, targetColumn, valueColumn) {
   const links = inOrder.filter((link) => kept.has(link))
   const nodes = [...new Set(links.flatMap((link) => [link.source, link.target]))]
   return { nodes, links, dropped: inOrder.length - links.length }
-}
-
-/** Entrées / sorties / taxes par mois, sans trou entre le premier et le dernier mois (240 mois au plus). */
-export function buildInOut(rows, { date, inflow, outflow, tax = null }) {
-  const months = new Map()
-  for (const row of rows) {
-    const iso = toIsoDate(row[date])
-    if (!iso) continue
-    const key = monthKey(iso)
-    const month = months.get(key) ?? { key, inflow: 0, outflow: 0, tax: 0 }
-    month.inflow += toNumber(row[inflow])
-    month.outflow += Math.abs(toNumber(row[outflow])) // une sortie compte en positif, quel que soit le signe saisi
-    if (tax) month.tax += toNumber(row[tax])
-    months.set(key, month)
-  }
-  if (!months.size) return []
-
-  const keys = [...months.keys()].sort()
-  const range = monthsBetween(keys[0], keys[keys.length - 1])
-  const recent = range.slice(-240)
-  return recent.map((key) => months.get(key) ?? { key, inflow: 0, outflow: 0, tax: 0 })
 }

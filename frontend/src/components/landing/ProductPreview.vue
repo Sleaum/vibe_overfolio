@@ -61,7 +61,7 @@
           </div>
           <figcaption class="mt-5 max-w-lg text-ink-2">
             <router-link to="/graphiques" class="font-semibold text-accent underline underline-offset-4 hover:text-accent-hover">Pages Graphiques</router-link>
-            : sept vues, chacune avec son explication et d’où viennent les chiffres.
+            : quatre pages, chacune avec son explication et d’où viennent les chiffres.
           </figcaption>
         </figure>
       </div>
