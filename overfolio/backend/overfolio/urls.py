@@ -1,0 +1,12 @@
+from django.contrib import admin
+from django.urls import path, include
+#from django.views.generic import RedirectView
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    #path('api/', include('api.urls')),
+    path('api/stripe/', include('payments.urls')),
+    path('api/sheet', include('googlesheet.urls')),
+    path('api/data/', include('googlesheet.data_urls')),
+    #path('', RedirectView.as_view(url='/api/googlesheet', permanent=False)),
+]

@@ -1,0 +1,46 @@
+// Charge une table de l'API et expose son état (données, chargement, erreur).
+// `source` : un nom de table, une ref ou une fonction qui renvoie le nom. Si le nom change, la table est rechargée.
+// Pendant un rechargement de la même table, les anciennes données restent disponibles (pas de saut d'affichage).
+
+import { isRef, onMounted, ref, watch } from 'vue'
+import { getTable } from '../lib/api.js'
+
+export function useTable(source, { immediate = true } = {}) {
+  const read = () => (typeof source === 'function' ? source() : isRef(source) ? source.value : source)
+
+  const data = ref(null)
+  const loading = ref(false)
+  const error = ref(null) // { message, status }
+  let loadedName = null
+  let lastRequest = 0
+
+  async function reload() {
+    const name = read()
+    if (!name) return
+
+    const request = ++lastRequest // une réponse tardive ne doit pas écraser la plus récente
+    if (name !== loadedName) data.value = null
+    loading.value = true
+    error.value = null
+    try {
+      const body = await getTable(name)
+      if (request !== lastRequest) return
+      data.value = body
+      loadedName = name
+    } catch (err) {
+      if (request !== lastRequest) return
+      data.value = null
+      loadedName = null
+      error.value = { message: err.message, status: err.status ?? 0 }
+    } finally {
+      if (request === lastRequest) loading.value = false
+    }
+  }
+
+  if (typeof source === 'function' || isRef(source)) {
+    watch(read, () => reload())
+  }
+  if (immediate) onMounted(reload)
+
+  return { data, loading, error, reload }
+}
