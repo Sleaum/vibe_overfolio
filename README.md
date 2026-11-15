@@ -33,22 +33,27 @@ overfolio/
 │       ├── views/                  # une page par route
 │       │   ├── HeroSection.vue     #   /                   présentation et vente
 │       │   ├── SourcePage.vue      #   /sheet              onglets de la base, bouton Actualiser
-│       │   ├── EchartPage.vue      #   /graphiques         index des graphiques
+│       │   ├── EchartPage.vue      #   /graphiques         les quatre cartes
 │       │   ├── GraphiquePage.vue   #   /graphiques/<nom>   un graphique
+│       │   ├── PortfolioFlowPage.vue #  /portfolio-flow    l'historique mois par mois
+│       │   ├── SnapshotPage.vue    #   /portfolio-snapshot  le patrimoine d'aujourd'hui
+│       │   ├── StrategyPage.vue    #   /strategie          les actions en anneaux à deux niveaux
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
 │       │   └── NewPage.vue, DashboardPage.vue   # /newpage (connexion), /board
 │       ├── components/
 │       │   ├── Header.vue, Footer.vue, SubscriptionButton.vue
 │       │   ├── ui/                 # AppButton, SegmentedControl
 │       │   ├── landing/            # sections de la page de présentation
-│       │   └── charts/             # BaseChart, ChartView, ChartThumb, DataTableView
+│       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartThumb, DataTableView, ShareBars, StrategyCard
 │       ├── composables/            # useTable (charge une table), useReducedMotion
 │       └── lib/
 │           ├── api.js              # appels /api/data/...
 │           ├── aggregate.js, dates.js, format.js   # calculs et formats français
 │           ├── palette.js, chartTheme.js, echartsSetup.js
+│           ├── snapshot.js         # calculs de la page Portfolio Snapshot
+│           ├── strategy.js         # calculs de la page Stratégie CTO
 │           ├── sample.js           # données FICTIVES de la page de présentation
-│           └── charts/             # une spécification par graphique + index.js
+│           └── charts/             # une spécification par graphique, index.js (liste et cartes) ; aides : sunburst, assetDonut, evolution
 ├── nginx/
 │   └── default.conf
 ├── .env                            # secrets, NE PAS COMMITER
@@ -163,7 +168,7 @@ docker compose up --build -d
 |---|---|
 | http://localhost | Page de présentation : promesse, aperçu, étapes, tarif, questions |
 | http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Actualiser). L'ancienne adresse `/source` fonctionne toujours |
-| http://localhost/graphiques | Les 7 graphiques, une page chacun (`/graphiques/<nom>`). L'ancienne adresse `/echart` fonctionne toujours |
+| http://localhost/graphiques | Quatre cartes : Portfolio Flow, Portfolio Snapshot, Stratégie CTO et Flux du budget. L'ancienne adresse `/echart` fonctionne toujours |
 | http://localhost/admin/ | Admin Django |
 
 Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx.
@@ -184,11 +189,11 @@ Onglets utilisés :
 
 | Onglet | Contenu | Utilisé par |
 |---|---|---|
-| `portfolio` | Positions actuelles (en-tête en ligne 2, la ligne 1 est une synthèse) | Répartition par type d'actif, par zone, par compte ou courtier, plus grosses positions |
-| `_history` | Historique des relevés | Évolution du patrimoine |
-| `inout` | Entrées et sorties d'argent | Entrées et sorties |
+| `portfolio` | Positions actuelles (en-tête en ligne 2, la ligne 1 est une synthèse) | Portfolio Snapshot, Stratégie CTO |
+| `_history` | Historique des relevés | Portfolio Flow, variations de Portfolio Snapshot |
+| `inout` | Entrées et sorties d'argent | Rien pour l'instant (synchronisé, sans graphique) |
 | `budget` | Budget : de quelle source vers quelle destination | Flux du budget |
-| `stock` | Valeurs suivies | Page GoogleSheet seulement |
+| `stock` | Valeurs suivies | Stratégie CTO (secteur, moat, note…), page GoogleSheet |
 
 La lecture détecte seule la ligne d'en-tête. Les nombres sont lus en valeurs brutes (pas de format régional ni de symbole monétaire).
 
@@ -256,7 +261,7 @@ Chemin 1 : lecture en direct (toujours à jour, cache 60 s)
 
 Chemin 2 : lecture de la base (rapide, à jour après synchronisation)
   Navigateur ──► /api/data/<onglet>/ ──► PostgreSQL
-  utilisé par : la page GoogleSheet et les 7 graphiques
+  utilisé par : la page GoogleSheet et les pages de graphiques
 
 Synchronisation Google Sheets ──► PostgreSQL
   - commande : python manage.py sync_sheets
@@ -341,39 +346,78 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que l
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, tarif (`/#tarifs`), questions fréquentes |
 | `/sheet` | `views/SourcePage.vue` | Menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
-| `/graphiques` | `views/EchartPage.vue` | Une carte par graphique, avec miniature |
-| `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau |
+| `/graphiques` | `views/EchartPage.vue` | Quatre cartes avec miniature : Portfolio Flow, Portfolio Snapshot, Stratégie CTO, Flux du budget (liste `GALLERY` de `lib/charts/index.js`) |
+| `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des cinq de Portfolio Flow (leur fil d'Ariane passe par Portfolio Flow) |
+| `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartCard.vue` | L'historique mois par mois : les 5 graphiques « Portfolio Flow » sur une seule page |
+| `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
+| `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `lib/strategy.js` et `lib/charts/sunburst.js` | Stratégie CTO : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
 | `/newpage`, `/board` | `NewPage.vue`, `DashboardPage.vue` | Connexion et tableau de bord : pas refaits, ils gardent leur ancien style |
 
 Les pages, hors accueil, sont chargées à la demande : ECharts n'est téléchargé que lorsqu'on ouvre un graphique.
 
-### Les 7 graphiques
+### Les graphiques
 
-Chaque graphique est un fichier de `frontend/src/lib/charts/`. Les noms de colonnes doivent être ceux de la table ; la casse, les accents et les espaces sont ignorés.
+Six graphiques ont leur propre page `/graphiques/<nom>` : Flux du budget et les cinq de Portfolio Flow. Chacun est un fichier de `frontend/src/lib/charts/`. Les noms de colonnes doivent être ceux de la table ; la casse, les accents et les espaces sont ignorés.
 
 | `<nom>` dans l'adresse | Table | Colonnes lues |
 |---|---|---|
-| `evolution-patrimoine` | `_history` | `Date`, `Assets Master Currency`, `Liabilities Master Currency` (facultative). Somme par date ; patrimoine net = actifs + dettes |
-| `entrees-sorties` | `inout` | `date`, `in`, `out`, `tax` (facultative). Totaux par mois |
 | `flux-budget` | `budget` | `Source`, `Destination`, `Valeur`. Lignes supérieures à 0, doublons additionnés |
-| `repartition-actifs` | `portfolio` | `Asset`, `Assets Master Currency` |
-| `repartition-zones` | `portfolio` | `Area`, `Assets Master Currency` |
-| `repartition-comptes` | `portfolio` | `Account` et, si elle existe, `Broker` (le choix « Courtier » n'apparaît qu'avec cette colonne), `Asset`, `Assets Master Currency` |
-| `plus-grosses-positions` | `portfolio` | `Instrument`, `Assets Master Currency` (les 10 plus grosses) |
+| `patrimoine-devises` | `_history` | `Date` et une colonne de montants par devise dont le nom contient `CHF`, `EUR` ou `USD` (par exemple `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées |
+| `repartition-mensuelle` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Barres à 100 % par mois |
+| `evolution-par-actif` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Une courbe par type d'actif |
+| `variation-mensuelle` | `_history` | `Date`, `Assets Master Currency`. Variation en % du total d'un mois à l'autre |
+| `patrimoine-tendance` | `_history` | `Date` et la colonne en euros (`EUR`, sinon `Assets Master Currency`). Barres par relevé et droite de tendance |
+
+Les cinq derniers forment la page `/portfolio-flow`. Ils prennent, pour chaque mois, le **dernier relevé** du mois (plusieurs relevés par mois ne s'additionnent pas). Une date isolée, à plus de 6 mois des autres (un objectif en 2039, un vieux relevé), est écartée des graphiques mensuels, et la page le signale ; le graphique `patrimoine-tendance` garde toutes les dates. Le graphique Entrées et sorties de l'ancienne page Looker Studio n'est pas repris : l'onglet `inout` n'est pas encore renseigné.
+
+Les anciens graphiques à part (évolution du patrimoine, entrées et sorties, répartition par type d'actif, par zone, par compte, plus grosses positions) ont été retirés : Portfolio Snapshot et Stratégie CTO couvrent la répartition. Le fichier `lib/charts/evolution.js` reste, mais seulement comme courbe de l'aperçu de la page d'accueil.
 
 Les totaux utilisent uniquement `Assets Master Currency` (et `Liabilities Master Currency`) : `Currency Price` est la devise de cotation et `Equity` mélange plusieurs devises, donc aucun des deux ne sert à additionner.
 
 Si une colonne manque, la page du graphique le dit en clair et renvoie vers la page GoogleSheet. Si la table n'a jamais été synchronisée, elle propose d'ouvrir l'onglet correspondant pour cliquer sur Actualiser.
 
+### Portfolio Snapshot
+
+La page `/portfolio-snapshot` lit la table `portfolio` (et `_history` pour deux chiffres). Tous les calculs sont dans `frontend/src/lib/snapshot.js`.
+
+| Élément | Calcul |
+|---|---|
+| Patrimoine brut | Somme des `Assets Master Currency` supérieurs à 0 |
+| Patrimoine net | Brut + somme des `Liabilities Master Currency` (les dettes sont négatives). Sans cette colonne, net = brut |
+| Cette année, Ce mois-ci | Variation du total de `_history` entre le dernier relevé avant le 1er janvier (ou le 1er du mois) et le dernier relevé jusqu'à la date des positions. Elle inclut tes versements et retraits : ce n'est pas un rendement. Sans assez de relevés, elle affiche « – » |
+| Détail par type d'actif | Un bloc par valeur de `Asset`, avec des barres pour chaque découpage dont la colonne existe : Sous-type (`Sub Asset`), Instrument (`Instrument`), Enveloppe (`Envelope`, `Enveloppe`, sinon `Account`), Courtier (`Broker`), Zone (`Area`). Les 6 plus gros sont affichés, le reste est regroupé en « Autres » |
+
+Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en bas les colonnes réellement lues pour chaque découpage, ce qui permet de vérifier d'un coup d'œil. Pour accepter un autre nom de colonne, ajouter ce nom dans la liste `DIMENSIONS` de `snapshot.js`. La carte du monde de Looker Studio est remplacée par une liste de zones : une carte demanderait un fichier de fonds de carte, donc une nouvelle ressource.
+
+### Stratégie CTO
+
+La page `/strategie` reprend la page « Stratégie CTO » de Looker Studio : sept anneaux à deux niveaux (graphiques « sunburst » d'ECharts, sans bibliothèque en plus). L'anneau intérieur donne les catégories, l'anneau extérieur leur détail, en nuances de la même couleur. Tous les calculs sont dans `frontend/src/lib/strategy.js`.
+
+| Anneau | Intérieur | Extérieur | Colonnes cherchées (la première trouvée est lue) |
+|---|---|---|---|
+| Secteur | secteur | instrument | `Sector`, `Secteur` |
+| Moat | moat | instrument | `Moat` |
+| Localisation | zone | instrument | `Area`, `Localisation`, `Pays`, `Country`, `Zone` |
+| Note S&P | note | instrument | `Note SP Trié`, `Note SP`, `S&P Rating`, `Rating`, `Notation` |
+| Business | modèle d'affaires | instrument | `Business`, `Business Model` |
+| Place de cotation | place | instrument | `Exchange`, `New Field`, `Place`, `Bourse` ; sinon le début du ticker avant `:` (`NYSE:KO` → `NYSE`) |
+| Instruments | instrument (`Instrument`) | enveloppe | `Envelope`, `Enveloppe`, `Account`, `Compte` |
+
+- **Quelles lignes ?** Seules les lignes dont `Asset` vaut `public equity` (ou `equity`, `action`, `stock`) et dont `Assets Master Currency` est supérieur à 0. S'il n'y en a aucune, toutes les lignes sont comptées et la page le dit.
+- **Où sont les attributs ?** Chaque attribut est cherché d'abord dans `portfolio`, puis dans la table `stock`, rattachée ligne à ligne par `Ticker` (sinon `Instrument`, sinon `Name`). Un anneau dont la colonne n'existe nulle part n'est pas affiché : la page l'écrit dans « Anneaux non affichés », avec le nom de colonne attendu. Le bloc « Colonnes lues dans la feuille », en bas de la page, montre d’où vient chaque anneau.
+- **Enveloppe.** Le menu « Enveloppe » filtre tous les anneaux à la fois. Il propose « Toutes les enveloppes », « PEA et CTO » (choix par défaut quand les deux existent), puis chaque enveloppe. C'est la lecture des filtres « action / peacto / cto » des graphiques de Looker Studio : si ta feuille les définit autrement, le menu est le seul endroit à adapter (`buildScopes` dans `strategy.js`).
+- **Couleurs.** Les 8 plus grosses catégories prennent les couleurs de la palette dans l'ordre ; le reste est regroupé en « Autres (n) » (gris), « Non renseigné » est toujours en dernier (gris clair). L'anneau extérieur montre au plus 6 détails par catégorie puis « Autres (n) » ; la vue Tableau liste tout. Les notes S&P suivent l'échelle (AAA, AA+, AA…) au lieu de la taille.
+- Pour accepter un autre nom de colonne, l'ajouter dans la liste `ATTRIBUTES` de `strategy.js`.
+
 ### Ajouter un graphique
 
-1. Copier `frontend/src/lib/charts/evolution.js` sous un nouveau nom (c'est le plus simple à lire).
-2. Renseigner `slug` (l'adresse), `title`, `summary` (une phrase, affichée sur la carte), `group` (`evolution` ou `repartition`), `thumb` (miniature : `line`, `donut`, `bars`, `stacked`, `rank`, `sankey` ou `grouped`), `table` (l'onglet lu), `explain` (un ou deux paragraphes) et `source` (les colonnes utilisées).
+1. Copier `frontend/src/lib/charts/budgetFlow.js` sous un nouveau nom (c'est le plus simple à lire).
+2. Renseigner `slug` (l'adresse), `title`, `summary` (une phrase), `table` (l'onglet lu), `explain` (un ou deux paragraphes) et `source` (les colonnes utilisées). Ajouter `thumb` (miniature de la carte : `line`, `donut`, `sunburst` ou `sankey`) si le graphique a sa propre carte.
 3. Écrire `build(table)` : `requireColumns(table, …)` retrouve les colonnes et lève un message clair si l'une manque, puis la fonction renvoie `{ subtitle, summary, option, height, table: { columns, numeric, rows } }`, ou `{ empty: 'message' }` quand il n'y a rien à afficher.
-4. L'ajouter à `frontend/src/lib/charts/index.js` (`import` et tableau `CHARTS`). La carte, la page du graphique et les liens précédent / suivant apparaissent seuls.
+4. L'ajouter à `frontend/src/lib/charts/index.js` : `import` et tableau `CHARTS` (la page `/graphiques/<slug>` apparaît seule). Pour une carte sur la page Graphiques, ajouter aussi une entrée à `GALLERY` ; pour l'intégrer à Portfolio Flow, l'ajouter à `FLOW_CHARTS`.
 
-Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) doit être enregistré dans `lib/echartsSetup.js` (actuellement : barres, courbes, secteurs, Sankey, nuage de points) ; une nouvelle miniature s'ajoute dans `components/charts/ChartThumb.vue`.
+Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) doit être enregistré dans `lib/echartsSetup.js` (actuellement : barres, courbes, secteurs, Sankey, nuage de points, anneaux à deux niveaux, ligne de repère) ; une nouvelle miniature s'ajoute dans `components/charts/ChartThumb.vue`.
 
 ### Apparence
 
@@ -438,7 +482,7 @@ docker compose exec db psql -U overfoliouser -d overfoliodb
 | `Onglet 'x' introuvable` | Nom d'onglet différent (casse, espaces) | Utiliser le nom exact |
 | `Google Drive API has not been used...` | API Drive désactivée | L'activer, ou définir `GOOGLE_SHEET_ID` |
 | La page GoogleSheet ou un graphique dit que la table n'est pas dans la base | Onglet jamais synchronisé | Bouton Actualiser de la page GoogleSheet, ou `sync_sheets` |
-| « Les données ne correspondent pas à ce graphique » | Nom de colonne différent de celui attendu | Comparer avec la table « Les 7 graphiques » ci-dessus, puis corriger la feuille ou la spécification du graphique |
+| « Les données ne correspondent pas à ce graphique » | Nom de colonne différent de celui attendu | Comparer avec la table « Les graphiques » ci-dessus, puis corriger la feuille ou la spécification du graphique |
 | Un graphique de répartition ou de flux est vide alors que la table a des lignes | Montants à 0, négatifs ou non numériques | Ces lignes sont ignorées ; vérifier la colonne de montant dans la page GoogleSheet |
 | L'interface n'a pas changé après une modification du front | Le build Vue n'a pas été refait | `./init.sh` ou `docker compose up --build -d`, puis recharger sans cache |
 | `failed to prepare extraction snapshot` (build) | Stockage d'images Docker incohérent | `docker image rm -f overfolio-backend overfolio-frontend`, `docker builder prune -af` |
