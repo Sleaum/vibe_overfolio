@@ -352,7 +352,8 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que l
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `lib/strategy.js` et `lib/charts/sunburst.js` | Stratégie CTO : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
-| `/newpage`, `/board` | `NewPage.vue`, `DashboardPage.vue` | Connexion et tableau de bord : pas refaits, ils gardent leur ancien style |
+| `/newpage` | `views/NewPage.vue` | Connexion, au style du site (fond blanc, carte à filet fin, bleu d'accent). La connexion est encore une simulation : rien n'est envoyé au serveur |
+| `/board` | `views/DashboardPage.vue` | Tableau de bord : pas refait, il garde son ancien style |
 
 Les pages, hors accueil, sont chargées à la demande : ECharts n'est téléchargé que lorsqu'on ouvre un graphique.
 
