@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import SheetRow, SheetTable
+from .models import SheetConfig, SheetRow, SheetTable
 
 
 @admin.register(SheetTable)
@@ -18,3 +18,9 @@ class SheetRowAdmin(admin.ModelAdmin):
     @admin.display(description="Aperçu")
     def apercu(self, obj):
         return str(obj.data)[:120]
+
+
+@admin.register(SheetConfig)
+class SheetConfigAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "client_email", "sheet_id", "doc_name", "updated_at")
+    exclude = ("private_key",)  # la clé privée ne s'affiche pas dans l'admin

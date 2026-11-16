@@ -1,5 +1,5 @@
+import hashlib
 import logging
-import os
 import re
 from typing import Any, List, Optional, Tuple
 
@@ -8,9 +8,10 @@ from requests.exceptions import RequestException
 
 logger = logging.getLogger(__name__)
 
-# Client gspread créé à la première requête (et non au démarrage de Django),
-# puis réutilisé. Si l'initialisation échoue, elle est retentée à la requête suivante.
+# Client gspread créé à la première requête (et non au démarrage de Django), puis réutilisé
+# tant que les identifiants ne changent pas. Si l'initialisation échoue, elle est retentée ensuite.
 _client: Optional[gspread.client.Client] = None
+_client_fingerprint: str = ""
 
 _REQUIRED_FIELDS = ("type", "project_id", "private_key", "client_email")
 _NUMBER_RE = re.compile(r"^-?(0|[1-9]\d*)(\.\d+)?$")
@@ -34,42 +35,40 @@ class SheetAPIError(SheetError):
 
 
 def get_credentials() -> dict:
-    """Identifiants du compte de service, lus dans les variables d'environnement."""
-    private_key = os.getenv("PRIVATE_KEY") or ""
-    # Selon l'outil qui a chargé le .env, les "\n" peuvent rester littéraux.
-    private_key = private_key.replace("\\n", "\n")
-    return {
-        "type": os.getenv("TYPE"),
-        "project_id": os.getenv("PROJECT_ID"),
-        "private_key_id": os.getenv("PRIVATE_KEY_ID"),
-        "private_key": private_key,
-        "client_email": os.getenv("CLIENT_EMAIL"),
-        "client_id": os.getenv("CLIENT_ID"),
-        "auth_uri": os.getenv("AUTH_URI"),
-        "token_uri": os.getenv("TOKEN_URI"),
-        "auth_provider_x509_cert_url": os.getenv("AUTH_PROVIDER_X509_CERT_URL"),
-        "client_x509_cert_url": os.getenv("CLIENT_X509_CERT_URL"),
-        "universe_domain": os.getenv("UNIVERSE_DOMAIN"),
-    }
+    """Identifiants du compte de service : ceux saisis sur la page GoogleSheet, sinon ceux du .env."""
+    from . import config  # import différé : config dépend des modèles
+
+    return config.credentials()
+
+
+def _fingerprint(credentials: dict) -> str:
+    raw = "\x00".join(f"{key}={credentials.get(key) or ''}" for key in sorted(credentials))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def get_client() -> gspread.client.Client:
-    global _client
-    if _client is not None:
-        return _client
+    """Client gspread réutilisé tant que les identifiants ne changent pas."""
+    global _client, _client_fingerprint
 
     credentials = get_credentials()
+    fingerprint = _fingerprint(credentials)
+    if _client is not None and fingerprint == _client_fingerprint:
+        return _client
+
     missing = [f for f in _REQUIRED_FIELDS if not credentials.get(f)]
     if missing:
         raise SheetConfigError(
-            "Identifiants Google incomplets, variables manquantes : "
-            + ", ".join(f.upper() for f in missing)
+            "Identifiants Google incomplets, champs manquants : "
+            + ", ".join(missing)
+            + ". Complète-les sur la page GoogleSheet."
         )
     try:
         _client = gspread.service_account_from_dict(credentials)
     except Exception as exc:  # clé PEM illisible, etc.
+        _client = None
         logger.exception("Initialisation du client Google Sheets impossible")
         raise SheetConfigError(f"Identifiants Google invalides : {exc}") from exc
+    _client_fingerprint = fingerprint
     return _client
 
 
@@ -176,17 +175,19 @@ def open_spreadsheet(doc_name: str):
     """
     Ouvre le document Google Sheets.
 
-    Si GOOGLE_SHEET_ID est défini, il est ouvert par son identifiant (partie de l'URL
-    entre /d/ et /edit) : pas de recherche par nom, donc pas besoin de l'API Drive.
-    Sinon il est recherché par son nom (doc_name).
+    Si un identifiant de document est configuré (page GoogleSheet ou GOOGLE_SHEET_ID), il est ouvert
+    par cet identifiant (partie de l'URL entre /d/ et /edit) : pas de recherche par nom, donc pas
+    besoin de l'API Drive. Sinon il est recherché par son nom (doc_name).
     """
+    from . import config
+
     client = get_client()
-    sheet_id = os.getenv("GOOGLE_SHEET_ID", "").strip()
+    sheet_id = config.sheet_id()
     try:
         return client.open_by_key(sheet_id) if sheet_id else client.open(doc_name)
     except gspread.exceptions.SpreadsheetNotFound:
-        email = os.getenv("CLIENT_EMAIL", "le compte de service")
-        what = "GOOGLE_SHEET_ID" if sheet_id else f"le nom '{doc_name}'"
+        email = get_credentials().get("client_email") or "le compte de service"
+        what = "l'identifiant du document" if sheet_id else f"le nom '{doc_name}'"
         raise SheetNotFound(
             f"Feuille introuvable (vérifie {what}) ou non partagée avec {email}."
         )

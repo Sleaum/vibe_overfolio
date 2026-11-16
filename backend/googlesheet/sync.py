@@ -1,25 +1,24 @@
 """Recopie des onglets du Google Sheet dans la base de données (PostgreSQL)."""
 import logging
-import os
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from django.db import transaction
 from django.utils import timezone
 
+from . import config
+from .config import DEFAULT_TABS
 from .models import SheetRow, SheetTable
 from .services import SheetError, open_spreadsheet, parse_values, read_worksheet_values
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_TABS = ["portfolio", "inout", "stock", "budget", "_history"]
+__all__ = ["DEFAULT_TABS", "configured_tabs", "sync_sheets", "TabResult"]
 
 
 def configured_tabs() -> List[str]:
-    """Onglets à synchroniser : variable SHEET_SYNC_TABS (séparés par des virgules) ou liste par défaut."""
-    raw = os.getenv("SHEET_SYNC_TABS", "")
-    tabs = [name.strip() for name in raw.split(",") if name.strip()]
-    return tabs or list(DEFAULT_TABS)
+    """Onglets à synchroniser : ceux saisis sur la page GoogleSheet, sinon SHEET_SYNC_TABS, sinon la liste par défaut."""
+    return config.sync_tabs()
 
 
 @dataclass

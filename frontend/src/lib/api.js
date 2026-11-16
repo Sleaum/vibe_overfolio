@@ -3,13 +3,17 @@
 //   GET  /api/data/                 -> [{ name, row_count, synced_at }]
 //   GET  /api/data/<onglet>/        -> { name, columns[], rows[{colonne: valeur}], row_count, synced_at }
 //   POST /api/data/<onglet>/sync/   -> relit Google Sheets puis met la base à jour
-//   Erreurs : { "error": "..." } avec le code 404, 429 (trop rapproché) ou 502.
+//   GET    /api/sheet-config/       -> paramètres d'accès au Google Sheet (la clé privée n'est jamais renvoyée)
+//   PUT    /api/sheet-config/       -> enregistre les paramètres saisis
+//   DELETE /api/sheet-config/       -> revient aux valeurs du .env
+//   Erreurs : { "error": "...", "fields"?: { champ: message } } avec le code 400, 404, 429 (trop rapproché) ou 502.
 
 export class ApiError extends Error {
-  constructor(message, status = 0) {
+  constructor(message, status = 0, fields = {}) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.fields = fields // erreurs par champ d'un formulaire (code 400)
   }
 }
 
@@ -32,7 +36,7 @@ async function request(url, options = {}) {
   }
 
   if (!response.ok) {
-    throw new ApiError(body?.error || `Erreur HTTP ${response.status}`, response.status)
+    throw new ApiError(body?.error || `Erreur HTTP ${response.status}`, response.status, body?.fields || {})
   }
   if (body === null) {
     throw new ApiError("Réponse inattendue du serveur (ce n'est pas du JSON).", response.status)
@@ -46,3 +50,14 @@ export const getTable = (name) => request(`/api/data/${encodeURIComponent(name)}
 
 export const syncTable = (name) =>
   request(`/api/data/${encodeURIComponent(name)}/sync/`, { method: 'POST' })
+
+export const getSheetConfig = () => request('/api/sheet-config/')
+
+export const saveSheetConfig = (values) =>
+  request('/api/sheet-config/', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(values),
+  })
+
+export const resetSheetConfig = () => request('/api/sheet-config/', { method: 'DELETE' })

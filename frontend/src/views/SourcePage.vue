@@ -2,6 +2,7 @@
   Page « GoogleSheet » (/sheet, ancienne adresse /source conservée) : les cinq onglets de la feuille, tels que la base les contient.
   - Menu déroulant des onglets (l'onglet choisi est aussi dans l'adresse : /sheet?onglet=budget).
   - Bouton Actualiser : relit l'onglet dans Google Sheets (POST), puis recharge la liste et le tableau.
+  - Connexion à Google Sheets : formulaire des paramètres d'accès (préremplis avec le .env), voir SheetSettings.vue.
   - Tableau : en-tête fixe, nombres alignés à droite, recherche, pagination par 50 lignes, défilement horizontal sur mobile.
 -->
 <template>
@@ -10,6 +11,8 @@
       <h1 class="text-h2 text-ink">GoogleSheet</h1>
       <p class="mt-3 text-lead text-ink-2">Les onglets de ta feuille, tels qu’Overfolio les a lus.</p>
     </header>
+
+    <SheetSettings @loaded="applyConfig" @saved="onConfigSaved" />
 
     <!-- Liste des onglets : chargement -->
     <p v-if="state === 'loading-list'" role="status" class="mt-10 text-ink-2">Chargement des onglets…</p>
@@ -227,14 +230,16 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppButton from '../components/ui/AppButton.vue'
+import SheetSettings from '../components/SheetSettings.vue'
 import { useTable } from '../composables/useTable.js'
 import { listTables, syncTable } from '../lib/api.js'
 import { formatCell, formatDateTime, plural } from '../lib/format.js'
 
 const PAGE_SIZE = 50
 
-// Les cinq onglets attendus. Un onglet qui n'est pas encore en base reste choisissable : on peut le synchroniser.
-const KNOWN_TABS = ['portfolio', 'inout', 'stock', 'budget', '_history']
+// Onglets à synchroniser (formulaire de connexion). Un onglet qui n'est pas encore en base reste choisissable :
+// on peut le synchroniser. Liste par défaut en attendant les paramètres.
+const knownTabs = ref(['portfolio', 'inout', 'stock', 'budget', '_history'])
 
 const route = useRoute()
 const router = useRouter()
@@ -258,8 +263,8 @@ const { data, loading, error, reload } = useTable(selected)
 
 const options = computed(() => {
   const inBase = new Map(tables.value.map((table) => [table.name, table]))
-  const extras = tables.value.map((table) => table.name).filter((name) => !KNOWN_TABS.includes(name))
-  return [...KNOWN_TABS, ...extras].map((name) => {
+  const extras = tables.value.map((table) => table.name).filter((name) => !knownTabs.value.includes(name))
+  return [...knownTabs.value, ...extras].map((name) => {
     const info = inBase.get(name)
     return {
       name,
@@ -292,6 +297,22 @@ async function start() {
 }
 
 onMounted(start)
+
+/* ---------- Paramètres de connexion ---------- */
+
+function applyConfig(config) {
+  const tabs = (config?.values?.sync_tabs || '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+  if (tabs.length) knownTabs.value = tabs
+}
+
+function onConfigSaved(config) {
+  applyConfig(config)
+  syncError.value = ''
+  loadList({ quiet: true })
+}
 
 /* ---------- Choix de l'onglet, adresse de la page ---------- */
 

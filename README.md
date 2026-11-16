@@ -17,7 +17,8 @@ overfolio/
 │   │   ├── views.py                # GET /api/sheet (lecture en direct)
 │   │   ├── data_views.py           # /api/data/ (lecture et synchronisation de la base)
 │   │   ├── data_urls.py
-│   │   ├── models.py               # SheetTable, SheetRow
+│   │   ├── models.py               # SheetTable, SheetRow, SheetConfig
+│   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
 │   │   ├── sync.py                 # copie des onglets vers la base
 │   │   ├── admin.py
 │   │   ├── migrations/
@@ -42,6 +43,7 @@ overfolio/
 │       │   └── NewPage.vue, DashboardPage.vue   # /newpage (connexion), /board
 │       ├── components/
 │       │   ├── Header.vue, Footer.vue, SubscriptionButton.vue
+│       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
 │       │   ├── ui/                 # AppButton, SegmentedControl
 │       │   ├── landing/            # sections de la page de présentation
 │       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartThumb, DataTableView, ShareBars, StrategyCard
@@ -181,9 +183,24 @@ docker compose exec backend python manage.py createsuperuser
 
 ## Google Sheets
 
-1. Dans le projet Google Cloud du compte de service, active l'**API Google Sheets**. L'**API Drive** n'est nécessaire que si `GOOGLE_SHEET_ID` n'est pas défini.
-2. Partage le document avec l'adresse `CLIENT_EMAIL` du `.env`, en **Lecteur**. Un partage « toute personne disposant du lien » ne suffit pas pour que le compte de service le liste, mais l'ouverture par identifiant fonctionne dès que le compte y a accès.
-3. Renseigne `GOOGLE_SHEET_ID` dans `.env`.
+1. Dans le projet Google Cloud du compte de service, active l'**API Google Sheets**. L'**API Drive** n'est nécessaire que si l'identifiant du document n'est pas renseigné.
+2. Partage le document avec l'adresse du compte de service (`CLIENT_EMAIL`), en **Lecteur**. Un partage « toute personne disposant du lien » ne suffit pas pour que le compte de service le liste, mais l'ouverture par identifiant fonctionne dès que le compte y a accès.
+3. Renseigne les paramètres sur la page **GoogleSheet** (`/sheet`, bloc « Connexion à Google Sheets »), ou dans `.env`.
+
+### Paramètres saisis sur la page GoogleSheet
+
+Les variables Google du `.env` (`TYPE`, `PROJECT_ID`, `PRIVATE_KEY_ID`, `PRIVATE_KEY`, `CLIENT_EMAIL`, `CLIENT_ID`, `AUTH_URI`, `TOKEN_URI`, `AUTH_PROVIDER_X509_CERT_URL`, `CLIENT_X509_CERT_URL`, `UNIVERSE_DOMAIN`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_DOC_NAME`, `SHEET_SYNC_TABS`) se modifient aussi depuis la page GoogleSheet :
+
+- Les champs sont préremplis avec les valeurs en vigueur. Tant que rien n'a été enregistré, ce sont celles du `.env`.
+- **Enregistrer** les écrit en base (table `googlesheet_sheetconfig`, une seule ligne). Elles remplacent alors le `.env` pour la synchronisation, la commande `sync_sheets` et `/api/sheet`, sans redémarrer le backend.
+- **Revenir aux valeurs du .env** efface la ligne enregistrée.
+- **Importer le fichier JSON** remplit les champs du compte de service depuis le fichier téléchargé dans Google Cloud (lu dans le navigateur).
+- L'identifiant du document accepte aussi l'adresse complète du Google Sheet.
+- La **clé privée n'est jamais renvoyée au navigateur** : le champ reste vide. Laissé vide, la clé en vigueur est conservée.
+
+API : `GET /api/sheet-config/` (valeurs, sans la clé privée), `PUT /api/sheet-config/` (enregistre ; 400 avec `fields` si la saisie est incomplète), `DELETE /api/sheet-config/` (retour au `.env`).
+
+> ⚠️ Comme le reste de l'API, cette route est publique : toute personne qui atteint l'application peut changer le document lu. Ne pas exposer l'application sur Internet sans authentification.
 
 Onglets utilisés :
 
@@ -279,6 +296,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | GET | `/api/data/` | Liste des tables en base (nom, nombre de lignes, date de synchronisation) |
 | GET | `/api/data/<onglet>/` | Colonnes (dans l'ordre) et lignes d'une table |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
+| GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet (voir « Paramètres saisis sur la page GoogleSheet ») |
 | POST | `/api/stripe/...` | Paiements Stripe |
 
 Les erreurs sont renvoyées en JSON `{"error": "..."}` : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google).
@@ -496,7 +514,7 @@ docker compose exec db psql -U overfoliouser -d overfoliodb
 - `.env` ne doit jamais être commité, ni les fichiers `env` ou `backend/overfolio/.env`. Si une clé privée a été exposée (capture d'écran, commit), la révoquer dans Google Cloud (IAM → Comptes de service → Clés) et en générer une nouvelle.
 - Ne partage pas le Google Sheet par lien public : il contient l'intégralité du patrimoine. Partage-le seulement avec `CLIENT_EMAIL`.
 - Passer à `DEBUG=False` et restreindre `ALLOWED_HOSTS` en production.
-- Les routes `/api/sheet` et `/api/data/` sont publiques : les restreindre avant toute exposition sur Internet.
+- Les routes `/api/sheet`, `/api/data/` et `/api/sheet-config/` sont publiques : les restreindre avant toute exposition sur Internet.
 
 ## Notes pour la production
 

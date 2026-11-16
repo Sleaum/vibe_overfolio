@@ -1,7 +1,6 @@
-import os
-
 from django.core.management.base import BaseCommand, CommandError
 
+from googlesheet import config
 from googlesheet.services import SheetError
 from googlesheet.sync import DEFAULT_TABS, sync_sheets
 
@@ -12,12 +11,14 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "--doc",
-            default=os.getenv("GOOGLE_SHEET_DOC_NAME", "overfolio"),
-            help="Nom du document Google (ignoré si GOOGLE_SHEET_ID est défini). Défaut : overfolio",
+            default=None,
+            help="Nom du document Google (ignoré si un identifiant de document est configuré). "
+            "Défaut : celui de la page GoogleSheet, sinon GOOGLE_SHEET_DOC_NAME, sinon overfolio",
         )
         parser.add_argument(
             "--tabs",
-            help="Onglets séparés par des virgules. Défaut : SHEET_SYNC_TABS ou " + ",".join(DEFAULT_TABS),
+            help="Onglets séparés par des virgules. Défaut : ceux de la page GoogleSheet, sinon SHEET_SYNC_TABS, sinon "
+            + ",".join(DEFAULT_TABS),
         )
         parser.add_argument(
             "--header-row",
@@ -49,7 +50,7 @@ class Command(BaseCommand):
 
         try:
             results = sync_sheets(
-                options["doc"],
+                options["doc"] or config.doc_name(),
                 tabs=tabs,
                 header_rows=header_rows,
                 dry_run=options["dry_run"],
