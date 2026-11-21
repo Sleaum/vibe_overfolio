@@ -26,6 +26,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/strategie', name: 'Strategy', component: () => import('../views/StrategyPage.vue'), meta: { title: 'Stratégie CTO' } },
       { path: '/enveloppes', name: 'Envelopes', component: () => import('../views/EnvelopesPage.vue'), meta: { title: 'Enveloppes' } },
       { path: '/volatilite', name: 'Volatility', component: () => import('../views/VolatilityPage.vue'), meta: { title: 'Volatilité' } },
+      { path: '/simulation', name: 'Simulation', component: () => import('../views/SimulationPage.vue'), meta: { title: 'Simulation' } },
       // Pas de meta.title : la page du graphique donne elle-même son titre
       { path: ':slug', name: 'ChartPage', component: () => import('../views/GraphiquePage.vue') },
     ],
