@@ -16,11 +16,12 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 if not SECRET_KEY:
     raise ValueError("SECRET_KEY not found in environment variables")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Mode debug (.env : DEBUG=True / False). Désactivé si la variable est absente.
+# Ne jamais laisser DEBUG=True sur un site ouvert sur Internet : les pages d'erreur affichent la configuration.
+DEBUG = os.getenv("DEBUG", "False").strip().lower() in ("1", "true", "yes", "on")
 
 USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "htps")
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Noms et adresses acceptés, séparés par des virgules (.env). Pour ouvrir le site depuis un téléphone du même
 # réseau, ajouter l'adresse IP locale du PC, par exemple : ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.20
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]

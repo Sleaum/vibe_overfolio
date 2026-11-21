@@ -77,10 +77,11 @@ Exemple minimal :
 ```env
 # Django
 SECRET_KEY=une_cle_longue_et_aleatoire
+# DEBUG : False (ou absent) dès que le site est accessible hors de ton PC
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
-# PostgreSQL (lu par le conteneur db ET par settings.py)
+# PostgreSQL (lu par le conteneur db, son contrôle de santé ET settings.py)
 POSTGRES_DB=overfoliodb
 POSTGRES_USER=overfoliouser
 POSTGRES_PASSWORD=overfoliopwd
@@ -118,7 +119,13 @@ python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 | `SHEET_CACHE_SECONDS` | `60` | Cache de `/api/sheet` (0 pour le désactiver) |
 | `SHEET_SYNC_TABS` | `portfolio,inout,stock,budget,_history` | Onglets recopiés en base |
 | `SYNC_COOLDOWN_SECONDS` | `10` | Délai minimal entre deux synchronisations d'une même table |
+| `DEBUG` | `False` | `True` affiche les pages d'erreur détaillées de Django. À laisser à `False` (ou absent) dès que le site est accessible depuis un autre appareil qu'un réseau de confiance |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Noms et adresses par lesquels on ouvre le site. Pour y accéder depuis un téléphone du même Wi-Fi, ajouter l'adresse IP locale du PC (`ipconfig` sous Windows), par exemple `localhost,127.0.0.1,192.168.1.20`, puis ouvrir `http://192.168.1.20` sur le téléphone |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Origines autorisées à appeler l'API depuis un autre port (serveur de dev Vite). Inutile derrière nginx |
+| `DB_HOST` / `DB_PORT` | `db` / `5432` | Adresse de PostgreSQL. À changer seulement si le backend tourne hors de Docker |
+| `STRIPE_SECRET_KEY` | vide | Clé secrète Stripe (`sk_...`) pour les paiements. Ne jamais la commiter |
+| `STRIPE_PUBLISHABLE_KEY` | vide | Clé publique Stripe (`pk_...`) côté backend |
+| `STRIPE_WEBHOOK_SECRET` | vide | Secret de vérification des webhooks Stripe (`whsec_...`) |
 
 Règles à respecter :
 
@@ -460,6 +467,7 @@ Lues par Vite **au moment du build** (fichier `frontend/.env`, à ne pas commite
 | `VITE_STRIPE_PUBLISHABLE_KEY` | aucun | Clé publique Stripe (`pk_...`), utilisée seulement si l'API ne renvoie pas d'adresse de paiement |
 | `VITE_API_URL` | vide (même adresse que le site) | Adresse de l'API si elle n'est pas derrière nginx |
 | `VITE_CHECKOUT_PATH` | `/api/stripe/api/create-checkout-session/` | Chemin de la route Stripe du backend |
+| `VITE_API_BASE` | aucun | Adresse de l'API utilisée par `src/api/stripe.js` (ancien appel Stripe). Sans elle, cet appel part vers `undefined/api/...` |
 
 ## Commandes utiles
 
