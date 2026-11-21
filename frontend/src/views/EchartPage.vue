@@ -29,7 +29,7 @@
     </ul>
 
     <p class="mt-16 max-w-2xl border-t border-line pt-6 text-ink-2">
-      Les graphiques lisent la base de données. Pour la mettre à jour depuis ta feuille, utilise le bouton Actualiser de
+      Les graphiques lisent la base de données. Pour la mettre à jour depuis ta feuille, utilise le bouton Tout actualiser de
       la page
       <router-link to="/sheet" class="font-semibold text-accent underline underline-offset-4 hover:text-accent-hover">
         GoogleSheet</router-link

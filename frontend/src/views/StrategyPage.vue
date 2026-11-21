@@ -86,7 +86,7 @@
         <p class="mt-2 text-ink-2">
           Pas de colonne trouvée, ni dans portfolio ni dans stock, pour :
           {{ model.skipped.map((item) => `${item.title} (« ${item.tried} »)`).join(', ') }}.
-          Dès qu’une colonne de ce nom existe dans la feuille et que tu as cliqué sur Actualiser, l’anneau apparaît.
+          Dès qu’une colonne de ce nom existe dans la feuille et que tu as cliqué sur Tout actualiser, l’anneau apparaît.
         </p>
       </section>
 
@@ -94,7 +94,7 @@
         <p>
           Chaque anneau additionne le montant « Assets Master Currency » des lignes supérieures à 0{{
             model.scopeLabel ? ` (enveloppe : ${model.scopeLabel})` : ''
-          }}. Pour mettre les données à jour, utilise le bouton Actualiser de la page
+          }}. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page
           <router-link to="/sheet" class="font-semibold text-accent underline underline-offset-4 hover:text-accent-hover">
             GoogleSheet</router-link
           >.

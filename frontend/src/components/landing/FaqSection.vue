@@ -54,7 +54,7 @@ const ITEMS = [
   {
     question: 'Comment les chiffres sont-ils mis à jour ?',
     answer:
-      'À la demande. Sur la page GoogleSheet, le bouton Actualiser relit l’onglet affiché. La date et l’heure de la dernière synchronisation restent visibles, et chaque graphique rappelle la date de ses données.',
+      'À la demande. Sur la page GoogleSheet, le bouton Tout actualiser relit tous tes onglets. La date et l’heure de la dernière synchronisation restent visibles, et chaque graphique rappelle la date de ses données.',
   },
   {
     question: 'Overfolio me dit-il quoi acheter ou vendre ?',

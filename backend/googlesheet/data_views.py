@@ -98,6 +98,41 @@ def table_sync(request, name):
     return JsonResponse({"name": name, "row_count": result.rows, "columns": result.columns})
 
 
+@api_view(["POST"])
+@authentication_classes([])  # pas de session : évite le rejet CSRF si l'admin est connecté
+@permission_classes([AllowAny])
+def sync_all(request):
+    """
+    POST /api/data/sync/ : relit tous les onglets de la liste de synchronisation et met la base à jour.
+    Un onglet en erreur garde ses anciennes données et n'empêche pas les autres.
+    200 si au moins un onglet a été enregistré, 502 si aucun.
+    """
+    lock_key = "sheet-sync-lock:__all__"
+    if not cache.add(lock_key, 1, SYNC_COOLDOWN):
+        return JsonResponse(
+            {"error": f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes."},
+            status=429,
+        )
+
+    try:
+        results = sync_sheets(config.doc_name())
+    except SheetError as exc:
+        cache.delete(lock_key)
+        return JsonResponse({"error": str(exc)}, status=exc.status)
+
+    tabs = [
+        {"name": r.tab, "ok": r.ok, "row_count": r.rows, "message": r.message}
+        for r in results
+    ]
+    saved = sum(1 for r in results if r.ok)
+    if not saved:
+        cache.delete(lock_key)
+        detail = " ; ".join(f"{t['name']} : {t['message'] or 'erreur'}" for t in tabs)
+        return JsonResponse({"error": f"Aucun onglet n'a pu être actualisé ({detail})", "tabs": tabs}, status=502)
+
+    return JsonResponse({"tabs": tabs, "saved": saved, "failed": len(tabs) - saved})
+
+
 @api_view(["GET", "PUT", "DELETE"])
 @authentication_classes([])  # pas de session : évite le rejet CSRF si l'admin est connecté
 @permission_classes([AllowAny])

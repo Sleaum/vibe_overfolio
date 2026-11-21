@@ -124,7 +124,7 @@
           Pas de colonne pour : {{ model.missingDimensions.join(', ') }}.
         </template>
         Les variations de l’année et du mois comparent le patrimoine brut aux relevés de la table _history ; elles
-        incluent tes versements et retraits. Pour mettre les données à jour, utilise le bouton Actualiser de la page
+        incluent tes versements et retraits. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page
         <router-link to="/sheet" class="font-semibold text-accent underline underline-offset-4 hover:text-accent-hover">
           GoogleSheet</router-link
         >.

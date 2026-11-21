@@ -91,3 +91,58 @@ class SheetConfigTests(TestCase):
             self.assertEqual(make.call_count, 2)
             self.assertEqual(make.call_args[0][0]["project_id"], "projet-page")
         services._client = None
+
+
+@mock.patch.dict("os.environ", ENV, clear=False)
+class SyncAllTests(TestCase):
+    url = "/api/data/sync/"
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    def fake_sync(self, *results):
+        return mock.patch("googlesheet.data_views.sync_sheets", return_value=list(results))
+
+    def test_all_tabs_are_synced(self):
+        from .sync import TabResult
+
+        with self.fake_sync(
+            TabResult(tab="portfolio", ok=True, saved=True, rows=41),
+            TabResult(tab="stock", ok=True, saved=True, rows=12),
+        ) as sync:
+            response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(sync.call_args.kwargs.get("tabs"), None)  # pas de filtre : toute la liste
+        body = response.json()
+        self.assertEqual((body["saved"], body["failed"]), (2, 0))
+        self.assertEqual([t["name"] for t in body["tabs"]], ["portfolio", "stock"])
+
+    def test_partial_failure_is_reported(self):
+        from .sync import TabResult
+
+        with self.fake_sync(
+            TabResult(tab="portfolio", ok=True, saved=True, rows=41),
+            TabResult(tab="stock", message="onglet introuvable"),
+        ):
+            body = self.client.post(self.url).json()
+        self.assertEqual((body["saved"], body["failed"]), (1, 1))
+        self.assertEqual(body["tabs"][1]["message"], "onglet introuvable")
+
+    def test_total_failure_returns_502_and_releases_lock(self):
+        from .sync import TabResult
+
+        with self.fake_sync(TabResult(tab="portfolio", message="boom")):
+            self.assertEqual(self.client.post(self.url).status_code, 502)
+            self.assertEqual(self.client.post(self.url).status_code, 502)  # pas de 429 : le verrou est libéré
+
+    def test_second_click_is_throttled(self):
+        from .sync import TabResult
+
+        with self.fake_sync(TabResult(tab="portfolio", ok=True, saved=True, rows=1)):
+            self.assertEqual(self.client.post(self.url).status_code, 200)
+            self.assertEqual(self.client.post(self.url).status_code, 429)
+
+    def test_get_is_refused(self):
+        self.assertEqual(self.client.get(self.url).status_code, 405)

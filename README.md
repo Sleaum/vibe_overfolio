@@ -33,7 +33,7 @@ overfolio/
 │       ├── assets/tailwind.css     # base : focus clavier, animations réduites, colonne de contenu
 │       ├── views/                  # une page par route
 │       │   ├── HeroSection.vue     #   /                   présentation et vente
-│       │   ├── SourcePage.vue      #   /sheet              onglets de la base, bouton Actualiser
+│       │   ├── SourcePage.vue      #   /sheet              onglets de la base, bouton Tout actualiser
 │       │   ├── EchartPage.vue      #   /graphiques         les quatre cartes
 │       │   ├── GraphiquePage.vue   #   /graphiques/<nom>   un graphique
 │       │   ├── PortfolioFlowPage.vue #  /portfolio-flow    l'historique mois par mois
@@ -169,7 +169,7 @@ docker compose up --build -d
 | URL | Contenu |
 |---|---|
 | http://localhost | Page de présentation : promesse, aperçu, étapes, tarif, questions |
-| http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Actualiser). L'ancienne adresse `/source` fonctionne toujours |
+| http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Tout actualiser). L'ancienne adresse `/source` fonctionne toujours |
 | http://localhost/graphiques | Quatre cartes : Portfolio Flow, Portfolio Snapshot, Stratégie CTO et Flux du budget. L'ancienne adresse `/echart` fonctionne toujours |
 | http://localhost/admin/ | Admin Django |
 
@@ -282,7 +282,7 @@ Chemin 2 : lecture de la base (rapide, à jour après synchronisation)
 
 Synchronisation Google Sheets ──► PostgreSQL
   - commande : python manage.py sync_sheets
-  - bouton « Actualiser » de la page GoogleSheet (un onglet)
+  - bouton « Tout actualiser » de la page GoogleSheet (tous les onglets de la liste)
   - ./init.sh --sync
 ```
 
@@ -295,6 +295,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | GET | `/api/sheet?doc_name=&sheet_name=&header_row=&refresh=1` | Lit un onglet dans Google Sheets (cache 60 s, `refresh=1` pour le contourner) |
 | GET | `/api/data/` | Liste des tables en base (nom, nombre de lignes, date de synchronisation) |
 | GET | `/api/data/<onglet>/` | Colonnes (dans l'ordre) et lignes d'une table |
+| POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données ; 502 si aucun n'a pu être enregistré |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet (voir « Paramètres saisis sur la page GoogleSheet ») |
 | POST | `/api/stripe/...` | Paiements Stripe |
@@ -363,7 +364,7 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que l
 | Adresse | Fichier | Contenu |
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, tarif (`/#tarifs`), questions fréquentes |
-| `/sheet` | `views/SourcePage.vue` | Menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
+| `/sheet` | `views/SourcePage.vue` | Menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
 | `/graphiques` | `views/EchartPage.vue` | Quatre cartes avec miniature : Portfolio Flow, Portfolio Snapshot, Stratégie CTO, Flux du budget (liste `GALLERY` de `lib/charts/index.js`) |
 | `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des cinq de Portfolio Flow (leur fil d'Ariane passe par Portfolio Flow) |
 | `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartCard.vue` | L'historique mois par mois : les 5 graphiques « Portfolio Flow » sur une seule page |
@@ -394,7 +395,7 @@ Les anciens graphiques à part (évolution du patrimoine, entrées et sorties, r
 
 Les totaux utilisent uniquement `Assets Master Currency` (et `Liabilities Master Currency`) : `Currency Price` est la devise de cotation et `Equity` mélange plusieurs devises, donc aucun des deux ne sert à additionner.
 
-Si une colonne manque, la page du graphique le dit en clair et renvoie vers la page GoogleSheet. Si la table n'a jamais été synchronisée, elle propose d'ouvrir l'onglet correspondant pour cliquer sur Actualiser.
+Si une colonne manque, la page du graphique le dit en clair et renvoie vers la page GoogleSheet. Si la table n'a jamais été synchronisée, elle propose d'ouvrir l'onglet correspondant pour cliquer sur Tout actualiser.
 
 ### Portfolio Snapshot
 
@@ -500,7 +501,7 @@ docker compose exec db psql -U overfoliouser -d overfoliodb
 | `Feuille introuvable` | Document non partagé avec `CLIENT_EMAIL`, ou mauvais `GOOGLE_SHEET_ID` | Partager en Lecteur, vérifier l'identifiant |
 | `Onglet 'x' introuvable` | Nom d'onglet différent (casse, espaces) | Utiliser le nom exact |
 | `Google Drive API has not been used...` | API Drive désactivée | L'activer, ou définir `GOOGLE_SHEET_ID` |
-| La page GoogleSheet ou un graphique dit que la table n'est pas dans la base | Onglet jamais synchronisé | Bouton Actualiser de la page GoogleSheet, ou `sync_sheets` |
+| La page GoogleSheet ou un graphique dit que la table n'est pas dans la base | Onglet jamais synchronisé | Bouton Tout actualiser de la page GoogleSheet, ou `sync_sheets` |
 | « Les données ne correspondent pas à ce graphique » | Nom de colonne différent de celui attendu | Comparer avec la table « Les graphiques » ci-dessus, puis corriger la feuille ou la spécification du graphique |
 | Un graphique de répartition ou de flux est vide alors que la table a des lignes | Montants à 0, négatifs ou non numériques | Ces lignes sont ignorées ; vérifier la colonne de montant dans la page GoogleSheet |
 | L'interface n'a pas changé après une modification du front | Le build Vue n'a pas été refait | `./init.sh` ou `docker compose up --build -d`, puis recharger sans cache |

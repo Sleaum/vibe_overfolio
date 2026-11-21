@@ -311,7 +311,7 @@ async function save() {
   try {
     config.value = await saveSheetConfig({ ...form })
     fill(config.value)
-    showNotice('Paramètres enregistrés. Clique sur Actualiser pour relire un onglet.')
+    showNotice('Paramètres enregistrés. Clique sur Tout actualiser pour relire les onglets.')
     emit('saved', config.value)
   } catch (err) {
     errors.value = err.fields || {}

@@ -17,7 +17,7 @@
           <div class="overflow-hidden rounded-xl border border-line bg-white shadow-soft" aria-hidden="true">
             <div class="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
               <span class="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-ink">portfolio</span>
-              <span class="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white">Actualiser</span>
+              <span class="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white">Tout actualiser</span>
             </div>
             <div class="overflow-x-auto">
               <table class="min-w-full border-collapse text-sm">
@@ -42,7 +42,7 @@
           </div>
           <figcaption class="mt-5 max-w-lg text-ink-2">
             <router-link to="/sheet" class="font-semibold text-accent underline underline-offset-4 hover:text-accent-hover">Page GoogleSheet</router-link>
-            : tes cinq onglets en tableau, avec recherche, pagination et un bouton Actualiser pour relire ta feuille.
+            : tes cinq onglets en tableau, avec recherche, pagination et un bouton Tout actualiser pour relire ta feuille.
           </figcaption>
         </figure>
 

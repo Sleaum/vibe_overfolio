@@ -31,7 +31,7 @@ const STEPS = [
   },
   {
     title: 'Synchronise',
-    text: 'Sur la page GoogleSheet, un clic sur Actualiser relit l’onglet choisi et met la base à jour. La date de la dernière synchronisation reste affichée.',
+    text: 'Sur la page GoogleSheet, un clic sur Tout actualiser relit tous tes onglets et met la base à jour. La date de la dernière synchronisation reste affichée.',
   },
   {
     title: 'Suis ton patrimoine',

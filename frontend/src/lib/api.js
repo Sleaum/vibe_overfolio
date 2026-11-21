@@ -2,7 +2,8 @@
 //
 //   GET  /api/data/                 -> [{ name, row_count, synced_at }]
 //   GET  /api/data/<onglet>/        -> { name, columns[], rows[{colonne: valeur}], row_count, synced_at }
-//   POST /api/data/<onglet>/sync/   -> relit Google Sheets puis met la base à jour
+//   POST /api/data/sync/            -> relit tous les onglets de la liste -> { tabs[{ name, ok, row_count, message }], saved, failed }
+//   POST /api/data/<onglet>/sync/   -> relit un seul onglet puis met la base à jour
 //   GET    /api/sheet-config/       -> paramètres d'accès au Google Sheet (la clé privée n'est jamais renvoyée)
 //   PUT    /api/sheet-config/       -> enregistre les paramètres saisis
 //   DELETE /api/sheet-config/       -> revient aux valeurs du .env
@@ -50,6 +51,8 @@ export const getTable = (name) => request(`/api/data/${encodeURIComponent(name)}
 
 export const syncTable = (name) =>
   request(`/api/data/${encodeURIComponent(name)}/sync/`, { method: 'POST' })
+
+export const syncAll = () => request('/api/data/sync/', { method: 'POST' })
 
 export const getSheetConfig = () => request('/api/sheet-config/')
 

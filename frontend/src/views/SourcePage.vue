@@ -1,7 +1,7 @@
 <!--
   Page « GoogleSheet » (/sheet, ancienne adresse /source conservée) : les cinq onglets de la feuille, tels que la base les contient.
   - Menu déroulant des onglets (l'onglet choisi est aussi dans l'adresse : /sheet?onglet=budget).
-  - Bouton Actualiser : relit l'onglet dans Google Sheets (POST), puis recharge la liste et le tableau.
+  - Bouton Tout actualiser : relit tous les onglets de la liste dans Google Sheets (POST), puis recharge la liste et le tableau.
   - Connexion à Google Sheets : formulaire des paramètres d'accès (préremplis avec le .env), voir SheetSettings.vue.
   - Tableau : en-tête fixe, nombres alignés à droite, recherche, pagination par 50 lignes, défilement horizontal sur mobile.
 -->
@@ -29,7 +29,7 @@
     </div>
 
     <template v-else>
-      <!-- Barre d'outils : onglet, Actualiser, recherche -->
+      <!-- Barre d'outils : onglet, Tout actualiser, recherche -->
       <div class="mt-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div>
@@ -59,12 +59,12 @@
 
           <AppButton
             class="min-w-[10rem]"
-            :disabled="!selected || syncing"
+            :disabled="syncing"
             :aria-busy="syncing"
-            title="Relit l’onglet dans Google Sheets et met la base à jour"
+            title="Relit tous les onglets dans Google Sheets et met la base à jour"
             @click="refresh"
           >
-            {{ syncing ? 'Actualisation…' : 'Actualiser' }}
+            {{ syncing ? 'Actualisation…' : 'Tout actualiser' }}
           </AppButton>
         </div>
 
@@ -104,7 +104,7 @@
 
       <!-- Échec de l'actualisation : le tableau reste affiché en dessous -->
       <div v-if="syncError" role="alert" class="mt-4 rounded-lg border border-danger-line bg-danger-wash p-4">
-        <p class="font-semibold text-danger">L’actualisation a échoué</p>
+        <p class="font-semibold text-danger">Actualisation incomplète</p>
         <p class="mt-1 text-ink">{{ syncError }}</p>
       </div>
 
@@ -125,7 +125,7 @@
         >
           <p class="text-h3 text-ink">Cet onglet n’a pas encore été synchronisé</p>
           <p class="mt-2 max-w-md text-ink-2">
-            Clique sur Actualiser pour lire l’onglet « {{ selected }} » dans Google Sheets et l’enregistrer.
+            Clique sur Tout actualiser pour lire les onglets dans Google Sheets et les enregistrer.
           </p>
         </div>
 
@@ -148,7 +148,7 @@
           >
             <p class="text-h3 text-ink">Cet onglet est vide</p>
             <p class="mt-2 max-w-md text-ink-2">
-              Aucune ligne n’a été lue. Ajoute des données dans ta feuille puis clique sur Actualiser.
+              Aucune ligne n’a été lue. Ajoute des données dans ta feuille puis clique sur Tout actualiser.
             </p>
           </div>
 
@@ -232,7 +232,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppButton from '../components/ui/AppButton.vue'
 import SheetSettings from '../components/SheetSettings.vue'
 import { useTable } from '../composables/useTable.js'
-import { listTables, syncTable } from '../lib/api.js'
+import { listTables, syncAll } from '../lib/api.js'
 import { formatCell, formatDateTime, plural } from '../lib/format.js'
 
 const PAGE_SIZE = 50
@@ -335,7 +335,7 @@ watch(
   },
 )
 
-/* ---------- Actualiser ---------- */
+/* ---------- Tout actualiser ---------- */
 
 let noticeTimer = 0
 onBeforeUnmount(() => clearTimeout(noticeTimer))
@@ -349,15 +349,22 @@ function showNotice(text) {
 }
 
 async function refresh() {
-  const name = selected.value
-  if (!name || syncing.value) return
+  if (syncing.value) return
   syncing.value = true
   syncError.value = ''
   notice.value = ''
   try {
-    const result = await syncTable(name)
-    await Promise.all([loadList({ quiet: true }), reload()])
-    if (selected.value === name) showNotice(`Actualisé : ${plural(result.row_count ?? 0, 'ligne')} dans la base.`)
+    const result = await syncAll()
+    await Promise.all([loadList({ quiet: true }), selected.value ? reload() : null])
+    const tabs = result.tabs ?? []
+    const failed = tabs.filter((tab) => !tab.ok)
+    const saved = tabs.length - failed.length
+    showNotice(`${plural(saved, 'onglet')} actualisé${saved > 1 ? 's' : ''} dans la base.`)
+    if (failed.length) {
+      syncError.value =
+        `${plural(failed.length, 'onglet')} non actualisé${failed.length > 1 ? 's' : ''} (anciennes données conservées) : ` +
+        failed.map((tab) => `${tab.name} : ${tab.message || 'erreur'}`).join(' ; ')
+    }
   } catch (err) {
     syncError.value = err.message
   } finally {

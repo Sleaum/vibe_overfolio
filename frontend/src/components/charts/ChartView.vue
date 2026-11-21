@@ -146,7 +146,7 @@
         <h2 class="mt-8 text-h3 text-ink">D’où viennent les chiffres</h2>
         <p class="mt-3 text-ink-2">{{ spec.source }}</p>
         <p class="mt-3 text-sm text-ink-3">
-          Pour mettre à jour les données depuis Google Sheets, utilise le bouton Actualiser de la page
+          Pour mettre à jour les données depuis Google Sheets, utilise le bouton Tout actualiser de la page
           <router-link to="/sheet" class="font-medium text-accent underline underline-offset-2 hover:text-accent-hover">
             GoogleSheet</router-link
           >.
