@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'googlesheet',
-    'payments',
     'corsheaders',
 ]
 
@@ -91,16 +90,6 @@ DATABASES = {
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
-#DATABASES = {
-#    'default': {
-#        'ENGINE': 'django.db.backends.postgresql',
-#        'NAME': os.getenv('POSTGRES_DB', 'overfolio'),
-#        'USER': os.getenv('POSTGRES_USER', 'user'),
-#        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'pwd'),
-#        'HOST': 'db',  # très important ici : le nom du service Docker
-#        'PORT': '5432',
-#    }
-#}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -147,12 +136,6 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ],
 }
-
-# Stripe Configuration
-STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
-STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
-STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
