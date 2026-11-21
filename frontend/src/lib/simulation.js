@@ -13,7 +13,6 @@
 // Pas de rééquilibrage, pas d'impôt à la sortie : ce sont des limites assumées et écrites sur la page.
 
 import { buildInOut, findColumn, latestDate, requireColumns, rowsOf, toLabel, toNumber } from './aggregate.js'
-import { toIsoDate } from './dates.js'
 import { splitGoals } from './charts/flowTrend.js'
 import { findCurrencyColumn } from './charts/flowData.js'
 
@@ -34,14 +33,14 @@ export const assumptionFor = (asset) => ({ ...(DEFAULT_ASSUMPTIONS[String(asset)
 
 /* ---------- Lecture des tables ---------- */
 
-/** Patrimoine actuel par type d'actif et dette, depuis `portfolio` (dernier relevé si la table a une colonne Date). */
+/** Patrimoine actuel par type d'actif et dette, depuis `portfolio` (toutes ses lignes ; date = la plus récente). */
 export function readPortfolio(table) {
   const cols = requireColumns(table, { asset: ['Asset'], value: ['Assets Master Currency'] })
   const liabilities = findColumn(table.columns, ['Liabilities Master Currency'])
   const dateColumn = findColumn(table.columns, ['Date'])
-  let rows = rowsOf(table)
+  const rows = rowsOf(table)
+  // Toutes les lignes : selon la place de cotation, une même photo peut porter plusieurs dates (voir envelopes.js)
   const date = dateColumn ? latestDate(rows, dateColumn) : ''
-  if (date) rows = rows.filter((row) => toIsoDate(row[dateColumn]) === date)
 
   const assets = new Map()
   let debt = 0

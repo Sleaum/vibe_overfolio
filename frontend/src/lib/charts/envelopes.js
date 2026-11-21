@@ -20,7 +20,9 @@ const ASSET_NAMES = ['Asset']
 const VALUE_NAMES = ['Assets Master Currency']
 // Types d'actifs « de placement » : une enveloppe qui en contient au moins un est retenue
 const INVESTED = new Set(['public equity', 'equity', 'equities', 'stock', 'stocks', 'etf', 'fund', 'funds', 'managed futures'])
-const MAX_CHILDREN = 8
+// Anneau extérieur : chaque instrument d'au moins 1 % de son enveloppe a sa part (20 au plus), le reste va dans « Autres »
+const MIN_CHILD_SHARE = 0.01
+const MAX_CHILDREN = 20
 
 const lower = (text) => String(text ?? '').trim().toLowerCase()
 
@@ -44,17 +46,22 @@ export function investedEnvelopes(rows, envelopeColumn, assetColumn) {
   return names
 }
 
-/** Lignes du dernier relevé de `portfolio` (toutes si la table n'a pas de colonne Date). */
+/**
+ * Toutes les lignes de `portfolio` (ta photo actuelle) et sa date la plus récente, pour le sous-titre.
+ * On ne filtre pas sur cette date : selon la place de cotation, les lignes d'un même relevé peuvent porter des dates
+ * différentes (titres européens datés de la veille des titres américains, par exemple). Comme Portfolio Snapshot.
+ */
 function currentRows(table) {
   const rows = rowsOf(table)
   const dateColumn = findColumn(table.columns, ['Date'])
-  if (!dateColumn) return { rows, date: '' }
-  const date = latestDate(rows, dateColumn)
-  return { rows: date ? rows.filter((row) => toIsoDate(row[dateColumn]) === date) : rows, date }
+  return { rows, date: dateColumn ? latestDate(rows, dateColumn) : '' }
 }
 
-/** Montants > 0 des enveloppes de placement, détaillés par une colonne : [{ name, total, parts: Map(libellé -> montant) }]. */
-export function envelopeBreakdown(rows, cols, detailColumn) {
+/**
+ * Montants > 0 des enveloppes de placement, détaillés par une colonne (ou par `labelOf(row)`) :
+ * [{ name, total, parts: Map(libellé -> montant) }].
+ */
+export function envelopeBreakdown(rows, cols, detailColumn, labelOf = null) {
   const keep = investedEnvelopes(rows, cols.envelope, cols.asset)
   const groups = new Map()
   for (const row of rows) {
@@ -62,7 +69,7 @@ export function envelopeBreakdown(rows, cols, detailColumn) {
     const value = toNumber(row[cols.value])
     if (!keep.has(key) || !(value > 0)) continue
     const group = groups.get(key) ?? { name: envelopeLabel(row[cols.envelope]), total: 0, parts: new Map() }
-    const part = detailColumn ? toLabel(row[detailColumn]) : 'Total'
+    const part = labelOf ? labelOf(row) : detailColumn ? toLabel(row[detailColumn]) : 'Total'
     group.total += value
     group.parts.set(part, (group.parts.get(part) ?? 0) + value)
     groups.set(key, group)
@@ -76,14 +83,41 @@ const noEnvelope = (table) => ({
 
 /* ---------- 1. Anneau enveloppe → instrument ---------- */
 
-/** Écrit le nom de chaque enveloppe dans l'anneau intérieur (peu de parts, assez larges pour être lisibles). */
-function labelInnerRing(option) {
+/**
+ * Étiquettes de l'anneau : le nom de chaque enveloppe à l'intérieur, et celui des instruments dont la part est assez
+ * large pour être lisible (les autres se lisent au survol et dans la vue en tableau).
+ */
+function labelRings(option, total) {
   for (const series of [].concat(option.series ?? [])) {
     for (const node of series.data ?? []) {
       node.label = { show: true, rotate: 0, color: '#ffffff', fontWeight: 600, fontSize: 13, minAngle: 12 }
+      for (const child of node.children ?? []) {
+        // Grande part : texte le long de l'arc (plus de place) ; petite part : texte en travers de l'anneau
+        const wide = child.value / total >= 0.12
+        child.label = {
+          show: true,
+          rotate: wide ? 'tangential' : 'radial',
+          color: '#1f2937',
+          fontSize: 11,
+          minAngle: 7,
+          overflow: 'truncate',
+          width: wide ? 160 : 90,
+        }
+      }
     }
   }
   return option
+}
+
+/** « DE:UETW » -> « UETW » ; vide si la ligne n'a pas de ticker. */
+const shortTicker = (value) => String(value ?? '').trim().split(':').pop().toUpperCase()
+
+/** Nom affiché d'un instrument : « MSCI world · UETW » (le ticker distingue deux « msci world » d'enveloppes différentes). */
+function instrumentLabel(row, cols) {
+  const name = envelopeLabel(toLabel(row[cols.instrument]))
+  const ticker = cols.ticker ? shortTicker(row[cols.ticker]) : ''
+  if (!ticker) return name
+  return ticker === name.toUpperCase() ? ticker : `${name} · ${ticker}`
 }
 
 export const envelopeInstruments = {
@@ -93,23 +127,26 @@ export const envelopeInstruments = {
   table: 'portfolio',
   explain: [
     'L’anneau intérieur montre le poids de chaque enveloppe de placement (CTO, PEA, PER, PEE…). L’anneau extérieur détaille ce qu’elle contient, instrument par instrument, dans des nuances de la même couleur.',
-    'Passe la souris sur une part pour lire son montant, sa part du total et sa part de l’enveloppe. Au-delà de huit instruments dans une enveloppe, les plus petits sont regroupés en « Autres ».',
+    'Chaque instrument est nommé par sa colonne Instrument suivie de son ticker (« MSCI world · UETW »). Passe la souris sur une part pour lire son montant, sa part du total et sa part de l’enveloppe ; la vue en tableau les liste tous.',
+    'Les instruments qui pèsent moins de 1 % de leur enveloppe (souvent des liquidités en attente) sont regroupés en « Autres ».',
   ],
   source:
-    'Table portfolio, colonnes Envelope (ou Account), Instrument et Assets Master Currency, au dernier relevé. Seules les enveloppes qui contiennent des actions, des ETF ou des fonds sont retenues.',
+    'Table portfolio, colonnes Envelope (ou Account), Instrument, Ticker et Assets Master Currency, au dernier relevé. Seules les enveloppes qui contiennent des actions, des ETF ou des fonds sont retenues.',
 
   build(table) {
-    const cols = columnsOf(table, { instrument: ['Instrument', 'Instruments'] })
+    const cols = { ...columnsOf(table, { instrument: ['Instrument', 'Instruments'] }), ticker: findColumn(table.columns, ['Ticker', 'Symbole', 'Symbol']) }
     const { rows, date } = currentRows(table)
-    const groups = envelopeBreakdown(rows, cols, cols.instrument)
+    const groups = envelopeBreakdown(rows, cols, cols.instrument, (row) => instrumentLabel(row, cols))
     if (!groups.length) return noEnvelope(table)
 
     const total = groups.reduce((sum, group) => sum + group.total, 0)
+    const sortedParts = groups.map((group) => [...group.parts.entries()].sort((a, b) => b[1] - a[1]))
     const categories = groups.map((group, g) => {
       const color = g < SERIES.length ? SERIES[g] : CONTEXT
-      const parts = [...group.parts.entries()].sort((a, b) => b[1] - a[1])
-      const shown = parts.slice(0, MAX_CHILDREN)
-      const rest = parts.slice(MAX_CHILDREN)
+      const parts = sortedParts[g]
+      const big = parts.filter(([, value]) => value >= MIN_CHILD_SHARE * group.total)
+      const shown = big.slice(0, MAX_CHILDREN)
+      const rest = parts.filter((part) => !shown.includes(part))
       if (rest.length) shown.push([`Autres (${rest.length})`, rest.reduce((sum, [, value]) => sum + value, 0)])
       return {
         name: group.name,
@@ -117,7 +154,7 @@ export const envelopeInstruments = {
         share: group.total / total,
         color,
         children: shown.map(([name, value], c) => ({
-          name: envelopeLabel(name),
+          name,
           value,
           share: value / group.total,
           color: tint(color, 0.15 + (0.55 * c) / Math.max(shown.length, 1)),
@@ -131,14 +168,15 @@ export const envelopeInstruments = {
         `${plural(groups.length, 'enveloppe')} de placement pour ${euro(total)} : ` +
         groups.map((group) => `${group.name} ${percent(group.total / total)}`).join(', ') +
         '.',
-      option: labelInnerRing(sunburstOption(categories, total)),
-      height: 460,
+      option: labelRings(sunburstOption(categories, total), total),
+      height: 520,
       table: {
         columns: ['Enveloppe', 'Instrument', 'Montant', 'Part de l’enveloppe'],
         numeric: [false, false, true, true],
-        rows: categories.flatMap((category) => [
-          [category.name, 'Total', euro(category.value), percent(1)],
-          ...category.children.map((child) => ['', child.name, euro(child.value), percent(child.share)]),
+        // Le tableau liste tous les instruments, y compris ceux regroupés en « Autres » dans l'anneau
+        rows: groups.flatMap((group, g) => [
+          [group.name, 'Total', euro(group.total), percent(1)],
+          ...sortedParts[g].map(([name, value]) => ['', name, euro(value), percent(value / group.total)]),
         ]),
       },
       note: `Total des enveloppes de placement : ${euro(total)}.`,
