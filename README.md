@@ -464,7 +464,6 @@ Lues par Vite **au moment du build** (fichier `frontend/.env`, à ne pas commite
 | `VITE_STRIPE_PUBLISHABLE_KEY` | aucun | Clé publique Stripe (`pk_...`), utilisée seulement si l'API ne renvoie pas d'adresse de paiement |
 | `VITE_API_URL` | vide (même adresse que le site) | Adresse de l'API si elle n'est pas derrière nginx |
 | `VITE_CHECKOUT_PATH` | `/api/stripe/api/create-checkout-session/` | Chemin de la route Stripe du backend |
-| `VITE_API_BASE` | aucun | Adresse de l'API utilisée par `src/api/stripe.js` (ancien appel Stripe). Sans elle, cet appel part vers `undefined/api/...` |
 
 ## Commandes utiles
 
