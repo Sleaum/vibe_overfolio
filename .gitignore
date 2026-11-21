@@ -1,0 +1,8 @@
+# Clés SSH : ne jamais versionner
+keysave*
+*.pem
+id_rsa*
+id_ed25519*
+
+# Secrets
+.env
