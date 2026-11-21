@@ -9,7 +9,7 @@
     <aside class="lg:sticky lg:top-24 lg:w-56 lg:shrink-0">
       <nav aria-label="Graphiques">
         <p class="hidden px-3 text-xs font-semibold uppercase tracking-wide text-ink-3 lg:block">Graphiques</p>
-        <ul class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:-mx-8 sm:px-8 lg:mx-0 lg:mt-3 lg:flex-col lg:gap-1 lg:overflow-visible lg:p-0">
+        <ul ref="list" class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:-mx-8 sm:px-8 lg:mx-0 lg:mt-3 lg:flex-col lg:gap-1 lg:overflow-visible lg:p-0">
           <li v-for="item in MENU" :key="item.key" class="shrink-0">
             <router-link
               :to="item.to"
@@ -40,10 +40,22 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { MENU, menuKeyFor } from '../lib/charts/index.js'
 
 const route = useRoute()
 const activeKey = computed(() => menuKeyFor(route))
+
+// Sur mobile, le menu est une rangée qui défile : on amène l'onglet actif dans la vue
+const list = ref(null)
+async function revealActive() {
+  await nextTick()
+  const row = list.value
+  const active = row?.querySelector('[aria-current="page"]')
+  if (!row || !active || row.scrollWidth <= row.clientWidth) return
+  row.scrollTo({ left: active.offsetLeft - row.clientWidth / 2 + active.offsetWidth / 2, behavior: 'smooth' })
+}
+onMounted(revealActive)
+watch(activeKey, revealActive)
 </script>

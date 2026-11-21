@@ -160,3 +160,39 @@ export function buildFlow(rows, sourceColumn, targetColumn, valueColumn) {
   const nodes = [...new Set(links.flatMap((link) => [link.source, link.target]))]
   return { nodes, links, dropped: inOrder.length - links.length }
 }
+
+/**
+ * Entrées, sorties et impôts par mois (table `inout`) : [{ key: 'AAAA-MM', inflow, outflow, tax }], du plus ancien au
+ * plus récent, sans trou (un mois sans mouvement vaut 0). Les sorties et les impôts sont souvent saisis en négatif dans
+ * la feuille : ils sont comptés en valeur absolue. Les entrées gardent leur signe (une correction négative la réduit).
+ */
+export function buildInOut(rows, { date, inflow, outflow, tax = null }) {
+  const months = new Map()
+  for (const row of rows) {
+    const iso = toIsoDate(row[date])
+    if (!iso) continue
+    const key = iso.slice(0, 7)
+    const month = months.get(key) ?? { key, inflow: 0, outflow: 0, tax: 0 }
+    month.inflow += toNumber(row[inflow])
+    month.outflow += Math.abs(toNumber(row[outflow]))
+    if (tax) month.tax += Math.abs(toNumber(row[tax]))
+    months.set(key, month)
+  }
+  const keys = [...months.keys()].sort()
+  if (!keys.length) return []
+
+  const result = []
+  let [y, m] = keys[0].split('-').map(Number)
+  const last = keys[keys.length - 1]
+  for (;;) {
+    const key = `${y}-${String(m).padStart(2, '0')}`
+    result.push(months.get(key) ?? { key, inflow: 0, outflow: 0, tax: 0 })
+    if (key >= last) break
+    m += 1
+    if (m > 12) {
+      m = 1
+      y += 1
+    }
+  }
+  return result
+}

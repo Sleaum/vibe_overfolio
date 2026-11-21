@@ -34,11 +34,13 @@ overfolio/
 │       ├── views/                  # une page par route
 │       │   ├── HeroSection.vue     #   /                   présentation et vente
 │       │   ├── SourcePage.vue      #   /sheet              onglets de la base, bouton Tout actualiser
-│       │   ├── GraphiquesLayout.vue #  /graphiques         menu à gauche (4 entrées), page choisie à droite
+│       │   ├── GraphiquesLayout.vue #  /graphiques         menu à gauche (6 entrées), page choisie à droite
 │       │   ├── GraphiquePage.vue   #   /graphiques/<nom>   un graphique
 │       │   ├── PortfolioFlowPage.vue #  /portfolio-flow    l'historique mois par mois
 │       │   ├── SnapshotPage.vue    #   /portfolio-snapshot  le patrimoine d'aujourd'hui
 │       │   ├── StrategyPage.vue    #   /strategie          les actions en anneaux à deux niveaux
+│       │   ├── EnvelopesPage.vue   #   /enveloppes         les enveloppes de placement (CTO, PEA, PER, PEE)
+│       │   ├── VolatilityPage.vue  #   /volatilite         variation du prix de chaque placement
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
 │       │   └── NewPage.vue, DashboardPage.vue   # /newpage (connexion), /board
 │       ├── components/
@@ -46,7 +48,7 @@ overfolio/
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
 │       │   ├── ui/                 # AppButton, SegmentedControl
 │       │   ├── landing/            # sections de la page de présentation
-│       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartThumb, DataTableView, ShareBars, StrategyCard
+│       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, ChartThumb, DataTableView, ShareBars, StrategyCard
 │       ├── composables/            # useTable (charge une table), useReducedMotion
 │       └── lib/
 │           ├── api.js              # appels /api/data/...
@@ -171,7 +173,7 @@ docker compose up --build -d
 |---|---|
 | http://localhost | Page de présentation : promesse, aperçu, étapes, tarif, questions |
 | http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Tout actualiser). L'ancienne adresse `/source` fonctionne toujours |
-| http://localhost/graphiques | Menu à gauche : Portfolio Flow, Portfolio Snapshot, Stratégie CTO et Flux du budget ; la page choisie s'affiche à droite (Portfolio Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
+| http://localhost/graphiques | Menu à gauche : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité et Flux du budget ; la page choisie s'affiche à droite (Portfolio Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
 | http://localhost/admin/ | Admin Django |
 
 Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx.
@@ -208,8 +210,8 @@ Onglets utilisés :
 | Onglet | Contenu | Utilisé par |
 |---|---|---|
 | `portfolio` | Positions actuelles (en-tête en ligne 2, la ligne 1 est une synthèse) | Portfolio Snapshot, Stratégie CTO |
-| `_history` | Historique des relevés | Portfolio Flow, variations de Portfolio Snapshot |
-| `inout` | Entrées et sorties d'argent | Rien pour l'instant (synchronisé, sans graphique) |
+| `_history` | Historique des relevés (et tes objectifs : lignes avec seulement une date et un montant) | Portfolio Flow, Enveloppes, Volatilité, variations de Portfolio Snapshot |
+| `inout` | Entrées et sorties d'argent (colonnes date, in, out, tax) | Graphique Entrées, sorties et impôts de Portfolio Flow |
 | `budget` | Budget : de quelle source vers quelle destination | Flux du budget |
 | `stock` | Valeurs suivies | Stratégie CTO (secteur, moat, note…), page GoogleSheet |
 
@@ -366,9 +368,11 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que l
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, tarif (`/#tarifs`), questions fréquentes |
 | `/sheet` | `views/SourcePage.vue` | Menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
-| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Portfolio Flow, Portfolio Snapshot, Stratégie CTO, Flux du budget), page choisie à droite. `/graphiques` ouvre Portfolio Flow. Les quatre pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
-| `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des cinq de Portfolio Flow (leur fil d'Ariane passe par Portfolio Flow) |
-| `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartCard.vue` | L'historique mois par mois : les 5 graphiques « Portfolio Flow » sur une seule page |
+| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité, Flux du budget), page choisie à droite. `/graphiques` ouvre Portfolio Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
+| `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Portfolio Flow, Enveloppes ou Volatilité (leur fil d'Ariane passe par leur page) |
+| `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les 6 graphiques « Portfolio Flow » sur une seule page, avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
+| `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone |
+| `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Une bulle par placement : montant détenu et variation du prix unitaire sur 1 mois, 3 mois et 1 an |
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `lib/strategy.js` et `lib/charts/sunburst.js` | Stratégie CTO : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
@@ -379,7 +383,7 @@ Les pages, hors accueil, sont chargées à la demande : ECharts n'est téléchar
 
 ### Les graphiques
 
-Six graphiques ont leur propre page `/graphiques/<nom>` : Flux du budget et les cinq de Portfolio Flow. Chacun est un fichier de `frontend/src/lib/charts/`. Les noms de colonnes doivent être ceux de la table ; la casse, les accents et les espaces sont ignorés.
+Quatorze graphiques ont leur propre page `/graphiques/<nom>` : Flux du budget et ceux de Portfolio Flow, Enveloppes et Volatilité. Chacun est un fichier de `frontend/src/lib/charts/`. Les noms de colonnes doivent être ceux de la table ; la casse, les accents et les espaces sont ignorés.
 
 | `<nom>` dans l'adresse | Table | Colonnes lues |
 |---|---|---|
@@ -388,11 +392,16 @@ Six graphiques ont leur propre page `/graphiques/<nom>` : Flux du budget et les 
 | `repartition-mensuelle` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Barres à 100 % par mois |
 | `evolution-par-actif` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Une courbe par type d'actif |
 | `variation-mensuelle` | `_history` | `Date`, `Assets Master Currency`. Variation en % du total d'un mois à l'autre |
-| `patrimoine-tendance` | `_history` | `Date` et la colonne en euros (`EUR`, sinon `Assets Master Currency`). Barres par relevé et droite de tendance |
+| `entrees-sorties` | `inout` | `date`, `in`, `out`, `tax` (facultative). Barres par mois ; sorties et impôts saisis en négatif comptés en valeur absolue |
+| `patrimoine-tendance` | `_history` | `Date` et la colonne en euros (`EUR`, sinon `Assets Master Currency`). Barres par relevé, droite de tendance prolongée jusqu'au dernier objectif, et objectifs (lignes sans `Asset` ni `Instrument`) |
+| `enveloppes-instruments` | `portfolio` | `Envelope` (ou `Account`), `Instrument`, `Assets Master Currency`, `Asset` |
+| `enveloppes-evolution` | `_history` | `Date`, `Envelope`, `Asset`, `Assets Master Currency` |
+| `enveloppes-types`, `enveloppes-zones` | `portfolio` | `Envelope`, `Sub Asset` (ou `Area`), `Assets Master Currency` |
+| `volatilite-1-mois`, `volatilite-3-mois`, `volatilite-1-an` | `_history` | `Date`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Asset`, `Envelope`, `Broker`). Prix unitaire = montant ÷ quantité ; liquidités, immobilier, biens qui se déprécient et objets écartés |
 
-Les cinq derniers forment la page `/portfolio-flow`. Ils prennent, pour chaque mois, le **dernier relevé** du mois (plusieurs relevés par mois ne s'additionnent pas). Une date isolée, à plus de 6 mois des autres (un objectif en 2039, un vieux relevé), est écartée des graphiques mensuels, et la page le signale ; le graphique `patrimoine-tendance` garde toutes les dates. Le graphique Entrées et sorties de l'ancienne page Looker Studio n'est pas repris : l'onglet `inout` n'est pas encore renseigné.
+Les graphiques de `patrimoine-devises` à `patrimoine-tendance` forment la page `/portfolio-flow`. Ils prennent, pour chaque mois, le **dernier relevé** du mois (plusieurs relevés par mois ne s'additionnent pas). Une date isolée, à plus de 6 mois des autres (un objectif en 2039, un vieux relevé), est écartée des graphiques mensuels, et la page le signale ; le graphique `patrimoine-tendance` garde toutes les dates et affiche les objectifs à part.
 
-Les anciens graphiques à part (évolution du patrimoine, entrées et sorties, répartition par type d'actif, par zone, par compte, plus grosses positions) ont été retirés : Portfolio Snapshot et Stratégie CTO couvrent la répartition. Le fichier `lib/charts/evolution.js` reste, mais seulement comme courbe de l'aperçu de la page d'accueil.
+Les anciens graphiques à part (évolution du patrimoine, répartition par type d'actif, par zone, par compte, plus grosses positions) ont été retirés : Portfolio Snapshot et Stratégie CTO couvrent la répartition. Le fichier `lib/charts/evolution.js` reste, mais seulement comme courbe de l'aperçu de la page d'accueil.
 
 Les totaux utilisent uniquement `Assets Master Currency` (et `Liabilities Master Currency`) : `Currency Price` est la devise de cotation et `Equity` mélange plusieurs devises, donc aucun des deux ne sert à additionner.
 
@@ -436,7 +445,7 @@ La page `/strategie` reprend la page « Stratégie CTO » de Looker Studio : sep
 1. Copier `frontend/src/lib/charts/budgetFlow.js` sous un nouveau nom (c'est le plus simple à lire).
 2. Renseigner `slug` (l'adresse), `title`, `summary` (une phrase), `table` (l'onglet lu), `explain` (un ou deux paragraphes) et `source` (les colonnes utilisées). Ajouter `thumb` (miniature de la carte : `line`, `donut`, `sunburst` ou `sankey`) si le graphique a sa propre carte.
 3. Écrire `build(table)` : `requireColumns(table, …)` retrouve les colonnes et lève un message clair si l'une manque, puis la fonction renvoie `{ subtitle, summary, option, height, table: { columns, numeric, rows } }`, ou `{ empty: 'message' }` quand il n'y a rien à afficher.
-4. L'ajouter à `frontend/src/lib/charts/index.js` : `import` et tableau `CHARTS` (la page `/graphiques/<slug>` apparaît seule). Pour une entrée dans le menu de la rubrique Graphiques, ajouter aussi une entrée à `MENU` ; pour l'intégrer à Portfolio Flow, l'ajouter à `FLOW_CHARTS`.
+4. L'ajouter à `frontend/src/lib/charts/index.js` : `import` et tableau `CHARTS` (la page `/graphiques/<slug>` apparaît seule). Pour une entrée dans le menu de la rubrique Graphiques, ajouter aussi une entrée à `MENU` ; pour l'intégrer à une page qui en réunit plusieurs, l'ajouter à `FLOW_CHARTS`, `ENVELOPE_CHARTS` ou `VOLATILITY_CHARTS` (liste `GROUPS`).
 
 Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) doit être enregistré dans `lib/echartsSetup.js` (actuellement : barres, courbes, secteurs, Sankey, nuage de points, anneaux à deux niveaux, ligne de repère) ; une nouvelle miniature s'ajoute dans `components/charts/ChartThumb.vue`.
 
