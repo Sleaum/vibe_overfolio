@@ -123,9 +123,6 @@ python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Noms et adresses par lesquels on ouvre le site. Pour y accéder depuis un téléphone du même Wi-Fi, ajouter l'adresse IP locale du PC (`ipconfig` sous Windows), par exemple `localhost,127.0.0.1,192.168.1.20`, puis ouvrir `http://192.168.1.20` sur le téléphone |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Origines autorisées à appeler l'API depuis un autre port (serveur de dev Vite). Inutile derrière nginx |
 | `DB_HOST` / `DB_PORT` | `db` / `5432` | Adresse de PostgreSQL. À changer seulement si le backend tourne hors de Docker |
-| `STRIPE_SECRET_KEY` | vide | Clé secrète Stripe (`sk_...`) pour les paiements. Ne jamais la commiter |
-| `STRIPE_PUBLISHABLE_KEY` | vide | Clé publique Stripe (`pk_...`) côté backend |
-| `STRIPE_WEBHOOK_SECRET` | vide | Secret de vérification des webhooks Stripe (`whsec_...`) |
 
 Règles à respecter :
 
