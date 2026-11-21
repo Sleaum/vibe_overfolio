@@ -1,0 +1,49 @@
+<!--
+  Rubrique « Graphiques » : menu en colonne à gauche (les entrées de MENU dans lib/charts/index.js),
+  page choisie à droite (<router-view>). /graphiques ouvre la première entrée.
+  Les adresses des pages ne changent pas : /portfolio-flow, /portfolio-snapshot, /strategie, /graphiques/<slug>.
+  Sur petit écran, le menu devient une rangée d'onglets au-dessus de la page, qui défile horizontalement.
+-->
+<template>
+  <div class="page-container py-8 lg:flex lg:items-start lg:gap-10 lg:py-12">
+    <aside class="lg:sticky lg:top-24 lg:w-56 lg:shrink-0">
+      <nav aria-label="Graphiques">
+        <p class="hidden px-3 text-xs font-semibold uppercase tracking-wide text-ink-3 lg:block">Graphiques</p>
+        <ul class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:-mx-8 sm:px-8 lg:mx-0 lg:mt-3 lg:flex-col lg:gap-1 lg:overflow-visible lg:p-0">
+          <li v-for="item in MENU" :key="item.key" class="shrink-0">
+            <router-link
+              :to="item.to"
+              :aria-current="item.key === activeKey ? 'page' : undefined"
+              class="flex items-center gap-3 whitespace-nowrap rounded-lg border px-3 py-2 text-[0.9375rem] font-medium transition-colors lg:border-transparent"
+              :class="
+                item.key === activeKey
+                  ? 'border-line-strong bg-wash text-ink lg:border-transparent'
+                  : 'border-line text-ink-2 hover:bg-wash hover:text-ink'
+              "
+            >
+              <span
+                class="hidden h-5 w-1 rounded-full lg:block"
+                :class="item.key === activeKey ? 'bg-accent' : 'bg-transparent'"
+                aria-hidden="true"
+              />
+              {{ item.title }}
+            </router-link>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <div class="mt-6 min-w-0 flex-1 lg:mt-0">
+      <router-view />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { MENU, menuKeyFor } from '../lib/charts/index.js'
+
+const route = useRoute()
+const activeKey = computed(() => menuKeyFor(route))
+</script>

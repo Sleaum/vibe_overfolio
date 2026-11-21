@@ -3,24 +3,19 @@
   le composant ChartView s'occupe de l'affichage, des états (chargement, erreur, aucune donnée) et des explications.
 -->
 <template>
-  <div class="page-container py-12 sm:py-16">
-    <nav aria-label="Fil d’Ariane" class="text-sm">
+  <div>
+    <!-- Fil d'Ariane seulement pour un graphique qui appartient à une page (Portfolio Flow) : le menu de gauche suffit sinon -->
+    <nav v-if="parent" aria-label="Fil d’Ariane" class="mb-8 text-sm">
       <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-ink-2">
         <li>
-          <router-link to="/graphiques" class="rounded-md hover:text-ink hover:underline">Graphiques</router-link>
+          <router-link :to="parent.to" class="rounded-md hover:text-ink hover:underline">{{ parent.title }}</router-link>
         </li>
         <li aria-hidden="true">/</li>
-        <template v-if="parent">
-          <li>
-            <router-link :to="parent.to" class="rounded-md hover:text-ink hover:underline">{{ parent.title }}</router-link>
-          </li>
-          <li aria-hidden="true">/</li>
-        </template>
-        <li aria-current="page" class="text-ink">{{ spec ? spec.title : 'Graphique introuvable' }}</li>
+        <li aria-current="page" class="text-ink">{{ spec.title }}</li>
       </ol>
     </nav>
 
-    <div class="mt-8">
+    <div>
       <ChartView v-if="spec" :key="spec.slug" :spec="spec" />
 
       <div v-else class="max-w-2xl">

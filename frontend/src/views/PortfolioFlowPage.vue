@@ -3,7 +3,7 @@
   Les graphiques viennent de lib/charts (groupe « flow ») ; chaque table n'est chargée qu'une fois pour toute la page.
 -->
 <template>
-  <div class="page-container py-12 sm:py-16">
+  <div>
     <header class="max-w-3xl">
       <h1 class="text-h2 text-ink">Portfolio Flow</h1>
       <p class="mt-3 text-lead text-ink-2">
@@ -31,9 +31,6 @@
       >. Pour ton patrimoine d’aujourd’hui, ouvre
       <router-link to="/portfolio-snapshot" class="font-semibold text-accent underline underline-offset-4 hover:text-accent-hover">
         Portfolio Snapshot</router-link
-      >, et pour les autres graphiques
-      <router-link to="/graphiques" class="font-semibold text-accent underline underline-offset-4 hover:text-accent-hover">
-        Graphiques</router-link
       >.
     </p>
   </div>

@@ -15,18 +15,21 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'GoogleSheet' },
   },
   {
-    // /echart reste valable (ancienne adresse de la page des graphiques)
+    // Rubrique Graphiques : menu à gauche, page choisie à droite (GraphiquesLayout.vue).
+    // Les enfants gardent leurs adresses d'origine (chemins absolus) ; /graphiques ouvre Portfolio Flow.
     path: '/graphiques',
-    alias: '/echart',
-    name: 'EchartPage',
-    component: () => import('../views/EchartPage.vue'),
-    meta: { title: 'Graphiques' },
+    component: () => import('../views/GraphiquesLayout.vue'),
+    children: [
+      { path: '', name: 'EchartPage', redirect: '/portfolio-flow' },
+      { path: '/portfolio-flow', name: 'PortfolioFlow', component: () => import('../views/PortfolioFlowPage.vue'), meta: { title: 'Portfolio Flow' } },
+      { path: '/portfolio-snapshot', name: 'PortfolioSnapshot', component: () => import('../views/SnapshotPage.vue'), meta: { title: 'Portfolio Snapshot' } },
+      { path: '/strategie', name: 'Strategy', component: () => import('../views/StrategyPage.vue'), meta: { title: 'Stratégie CTO' } },
+      // Pas de meta.title : la page du graphique donne elle-même son titre
+      { path: ':slug', name: 'ChartPage', component: () => import('../views/GraphiquePage.vue') },
+    ],
   },
-  { path: '/portfolio-snapshot', name: 'PortfolioSnapshot', component: () => import('../views/SnapshotPage.vue'), meta: { title: 'Portfolio Snapshot' } },
-  { path: '/portfolio-flow', name: 'PortfolioFlow', component: () => import('../views/PortfolioFlowPage.vue'), meta: { title: 'Portfolio Flow' } },
-  { path: '/strategie', name: 'Strategy', component: () => import('../views/StrategyPage.vue'), meta: { title: 'Stratégie CTO' } },
-  // Pas de meta.title : la page du graphique donne elle-même son titre
-  { path: '/graphiques/:slug', name: 'ChartPage', component: () => import('../views/GraphiquePage.vue') },
+  // Ancienne adresse de la page des graphiques
+  { path: '/echart', redirect: '/graphiques' },
   { path: '/board', name: 'BoardPage', component: () => import('../views/DashboardPage.vue'), meta: { title: 'Tableau de bord' } },
   {
     path: '/:pathMatch(.*)*',

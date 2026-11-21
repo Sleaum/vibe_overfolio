@@ -1,10 +1,11 @@
 // Registre des graphiques et cartes de la page /graphiques.
 //
 // - CHARTS : les graphiques qui ont leur propre page /graphiques/<slug> (Flux du budget et les cinq de Portfolio Flow).
-// - GALLERY : les cartes de la page /graphiques, dans l'ordre d'affichage. Trois sont des pages construites à la main
-//   (Portfolio Flow, Portfolio Snapshot, Stratégie CTO), la quatrième est le graphique Flux du budget.
+// - MENU : les entrées du menu de gauche de la rubrique Graphiques (GraphiquesLayout.vue), dans l'ordre d'affichage.
+//   Trois sont des pages construites à la main (Portfolio Flow, Portfolio Snapshot, Stratégie CTO), la quatrième est le
+//   graphique Flux du budget. /graphiques ouvre la première.
 // Pour ajouter un graphique : créer un fichier de spécification (voir budgetFlow.js), l'ajouter à CHARTS, puis lui donner une
-// carte dans GALLERY.
+// entrée dans MENU.
 
 import budgetFlow from './budgetFlow.js'
 import flowAllocation from './flowAllocation.js'
@@ -20,8 +21,8 @@ export const CHARTS = [budgetFlow, ...FLOW_CHARTS]
 
 const PORTFOLIO_FLOW = { title: 'Portfolio Flow', to: '/portfolio-flow' }
 
-/** Cartes de la page /graphiques. `thumb` : line | donut | sunburst | sankey (voir ChartThumb.vue). */
-export const GALLERY = [
+/** Entrées du menu de la rubrique Graphiques. `thumb` : line | donut | sunburst | sankey (voir ChartThumb.vue). */
+export const MENU = [
   {
     key: 'portfolio-flow',
     to: PORTFOLIO_FLOW.to,
@@ -51,6 +52,19 @@ export const GALLERY = [
     thumb: budgetFlow.thumb,
   },
 ]
+
+/**
+ * Entrée du menu à mettre en avant pour une route : la page elle-même, ou, pour /graphiques/<slug>,
+ * la page qui regroupe ce graphique (Portfolio Flow) ou le graphique lui-même (Flux du budget).
+ */
+export function menuKeyFor(route) {
+  if (route.name === 'ChartPage') {
+    const slug = String(route.params.slug ?? '')
+    if (FLOW_CHARTS.some((chart) => chart.slug === slug)) return 'portfolio-flow'
+    return MENU.some((item) => item.key === slug) ? slug : null
+  }
+  return MENU.find((item) => typeof item.to === 'string' && item.to === route.path)?.key ?? null
+}
 
 export const getChart = (slug) => CHARTS.find((chart) => chart.slug === slug) ?? null
 

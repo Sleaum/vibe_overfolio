@@ -5,7 +5,7 @@
   Calculs dans lib/snapshot.js. La table _history ne sert qu'aux deux variations : si elle manque, la page s'affiche quand même.
 -->
 <template>
-  <div class="page-container py-12 sm:py-16">
+  <div>
     <header class="max-w-3xl">
       <h1 class="text-h2 text-ink">Portfolio Snapshot</h1>
       <p class="mt-3 text-lead text-ink-2" aria-live="polite">{{ subtitle }}</p>

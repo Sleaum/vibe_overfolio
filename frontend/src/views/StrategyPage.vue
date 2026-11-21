@@ -5,7 +5,7 @@
   Calculs dans lib/strategy.js ; le choix d'enveloppe (PEA et CTO, CTO seul…) filtre toutes les cartes à la fois.
 -->
 <template>
-  <div class="page-container py-12 sm:py-16">
+  <div>
     <header class="max-w-3xl">
       <h1 class="text-h2 text-ink">Stratégie CTO</h1>
       <p class="mt-3 text-lead text-ink-2" aria-live="polite">{{ subtitle }}</p>
