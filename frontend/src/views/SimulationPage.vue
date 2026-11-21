@@ -1,11 +1,11 @@
 <!--
-  Page « Simulation » (/simulation) : simulation de Monte-Carlo du patrimoine net, avec la probabilité d'atteindre ton
+  Page « Simulation » (/simulation), à part de la rubrique Graphiques : simulation de Monte-Carlo du patrimoine net, avec la probabilité d'atteindre ton
   objectif. Calculs dans lib/simulation.js, exécutés dans un Web Worker (lib/simulation.worker.js).
   Point de départ lu dans la base : portfolio (montants par type d'actif et dettes), inout (versement moyen, facultatif),
   _history (objectifs, facultatif). Toutes les hypothèses se modifient dans la page et sont retenues par le navigateur.
 -->
 <template>
-  <div>
+  <div class="page-container py-12 sm:py-16">
     <header class="max-w-3xl">
       <h1 class="text-h2 text-ink">Simulation</h1>
       <p class="mt-3 text-lead text-ink-2">

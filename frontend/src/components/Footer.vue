@@ -14,6 +14,7 @@
           <ul class="mt-3 space-y-2">
             <li><router-link to="/sheet" class="text-ink-2 hover:text-ink hover:underline">GoogleSheet</router-link></li>
             <li><router-link to="/graphiques" class="text-ink-2 hover:text-ink hover:underline">Graphiques</router-link></li>
+            <li><router-link to="/simulation" class="text-ink-2 hover:text-ink hover:underline">Simulation</router-link></li>
           </ul>
         </nav>
       </div>

@@ -84,8 +84,9 @@ const LINKS = [
   {
     label: 'Graphiques',
     to: '/graphiques',
-    under: ['/graphiques', '/echart', '/portfolio-flow', '/portfolio-snapshot', '/strategie'],
+    under: ['/graphiques', '/echart', '/portfolio-flow', '/portfolio-snapshot', '/strategie', '/enveloppes', '/volatilite'],
   },
+  { label: 'Simulation', to: '/simulation', under: ['/simulation'] },
 ]
 
 const isActive = (link) => link.under.some((base) => route.path === base || route.path.startsWith(`${base}/`))

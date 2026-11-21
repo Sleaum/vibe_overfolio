@@ -34,7 +34,7 @@ overfolio/
 │       ├── views/                  # une page par route
 │       │   ├── HeroSection.vue     #   /                   présentation et vente
 │       │   ├── SourcePage.vue      #   /sheet              onglets de la base, bouton Tout actualiser
-│       │   ├── GraphiquesLayout.vue #  /graphiques         menu à gauche (7 entrées), page choisie à droite
+│       │   ├── GraphiquesLayout.vue #  /graphiques         menu à gauche (6 entrées), page choisie à droite
 │       │   ├── GraphiquePage.vue   #   /graphiques/<nom>   un graphique
 │       │   ├── PortfolioFlowPage.vue #  /portfolio-flow    l'historique mois par mois
 │       │   ├── SnapshotPage.vue    #   /portfolio-snapshot  le patrimoine d'aujourd'hui
@@ -174,7 +174,8 @@ docker compose up --build -d
 |---|---|
 | http://localhost | Page de présentation : promesse, aperçu, étapes, tarif, questions |
 | http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Tout actualiser). L'ancienne adresse `/source` fonctionne toujours |
-| http://localhost/graphiques | Menu à gauche : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité, Simulation et Flux du budget ; la page choisie s'affiche à droite (Portfolio Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
+| http://localhost/graphiques | Menu à gauche : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité et Flux du budget ; la page choisie s'affiche à droite (Portfolio Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
+| http://localhost/simulation | Simulation de Monte-Carlo du patrimoine (page à part, lien « Simulation » de l'en-tête) |
 | http://localhost/admin/ | Admin Django |
 
 Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx.
@@ -369,12 +370,12 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que l
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, tarif (`/#tarifs`), questions fréquentes |
 | `/sheet` | `views/SourcePage.vue` | Menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
-| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité, Simulation, Flux du budget), page choisie à droite. `/graphiques` ouvre Portfolio Flow. Les sept pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
+| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité, Flux du budget), page choisie à droite. `/graphiques` ouvre Portfolio Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
 | `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Portfolio Flow, Enveloppes ou Volatilité (leur fil d'Ariane passe par leur page) |
 | `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les 6 graphiques « Portfolio Flow » sur une seule page, avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone |
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Une bulle par placement : montant détenu et variation du prix unitaire sur 1 mois, 3 mois et 1 an |
-| `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
+| `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `lib/strategy.js` et `lib/charts/sunburst.js` | Stratégie CTO : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
@@ -426,7 +427,7 @@ Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en 
 
 ### La simulation
 
-La page `/simulation` tire 5 000 trajectoires mois par mois jusqu'à la date de l'objectif. Elle affiche la médiane, les fourchettes 25-75 % et 10-90 %, et la part des trajectoires qui atteignent l'objectif à sa date.
+La page `/simulation` (lien de l'en-tête, à part de la rubrique Graphiques) tire 5 000 trajectoires mois par mois jusqu'à la date de l'objectif. Elle affiche la médiane, les fourchettes 25-75 % et 10-90 %, et la part des trajectoires qui atteignent l'objectif à sa date.
 
 - **Point de départ** : la table `portfolio` (montants par `Asset` au dernier relevé, et dette totale tirée de `Liabilities Master Currency`).
 - **Valeurs proposées** : le versement mensuel est la moyenne des 12 derniers mois complets de `inout` (`in - out - tax`). L'objectif est la prochaine ligne d'objectif de `_history`. Les hypothèses par type d'actif (rendement, volatilité, lien avec les actions) sont des ordres de grandeur de long terme, dans `DEFAULT_ASSUMPTIONS` de `lib/simulation.js`.
