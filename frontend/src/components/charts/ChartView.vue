@@ -11,7 +11,7 @@
     </header>
 
     <div class="mt-10 grid grid-cols-12 gap-y-10 lg:gap-x-8">
-      <section class="col-span-12 lg:col-span-8" :aria-label="spec.title">
+      <section class="col-span-12" :aria-label="spec.title">
         <div class="rounded-xl border border-line bg-white shadow-soft">
           <!-- Réglages du graphique et bascule graphique / tableau -->
           <div
@@ -138,8 +138,8 @@
         </div>
       </section>
 
-      <!-- Explication et source des chiffres -->
-      <aside class="col-span-12 lg:col-span-4">
+      <!-- Explication et source des chiffres, sous le graphique -->
+      <aside class="col-span-12 max-w-3xl">
         <h2 class="text-h3 text-ink">Comment lire ce graphique</h2>
         <p v-for="paragraph in spec.explain" :key="paragraph" class="mt-3 text-ink-2">{{ paragraph }}</p>
 
