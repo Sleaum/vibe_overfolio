@@ -23,7 +23,6 @@ overfolio/
 │   │   ├── admin.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
-│   └── payments/                   # app : Stripe
 ├── frontend/
 │   ├── Dockerfile                  # stage "build" (Vite)
 │   ├── tailwind.config.js          # jetons de design : couleurs, typographie, ombres
@@ -45,7 +44,7 @@ overfolio/
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
 │       │   └── NewPage.vue          # /newpage (connexion)
 │       ├── components/
-│       │   ├── Header.vue, Footer.vue, SubscriptionButton.vue
+│       │   ├── Header.vue, Footer.vue
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
 │       │   ├── ui/                 # AppButton, SegmentedControl
 │       │   ├── landing/            # sections de la page de présentation
@@ -172,7 +171,7 @@ docker compose up --build -d
 
 | URL | Contenu |
 |---|---|
-| http://localhost | Page de présentation : promesse, aperçu, étapes, tarif, questions |
+| http://localhost | Page de présentation : promesse, aperçu, étapes, questions |
 | http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Tout actualiser). L'ancienne adresse `/source` fonctionne toujours |
 | http://localhost/graphiques | Menu à gauche : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité et Flux du budget ; la page choisie s'affiche à droite (Portfolio Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
 | http://localhost/simulation | Simulation de Monte-Carlo du patrimoine (page à part, lien « Simulation » de l'en-tête) |
@@ -303,7 +302,6 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données ; 502 si aucun n'a pu être enregistré |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet (voir « Paramètres saisis sur la page GoogleSheet ») |
-| POST | `/api/stripe/...` | Paiements Stripe |
 
 Les erreurs sont renvoyées en JSON `{"error": "..."}` : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google).
 
@@ -368,7 +366,7 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que l
 
 | Adresse | Fichier | Contenu |
 |---|---|---|
-| `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, tarif (`/#tarifs`), questions fréquentes |
+| `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, questions fréquentes |
 | `/sheet` | `views/SourcePage.vue` | Menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
 | `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité, Flux du budget), page choisie à droite. `/graphiques` ouvre Portfolio Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
 | `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Portfolio Flow, Enveloppes ou Volatilité (leur fil d'Ariane passe par leur page) |
@@ -471,16 +469,6 @@ Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) 
 | `frontend/src/lib/sample.js` | Données **fictives** de l'aperçu de la page d'accueil. Ce ne sont pas les tiennes |
 
 Accessibilité : lien « Aller au contenu », menu mobile utilisable au clavier (fermeture avec Échap), focus visible, animation de la courbe d'accueil désactivée avec `prefers-reduced-motion`, et chaque graphique a une version tableau.
-
-### Variables du front
-
-Lues par Vite **au moment du build** (fichier `frontend/.env`, à ne pas commiter). Après un changement : `docker compose up --build -d`.
-
-| Variable | Défaut | Rôle |
-|---|---|---|
-| `VITE_STRIPE_PUBLISHABLE_KEY` | aucun | Clé publique Stripe (`pk_...`), utilisée seulement si l'API ne renvoie pas d'adresse de paiement |
-| `VITE_API_URL` | vide (même adresse que le site) | Adresse de l'API si elle n'est pas derrière nginx |
-| `VITE_CHECKOUT_PATH` | `/api/stripe/api/create-checkout-session/` | Chemin de la route Stripe du backend |
 
 ## Commandes utiles
 

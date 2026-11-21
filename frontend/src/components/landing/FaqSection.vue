@@ -59,12 +59,7 @@ const ITEMS = [
   {
     question: 'Overfolio me dit-il quoi acheter ou vendre ?',
     answer:
-      'Non. Overfolio montre ce que contient ta feuille : il ne recommande aucun placement et ne prédit rien. Ses graphiques t’aident à voir ta situation d’ensemble avant de prendre tes propres décisions.',
-  },
-  {
-    question: 'Comment se passe le paiement ?',
-    answer:
-      'Le paiement est géré par Stripe. Tu es redirigé vers sa page sécurisée et tu vois le montant avant de valider. Overfolio ne voit jamais ton numéro de carte.',
+      'Non. Overfolio montre ce que contient ta feuille : il ne recommande aucun placement. La page Simulation projette des scénarios à partir de tes propres hypothèses, sans rien prédire. Ses graphiques t’aident à voir ta situation d’ensemble avant de prendre tes propres décisions.',
   },
 ]
 </script>

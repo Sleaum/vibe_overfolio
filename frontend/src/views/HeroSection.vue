@@ -1,6 +1,6 @@
 <!--
   Page d'accueil « / » : présentation et vente.
-  Ordre : promesse + aperçu → trois avantages → aperçu du produit → comment ça marche → tarif → questions.
+  Ordre : promesse + aperçu → trois avantages → aperçu du produit → comment ça marche → questions.
 -->
 <template>
   <div>
@@ -39,7 +39,6 @@
     <BenefitsSection />
     <ProductPreview />
     <StepsSection />
-    <PricingSection />
     <FaqSection />
   </div>
 </template>
@@ -49,7 +48,6 @@ import AppButton from '../components/ui/AppButton.vue'
 import BenefitsSection from '../components/landing/BenefitsSection.vue'
 import FaqSection from '../components/landing/FaqSection.vue'
 import HeroPreview from '../components/landing/HeroPreview.vue'
-import PricingSection from '../components/landing/PricingSection.vue'
 import ProductPreview from '../components/landing/ProductPreview.vue'
 import StepsSection from '../components/landing/StepsSection.vue'
 </script>

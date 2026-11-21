@@ -49,7 +49,7 @@ const router = createRouter({
     if (savedPosition) return savedPosition // retour arrière : on retrouve sa place
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    // Ancre (#tarifs) : on s'arrête sous l'en-tête fixe de 64 px
+    // Ancre (#section) : on s'arrête sous l'en-tête fixe de 64 px
     if (to.hash) return { el: to.hash, top: 88, behavior: reduceMotion ? 'auto' : 'smooth' }
 
     // Même page, seule la requête change (/sheet?onglet=…) : on ne remonte pas
