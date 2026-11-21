@@ -26,11 +26,12 @@ const routes: RouteRecordRaw[] = [
       { path: '/strategie', name: 'Strategy', component: () => import('../views/StrategyPage.vue'), meta: { title: 'Stratégie CTO' } },
       { path: '/enveloppes', name: 'Envelopes', component: () => import('../views/EnvelopesPage.vue'), meta: { title: 'Enveloppes' } },
       { path: '/volatilite', name: 'Volatility', component: () => import('../views/VolatilityPage.vue'), meta: { title: 'Volatilité' } },
-      { path: '/simulation', name: 'Simulation', component: () => import('../views/SimulationPage.vue'), meta: { title: 'Simulation' } },
       // Pas de meta.title : la page du graphique donne elle-même son titre
       { path: ':slug', name: 'ChartPage', component: () => import('../views/GraphiquePage.vue') },
     ],
   },
+  // Simulation de Monte-Carlo : page à part, hors de la rubrique Graphiques (pas de menu à gauche)
+  { path: '/simulation', name: 'Simulation', component: () => import('../views/SimulationPage.vue'), meta: { title: 'Simulation' } },
   // Ancienne adresse de la page des graphiques
   { path: '/echart', redirect: '/graphiques' },
   { path: '/board', name: 'BoardPage', component: () => import('../views/DashboardPage.vue'), meta: { title: 'Tableau de bord' } },
