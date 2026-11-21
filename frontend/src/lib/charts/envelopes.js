@@ -46,13 +46,15 @@ export function investedEnvelopes(rows, envelopeColumn, assetColumn) {
   return names
 }
 
-/** Lignes du dernier relevé de `portfolio` (toutes si la table n'a pas de colonne Date). */
+/**
+ * Toutes les lignes de `portfolio` (ta photo actuelle) et sa date la plus récente, pour le sous-titre.
+ * On ne filtre pas sur cette date : selon la place de cotation, les lignes d'un même relevé peuvent porter des dates
+ * différentes (titres européens datés de la veille des titres américains, par exemple). Comme Portfolio Snapshot.
+ */
 function currentRows(table) {
   const rows = rowsOf(table)
   const dateColumn = findColumn(table.columns, ['Date'])
-  if (!dateColumn) return { rows, date: '' }
-  const date = latestDate(rows, dateColumn)
-  return { rows: date ? rows.filter((row) => toIsoDate(row[dateColumn]) === date) : rows, date }
+  return { rows, date: dateColumn ? latestDate(rows, dateColumn) : '' }
 }
 
 /**
