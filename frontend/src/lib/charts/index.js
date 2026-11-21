@@ -62,6 +62,12 @@ export const MENU = [
     summary: 'De combien le prix de chacun de tes placements a bougé sur 1 mois, 3 mois et 1 an.',
   },
   {
+    key: 'simulation',
+    to: '/simulation',
+    title: 'Simulation',
+    summary: 'Monte-Carlo : des milliers d’avenirs possibles pour ton patrimoine et ta chance d’atteindre ton objectif.',
+  },
+  {
     key: budgetFlow.slug,
     to: { name: 'ChartPage', params: { slug: budgetFlow.slug } },
     title: budgetFlow.title,

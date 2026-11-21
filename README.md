@@ -34,13 +34,14 @@ overfolio/
 │       ├── views/                  # une page par route
 │       │   ├── HeroSection.vue     #   /                   présentation et vente
 │       │   ├── SourcePage.vue      #   /sheet              onglets de la base, bouton Tout actualiser
-│       │   ├── GraphiquesLayout.vue #  /graphiques         menu à gauche (6 entrées), page choisie à droite
+│       │   ├── GraphiquesLayout.vue #  /graphiques         menu à gauche (7 entrées), page choisie à droite
 │       │   ├── GraphiquePage.vue   #   /graphiques/<nom>   un graphique
 │       │   ├── PortfolioFlowPage.vue #  /portfolio-flow    l'historique mois par mois
 │       │   ├── SnapshotPage.vue    #   /portfolio-snapshot  le patrimoine d'aujourd'hui
 │       │   ├── StrategyPage.vue    #   /strategie          les actions en anneaux à deux niveaux
 │       │   ├── EnvelopesPage.vue   #   /enveloppes         les enveloppes de placement (CTO, PEA, PER, PEE)
 │       │   ├── VolatilityPage.vue  #   /volatilite         variation du prix de chaque placement
+│       │   ├── SimulationPage.vue  #   /simulation         simulation de Monte-Carlo du patrimoine
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
 │       │   └── NewPage.vue, DashboardPage.vue   # /newpage (connexion), /board
 │       ├── components/
@@ -173,7 +174,7 @@ docker compose up --build -d
 |---|---|
 | http://localhost | Page de présentation : promesse, aperçu, étapes, tarif, questions |
 | http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Tout actualiser). L'ancienne adresse `/source` fonctionne toujours |
-| http://localhost/graphiques | Menu à gauche : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité et Flux du budget ; la page choisie s'affiche à droite (Portfolio Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
+| http://localhost/graphiques | Menu à gauche : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité, Simulation et Flux du budget ; la page choisie s'affiche à droite (Portfolio Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
 | http://localhost/admin/ | Admin Django |
 
 Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx.
@@ -368,11 +369,12 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que l
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, tarif (`/#tarifs`), questions fréquentes |
 | `/sheet` | `views/SourcePage.vue` | Menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
-| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité, Flux du budget), page choisie à droite. `/graphiques` ouvre Portfolio Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
+| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Portfolio Flow, Portfolio Snapshot, Enveloppes, Stratégie CTO, Volatilité, Simulation, Flux du budget), page choisie à droite. `/graphiques` ouvre Portfolio Flow. Les sept pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
 | `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Portfolio Flow, Enveloppes ou Volatilité (leur fil d'Ariane passe par leur page) |
 | `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les 6 graphiques « Portfolio Flow » sur une seule page, avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone |
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Une bulle par placement : montant détenu et variation du prix unitaire sur 1 mois, 3 mois et 1 an |
+| `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `lib/strategy.js` et `lib/charts/sunburst.js` | Stratégie CTO : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
@@ -421,6 +423,16 @@ La page `/portfolio-snapshot` lit la table `portfolio` (et `_history` pour deux 
 Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en bas les colonnes réellement lues pour chaque découpage, ce qui permet de vérifier d'un coup d'œil. Pour accepter un autre nom de colonne, ajouter ce nom dans la liste `DIMENSIONS` de `snapshot.js`. La carte du monde de Looker Studio est remplacée par une liste de zones : une carte demanderait un fichier de fonds de carte, donc une nouvelle ressource.
 
 ### Stratégie CTO
+
+### La simulation
+
+La page `/simulation` tire 5 000 trajectoires mois par mois jusqu'à la date de l'objectif. Elle affiche la médiane, les fourchettes 25-75 % et 10-90 %, et la part des trajectoires qui atteignent l'objectif à sa date.
+
+- **Point de départ** : la table `portfolio` (montants par `Asset` au dernier relevé, et dette totale tirée de `Liabilities Master Currency`).
+- **Valeurs proposées** : le versement mensuel est la moyenne des 12 derniers mois complets de `inout` (`in - out - tax`). L'objectif est la prochaine ligne d'objectif de `_history`. Les hypothèses par type d'actif (rendement, volatilité, lien avec les actions) sont des ordres de grandeur de long terme, dans `DEFAULT_ASSUMPTIONS` de `lib/simulation.js`.
+- **Modèle** : rendements mensuels log-normaux, chocs de Student à 5 degrés de liberté (krachs plus fréquents qu'avec une loi normale) et corrélation par un facteur « marché actions ». Les versements sont répartis au prorata des actifs cochés, et les frais sont prélevés sur les actifs financiers. La dette baisse du capital remboursé chaque mois.
+- **Limites** : ni impôt à la sortie ni rééquilibrage. Les résultats sont reproductibles : une graine fixe donne le même résultat pour les mêmes hypothèses.
+- Tout se règle dans la page, et les réglages sont gardés par le navigateur (`localStorage`). Le calcul tourne dans un Web Worker, en 0,3 s environ.
 
 La page `/strategie` reprend la page « Stratégie CTO » de Looker Studio : sept anneaux à deux niveaux (graphiques « sunburst » d'ECharts, sans bibliothèque en plus). L'anneau intérieur donne les catégories, l'anneau extérieur leur détail, en nuances de la même couleur. Tous les calculs sont dans `frontend/src/lib/strategy.js`.
 
