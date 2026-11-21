@@ -1,7 +1,6 @@
 <!--
   En-tête fixe : logo-texte à gauche (vers la page de présentation), menu à droite.
   Mobile : bouton burger accessible (clavier, aria-expanded, libellé qui change, Échap, fermeture au clic extérieur).
-  "S'abonner" mène à la section Tarifs de la page de présentation.
 -->
 <template>
   <header
@@ -30,10 +29,6 @@
             </router-link>
           </li>
         </ul>
-        <div class="ml-5 flex items-center gap-2">
-          <AppButton to="/newpage" variant="ghost" size="sm">Connexion</AppButton>
-          <AppButton :to="{ name: 'Home', hash: '#tarifs' }" variant="outline" size="sm">S’abonner</AppButton>
-        </div>
       </nav>
 
       <!-- Bouton burger (mobile) -->
@@ -74,10 +69,6 @@
           </router-link>
         </li>
       </ul>
-      <div class="page-container flex flex-col gap-2 pb-5">
-        <AppButton to="/newpage" variant="secondary" block>Connexion</AppButton>
-        <AppButton :to="{ name: 'Home', hash: '#tarifs' }" variant="outline" block>S’abonner</AppButton>
-      </div>
     </nav>
   </header>
 </template>
@@ -85,7 +76,6 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import AppButton from './ui/AppButton.vue'
 
 // Les chemins existants restent valides : /sheet (alias /source) et /graphiques (alias /echart)
 // `under` : adresses qui font partie de la rubrique (la page d'un graphique est sous /graphiques/…)

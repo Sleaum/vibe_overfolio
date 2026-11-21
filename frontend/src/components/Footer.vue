@@ -9,23 +9,11 @@
           </p>
         </div>
 
-        <nav class="col-span-6 md:col-span-3 md:col-start-7" aria-label="Pages du site">
+        <nav class="col-span-6 md:col-span-3 md:col-start-10" aria-label="Pages du site">
           <h2 class="font-semibold text-ink">Pages</h2>
           <ul class="mt-3 space-y-2">
             <li><router-link to="/sheet" class="text-ink-2 hover:text-ink hover:underline">GoogleSheet</router-link></li>
             <li><router-link to="/graphiques" class="text-ink-2 hover:text-ink hover:underline">Graphiques</router-link></li>
-          </ul>
-        </nav>
-
-        <nav class="col-span-6 md:col-span-3" aria-label="Compte">
-          <h2 class="font-semibold text-ink">Compte</h2>
-          <ul class="mt-3 space-y-2">
-            <li><router-link to="/newpage" class="text-ink-2 hover:text-ink hover:underline">Connexion</router-link></li>
-            <li>
-              <router-link :to="{ name: 'Home', hash: '#tarifs' }" class="text-ink-2 hover:text-ink hover:underline">
-                S’abonner
-              </router-link>
-            </li>
           </ul>
         </nav>
       </div>
