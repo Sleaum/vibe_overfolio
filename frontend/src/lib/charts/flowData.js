@@ -1,7 +1,7 @@
 // Calculs communs aux graphiques « Portfolio Flow » : table `_history`, des relevés datés (plusieurs lignes par date).
 // Fonctions pures. Un mois est représenté par son dernier relevé, jamais par la somme de ses relevés.
 
-import { toLabel, toNumber } from '../aggregate.js'
+import { findColumn, rowsOf, toLabel, toNumber } from '../aggregate.js'
 import { monthKey, toIsoDate } from '../dates.js'
 import { capitalize, formatDateLong, percent } from '../format.js'
 import { CONTEXT, assignAssetColors } from '../palette.js'
@@ -178,4 +178,21 @@ export function skippedNote(count) {
 export function monthsSubtitle(months) {
   const last = months[months.length - 1]
   return last ? `Relevés jusqu’au ${formatDateLong(last.iso)}.` : ''
+}
+
+const DATE_NAMES = ['Date', 'Mois', 'Month']
+
+/** Années des relevés mensuels d'une table (enchaînement principal, sans les dates isolées), de la plus récente à la plus ancienne. */
+export function yearsOf(table) {
+  const dateColumn = findColumn(table?.columns, DATE_NAMES)
+  if (!dateColumn) return []
+  return [...new Set(monthEnds(rowsOf(table), dateColumn).map((month) => month.key.slice(0, 4)))].sort().reverse()
+}
+
+/** Copie de la table réduite aux lignes d'une année ("2026") ; `year` vide ou table sans colonne de date : table inchangée. */
+export function filterByYear(table, year) {
+  if (!table || !year) return table
+  const dateColumn = findColumn(table.columns, DATE_NAMES)
+  if (!dateColumn) return table
+  return { ...table, rows: rowsOf(table).filter((row) => (toIsoDate(row[dateColumn]) ?? '').startsWith(`${year}-`)) }
 }
