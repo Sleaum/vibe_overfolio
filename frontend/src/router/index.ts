@@ -34,7 +34,6 @@ const routes: RouteRecordRaw[] = [
   { path: '/simulation', name: 'Simulation', component: () => import('../views/SimulationPage.vue'), meta: { title: 'Simulation' } },
   // Ancienne adresse de la page des graphiques
   { path: '/echart', redirect: '/graphiques' },
-  { path: '/board', name: 'BoardPage', component: () => import('../views/DashboardPage.vue'), meta: { title: 'Tableau de bord' } },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',

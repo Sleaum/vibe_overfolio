@@ -16,8 +16,7 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# SUPPRIMEZ CETTE LIGNE COMPLÈTEMENT
-# RUN python manage.py collectstatic --noinput
+# collectstatic est lancé au démarrage du conteneur (commande du service backend dans docker-compose.yml)
 
 EXPOSE 8000
 CMD ["gunicorn", "overfolio.wsgi:application", "--bind", "0.0.0.0:8000"]

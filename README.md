@@ -43,13 +43,13 @@ overfolio/
 │       │   ├── VolatilityPage.vue  #   /volatilite         variation du prix de chaque placement
 │       │   ├── SimulationPage.vue  #   /simulation         simulation de Monte-Carlo du patrimoine
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
-│       │   └── NewPage.vue, DashboardPage.vue   # /newpage (connexion), /board
+│       │   └── NewPage.vue          # /newpage (connexion)
 │       ├── components/
 │       │   ├── Header.vue, Footer.vue, SubscriptionButton.vue
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
 │       │   ├── ui/                 # AppButton, SegmentedControl
 │       │   ├── landing/            # sections de la page de présentation
-│       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, ChartThumb, DataTableView, ShareBars, StrategyCard
+│       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard
 │       ├── composables/            # useTable (charge une table), useReducedMotion
 │       └── lib/
 │           ├── api.js              # appels /api/data/...
@@ -380,7 +380,6 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que l
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `lib/strategy.js` et `lib/charts/sunburst.js` | Stratégie CTO : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
 | `/newpage` | `views/NewPage.vue` | Connexion, au style du site (fond blanc, carte à filet fin, bleu d'accent). La connexion est encore une simulation : rien n'est envoyé au serveur |
-| `/board` | `views/DashboardPage.vue` | Tableau de bord : pas refait, il garde son ancien style |
 
 Les pages, hors accueil, sont chargées à la demande : ECharts n'est téléchargé que lorsqu'on ouvre un graphique.
 
@@ -460,7 +459,7 @@ La page `/strategie` reprend la page « Stratégie CTO » de Looker Studio : sep
 3. Écrire `build(table)` : `requireColumns(table, …)` retrouve les colonnes et lève un message clair si l'une manque, puis la fonction renvoie `{ subtitle, summary, option, height, table: { columns, numeric, rows } }`, ou `{ empty: 'message' }` quand il n'y a rien à afficher.
 4. L'ajouter à `frontend/src/lib/charts/index.js` : `import` et tableau `CHARTS` (la page `/graphiques/<slug>` apparaît seule). Pour une entrée dans le menu de la rubrique Graphiques, ajouter aussi une entrée à `MENU` ; pour l'intégrer à une page qui en réunit plusieurs, l'ajouter à `FLOW_CHARTS`, `ENVELOPE_CHARTS` ou `VOLATILITY_CHARTS` (liste `GROUPS`).
 
-Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) doit être enregistré dans `lib/echartsSetup.js` (actuellement : barres, courbes, secteurs, Sankey, nuage de points, anneaux à deux niveaux, ligne de repère) ; une nouvelle miniature s'ajoute dans `components/charts/ChartThumb.vue`.
+Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) doit être enregistré dans `lib/echartsSetup.js` (actuellement : barres, courbes, secteurs, Sankey, nuage de points, anneaux à deux niveaux, ligne de repère).
 
 ### Apparence
 
