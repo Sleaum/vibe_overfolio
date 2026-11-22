@@ -208,7 +208,15 @@ docker compose exec backend python manage.py createsuperuser
 
 ## Google Sheets
 
-Deux façons de lire la feuille. Overfolio choisit seul (`access_mode()` dans `backend/googlesheet/config.py`) :
+Sur la page **GoogleSheet**, le bloc « Connexion à Google Sheets » commence par le **mode de connexion**, trois cartes à choix unique ; seuls les champs du mode choisi s'affichent :
+
+| Carte | Champs affichés |
+|---|---|
+| **1. Lien public** | lien du Google Sheet, onglets à synchroniser (+ onglets proposés). Pas de nom de document : l'identifiant vient du lien |
+| **2. Compte de service** | comme avant : lien, nom du document (seulement si le lien est vide), onglets, compte de service (import du fichier JSON, champs, champs avancés) |
+| **3. Compte Google** | présentation de la connexion standard « Se connecter avec Google » (sélecteur de fichiers de Google, feuille privée). **Pas encore branchée** : elle arrivera avec les comptes Overfolio |
+
+Enregistrer en mode 1 retire le compte de service enregistré (après confirmation). Côté serveur, le mode en vigueur se déduit des valeurs enregistrées (`access_mode()` dans `backend/googlesheet/config.py`) :
 
 | Mode | Quand | Ce qu'il faut | La feuille |
 |---|---|---|---|
@@ -227,7 +235,7 @@ compte de service + lien ──► API Google Sheets (gspread) ─────�
 **Compte de service** :
 1. Dans le projet Google Cloud du compte de service, active l'**API Google Sheets**. L'**API Drive** n'est nécessaire que si l'identifiant du document n'est pas renseigné.
 2. Partage le document avec l'adresse du compte de service (`CLIENT_EMAIL`), en **Lecteur**. La feuille peut rester privée.
-3. Renseigne les paramètres sur la page **GoogleSheet** (`/sheet`, bloc « Connexion à Google Sheets », bouton « Importer le fichier JSON »), ou dans `.env`. Le compte de service est facultatif, mais complet dès qu'un de ses champs est rempli. Le bouton « Retirer le compte de service » repasse en lecture par lien.
+3. Renseigne les paramètres sur la page **GoogleSheet** (`/sheet`, bloc « Connexion à Google Sheets », bouton « Importer le fichier JSON »), ou dans `.env`. Le compte de service est complet dès qu'un de ses champs est rempli. Choisir la carte « 1. Lien public » puis Enregistrer repasse en lecture par lien.
 
 **Onglets** : dans les deux modes, « Proposer les onglets du document » lit la liste des onglets de la feuille et les présente en cases à cocher, qui remplissent « Onglets à synchroniser ».
 
