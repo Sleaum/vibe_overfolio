@@ -6,7 +6,11 @@
 //   il intègre donc le change (un titre en dollars bouge aussi avec l'euro/dollar) mais pas tes achats ni tes ventes ;
 // - une ligne = même Instrument, même enveloppe et même courtier aux deux dates ;
 // - les liquidités, l'immobilier, les biens qui se déprécient et les objets (fiat, real estate, depreciating, exotic)
-//   n'ont pas de cours : ils sont écartés.
+//   n'ont pas de cours : ils sont écartés ;
+// - une ligne du dernier relevé absente du relevé d'il y a N mois (placement plus récent) n'a pas de variation :
+//   elle est nommée dans la note sous le graphique (`missing`).
+// Chaque bulle porte son nom ; un même instrument dans plusieurs enveloppes (MSCI World en PEA, CTO et PER) porte aussi
+// son enveloppe. Deux bulles presque identiques se superposent : leurs noms sont décalés pour rester lisibles.
 
 import { DataError, findColumn, requireColumns, rowsOf, toLabel, toNumber } from '../aggregate.js'
 import { axisLabelStyle, baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
@@ -32,8 +36,8 @@ function monthsBefore(iso, months) {
 /**
  * Variation du prix unitaire de chaque ligne entre le dernier relevé et celui d'il y a `months` mois
  * (le plus récent relevé daté au plus tard 7 jours après cette date-là).
- * Retourne { latest, reference, lines: [{ name, envelope, asset, amount, before, after, pct }] } ; reference = '' si
- * l'historique est trop court.
+ * Retourne { latest, reference, lines: [{ name, envelope, asset, amount, before, after, pct }], missing: [noms] } ;
+ * reference = '' si l'historique est trop court. `missing` : lignes du dernier relevé sans relevé à la date de référence.
  */
 export function priceChanges(table, months) {
   const cols = requireColumns(table, {
@@ -48,13 +52,13 @@ export function priceChanges(table, months) {
   const rows = rowsOf(table)
 
   const ends = monthEnds(rows, cols.date)
-  if (!ends.length) return { latest: '', reference: '', lines: [] }
+  if (!ends.length) return { latest: '', reference: '', lines: [], missing: [] }
   const latest = ends[ends.length - 1].iso
   const first = ends[0].iso
   const limit = new Date(Date.parse(monthsBefore(latest, months)) + 7 * DAY).toISOString().slice(0, 10)
   const dates = [...new Set(rows.map((row) => toIsoDate(row[cols.date])).filter((iso) => iso && iso >= first && iso <= limit))]
   const reference = dates.sort().pop() ?? ''
-  if (!reference) return { latest, reference: '', lines: [] }
+  if (!reference) return { latest, reference: '', lines: [], missing: [] }
 
   const keyOf = (row) =>
     [row[cols.instrument], envelope ? row[envelope] : '', broker ? row[broker] : ''].map(lower).join('|')
@@ -85,9 +89,14 @@ export function priceChanges(table, months) {
   }
 
   const lines = []
+  const missing = []
   for (const [key, now] of after) {
     const then = before.get(key)
-    if (!then) continue
+    if (!then) {
+      const name = envelopeLabel(toLabel(now.row[cols.instrument]))
+      missing.push(envelope && toLabel(now.row[envelope], '') ? `${name} (${envelopeLabel(toLabel(now.row[envelope]))})` : name)
+      continue
+    }
     const priceAfter = now.amount / now.quantity
     const priceBefore = then.amount / then.quantity
     lines.push({
@@ -101,7 +110,7 @@ export function priceChanges(table, months) {
     })
   }
   lines.sort((a, b) => a.pct - b.pct)
-  return { latest, reference, lines }
+  return { latest, reference, lines, missing }
 }
 
 export function bubbleOption(lines) {
@@ -111,6 +120,26 @@ export function bubbleOption(lines) {
   const assets = [...new Set(lines.map((line) => line.asset))].sort(
     (a, b) => (colors.get(a)?.slot ?? 99) - (colors.get(b)?.slot ?? 99),
   )
+  // Nom de la bulle ; l'enveloppe s'ajoute quand le même instrument est détenu dans plusieurs enveloppes
+  const count = new Map()
+  for (const line of lines) count.set(line.name, (count.get(line.name) ?? 0) + 1)
+  const bubbleName = (line) =>
+    count.get(line.name) > 1 && line.envelope ? `${line.name} · ${envelopeLabel(line.envelope)}` : line.name
+
+  // Bulles presque au même endroit (même variation à 0,5 point près, montants proches) : leurs noms sont écartés
+  // verticalement, l'un au-dessus de l'autre, pour rester lisibles
+  const near = (a, b) => Math.abs(a.pct - b.pct) < 0.5 && Math.abs(Math.log10(Math.max(a.amount, 1) / Math.max(b.amount, 1))) < 0.15
+  const clusters = []
+  for (const line of lines) {
+    const cluster = clusters.find((group) => group.some((other) => near(line, other)))
+    if (cluster) cluster.push(line)
+    else clusters.push([line])
+  }
+  const labelOffset = new Map()
+  for (const cluster of clusters) {
+    cluster.sort((a, b) => b.pct - a.pct)
+    cluster.forEach((line, index) => labelOffset.set(line, [0, (index - (cluster.length - 1) / 2) * 14]))
+  }
 
   return {
     ...baseOption(),
@@ -157,11 +186,25 @@ export function bubbleOption(lines) {
     series: assets.map((name) => ({
       name: capitalize(name),
       type: 'scatter',
-      itemStyle: { color: colors.get(name)?.color, opacity: 0.85, borderColor: SURFACE, borderWidth: 1 },
+      // Bulles un peu transparentes : deux bulles superposées restent visibles toutes les deux
+      itemStyle: { color: colors.get(name)?.color, opacity: 0.7, borderColor: SURFACE, borderWidth: 1 },
       emphasis: { focus: 'series' },
+      label: {
+        show: true,
+        position: 'right',
+        distance: 4,
+        color: INK_2,
+        fontSize: 11,
+        formatter: (p) => (p?.data?.line ? bubbleName(p.data.line) : ''),
+      },
       data: lines
         .filter((line) => line.asset === name)
-        .map((line) => ({ value: [Math.max(line.amount, 1), Number(line.pct.toFixed(2))], symbolSize: size(line.amount), line })),
+        .map((line) => ({
+          value: [Math.max(line.amount, 1), Number(line.pct.toFixed(2))],
+          symbolSize: size(line.amount),
+          label: { offset: labelOffset.get(line) },
+          line,
+        })),
       markLine:
         name === assets[0]
           ? { silent: true, symbol: 'none', label: { show: false }, lineStyle: { color: INK_2, type: 'solid', width: 1 }, data: [{ yAxis: 0 }] }
@@ -194,7 +237,7 @@ function volatilitySpec({ months, slug }) {
     },
 
     build(table) {
-      const { latest, reference, lines } = priceChanges(table, months)
+      const { latest, reference, lines, missing } = priceChanges(table, months)
       if (!latest) return { empty: t('charts.envelopes.noRecord') }
       if (!reference) return { empty: t('charts.volatility.notYet', { period: period(), date: formatDateLong(latest) }) }
       if (!lines.length) {
@@ -232,7 +275,14 @@ function volatilitySpec({ months, slug }) {
           numeric: [false, false, false, true, true],
           rows: lines.map((line) => [line.name, line.envelope ? envelopeLabel(line.envelope) : '', capitalize(line.asset), euro(line.amount), signedPercent(line.pct)]),
         },
-        note: t('charts.volatility.note', { weighted: signedPercent(weighted), total: euro(total) }),
+        note: [
+          t('charts.volatility.note', { weighted: signedPercent(weighted), total: euro(total) }),
+          missing.length
+            ? t('charts.volatility.missing', { date: formatDateLong(reference), names: missing.join(', ') }, missing.length)
+            : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
       }
     },
   }

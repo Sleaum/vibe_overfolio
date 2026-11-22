@@ -491,7 +491,7 @@ Quatorze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de
 | `enveloppes-instruments` | `portfolio` | `Envelope` (ou `Account`), `Instrument`, `Assets Master Currency`, `Asset` |
 | `enveloppes-evolution` | `_history` | `Date`, `Envelope`, `Asset`, `Assets Master Currency` |
 | `enveloppes-types`, `enveloppes-zones` | `portfolio` | `Envelope`, `Sub Asset` (ou `Area`), `Assets Master Currency` |
-| `volatilite-1-mois`, `volatilite-3-mois`, `volatilite-1-an` | `_history` | `Date`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Asset`, `Envelope`, `Broker`). Prix unitaire = montant ÷ quantité ; liquidités, immobilier, biens qui se déprécient et objets écartés |
+| `volatilite-1-mois`, `volatilite-3-mois`, `volatilite-1-an` | `_history` | `Date`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Asset`, `Envelope`, `Broker`). Prix unitaire = montant ÷ quantité ; liquidités, immobilier, biens qui se déprécient et objets écartés. Chaque bulle porte son nom (avec l'enveloppe quand le même instrument est dans plusieurs enveloppes) ; les noms de bulles presque superposées sont écartés. Une ligne pas encore détenue à la date de référence est nommée dans la note |
 
 Les graphiques de `patrimoine-devises` à `patrimoine-tendance` forment la page `/portfolio-flow`. Ils prennent, pour chaque mois, le **dernier relevé** du mois (plusieurs relevés par mois ne s'additionnent pas). Une date isolée, à plus de 6 mois des autres (un objectif en 2039, un vieux relevé), est écartée des graphiques mensuels, et la page le signale ; le graphique `patrimoine-tendance` garde toutes les dates et affiche les objectifs à part.
 

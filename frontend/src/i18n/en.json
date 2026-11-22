@@ -296,7 +296,8 @@
       "priceBefore": "Unit price before",
       "priceNow": "Unit price now",
       "investment": "Investment",
-      "type": "Type"
+      "type": "Type",
+      "missing": "Not yet held on {date}, so no change to show: {names}. | Not yet held on {date}, so no change to show: {names}."
     },
     "debts": {
       "title": "Your debts",
