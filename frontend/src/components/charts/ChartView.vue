@@ -12,7 +12,7 @@
 
     <div class="mt-10 grid grid-cols-12 gap-y-10 lg:gap-x-8">
       <section class="col-span-12" :aria-label="spec.title">
-        <div class="rounded-xl border border-line bg-white shadow-soft">
+        <div class="rounded-xl border border-line bg-paper shadow-soft">
           <!-- Réglages du graphique et bascule graphique / tableau -->
           <div
             v-if="controls.length || status === 'ready'"

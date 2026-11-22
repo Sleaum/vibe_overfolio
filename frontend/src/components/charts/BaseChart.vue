@@ -1,5 +1,5 @@
 <!--
-  Enveloppe d'un graphique ECharts : taille, texte alternatif et animations coupées si demandé.
+  Enveloppe d'un graphique ECharts : taille, texte alternatif, animations coupées si demandé, couleurs du mode sombre.
   `option` vient de lib/charts/*.js ; `label` décrit le graphique pour les lecteurs d'écran
   (la vue « Tableau » donne les mêmes chiffres en texte).
 -->
@@ -27,6 +27,8 @@ import { computed } from 'vue'
 import VChart from 'vue-echarts'
 import '../../lib/echartsSetup.js'
 import { useReducedMotion } from '../../composables/useReducedMotion.js'
+import { useTheme } from '../../composables/useTheme.js'
+import { toDark } from '../../lib/chartDark.js'
 
 const props = defineProps({
   option: { type: Object, required: true },
@@ -37,7 +39,10 @@ const props = defineProps({
 
 const reducedMotion = useReducedMotion()
 
-const finalOption = computed(() =>
-  reducedMotion.value ? { ...props.option, animation: false } : props.option,
-)
+const { isDark } = useTheme()
+
+const finalOption = computed(() => {
+  const option = isDark.value ? toDark(props.option) : props.option
+  return reducedMotion.value ? { ...option, animation: false } : option
+})
 </script>

@@ -30,9 +30,9 @@ const linkAttrs = computed(() => {
 })
 
 const VARIANTS = {
-  primary: 'bg-accent text-white hover:bg-accent-hover',
-  secondary: 'border border-line-strong bg-white text-ink hover:bg-wash',
-  outline: 'border border-accent bg-white text-accent hover:bg-accent-wash',
+  primary: 'bg-accent text-on-accent hover:bg-accent-hover',
+  secondary: 'border border-line-strong bg-paper text-ink hover:bg-wash',
+  outline: 'border border-accent bg-paper text-accent hover:bg-accent-wash',
   ghost: 'text-ink-2 hover:bg-wash hover:text-ink',
 }
 

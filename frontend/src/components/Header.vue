@@ -1,11 +1,12 @@
 <!--
   En-tête fixe : logo-texte à gauche (vers la page de présentation), menu à droite.
+  Bouton soleil/lune pour le mode sombre, à droite du menu.
   Mobile : bouton burger accessible (clavier, aria-expanded, libellé qui change, Échap, fermeture au clic extérieur).
 -->
 <template>
   <header
     ref="root"
-    class="fixed inset-x-0 top-0 z-40 border-b border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85"
+    class="fixed inset-x-0 top-0 z-40 border-b border-line bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/85"
   >
     <div class="page-container flex h-16 items-center justify-between">
       <router-link
@@ -17,7 +18,7 @@
       </router-link>
 
       <!-- Menu ordinateur -->
-      <nav aria-label="Navigation principale" class="hidden items-center md:flex">
+      <nav aria-label="Navigation principale" class="hidden items-center md:ml-auto md:flex">
         <ul class="flex items-center gap-1">
           <li v-for="link in LINKS" :key="link.label">
             <router-link
@@ -30,6 +31,25 @@
           </li>
         </ul>
       </nav>
+
+      <div class="flex items-center gap-1 md:ml-2">
+      <!-- Mode clair / sombre (mobile et ordinateur) -->
+      <button
+        type="button"
+        class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 transition-colors hover:bg-wash hover:text-ink"
+        :aria-label="isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
+        :title="isDark ? 'Mode clair' : 'Mode sombre'"
+        @click="toggleTheme"
+      >
+        <!-- Soleil en mode sombre (pour revenir au clair), lune en mode clair -->
+        <svg v-if="isDark" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+        <svg v-else viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
 
       <!-- Bouton burger (mobile) -->
       <button
@@ -48,6 +68,7 @@
           <path d="M6 6l12 12M18 6L6 18" />
         </svg>
       </button>
+      </div>
     </div>
 
     <!-- Menu mobile -->
@@ -55,7 +76,7 @@
       v-show="open"
       id="menu-mobile"
       aria-label="Navigation principale (mobile)"
-      class="border-t border-line bg-white md:hidden"
+      class="border-t border-line bg-paper md:hidden"
     >
       <ul class="page-container space-y-1 py-3">
         <li v-for="link in LINKS" :key="link.label">
@@ -76,6 +97,9 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useTheme } from '../composables/useTheme.js'
+
+const { isDark, toggle: toggleTheme } = useTheme()
 
 // Les chemins existants restent valides : /sheet (alias /source) et /graphiques (alias /echart)
 // `under` : adresses qui font partie de la rubrique (la page d'un graphique est sous /graphiques/…)

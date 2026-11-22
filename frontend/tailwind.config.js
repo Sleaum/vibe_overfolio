@@ -3,38 +3,47 @@
 // Jetons de design d'Overfolio : tout le site s'appuie sur ces valeurs.
 // Les 8 couleurs des graphiques sont dans src/lib/palette.js (même famille de bleu que l'accent).
 //
+// Couleur lue dans une variable CSS « R G B », pour garder les opacités de Tailwind (bg-paper/95…)
+const v = (name) => `rgb(var(--c-${name}) / <alpha-value>)`
+
 export default {
+  // Mode sombre : classe « dark » sur <html>, posée par index.html et composables/useTheme.js
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{vue,js,ts,jsx,tsx}"
   ],
   theme: {
     extend: {
+      // Chaque couleur vient d'une variable CSS (src/assets/tailwind.css) : valeurs claires dans :root,
+      // valeurs sombres dans html.dark. Les contrastes indiqués sont ceux du mode clair.
       colors: {
         // Fond et surfaces
-        paper: '#ffffff',
-        wash: '#f6f7f8',
+        paper: v('paper'),
+        wash: v('wash'),
         // Encre : gris très foncé (jamais de noir pur), contrastes mesurés sur fond blanc
         ink: {
-          DEFAULT: '#1f2328', // 15,6:1
-          2: '#4b5159',       //  7,7:1  texte secondaire
-          3: '#5d646c',       //  6,0:1  texte discret (légendes, aides)
+          DEFAULT: v('ink'), // 15,6:1
+          2: v('ink-2'),     //  7,7:1  texte secondaire
+          3: v('ink-3'),     //  6,0:1  texte discret (légendes, aides)
         },
         // Filets et bordures fines
         line: {
-          DEFAULT: '#e4e6e9',
-          strong: '#cfd3d8',
+          DEFAULT: v('line'),
+          strong: v('line-strong'),
         },
         // Une seule couleur d'accent : le bleu des graphiques, en version foncée pour le texte et les boutons
         accent: {
-          DEFAULT: '#1c5cab', // 6,6:1 sur blanc, blanc sur accent : 6,6:1
-          hover: '#184f95',
-          wash: '#eef4fc',
-          ring: '#2a78d6',    // anneau de focus (identique au bleu des graphiques)
+          DEFAULT: v('accent'), // 6,6:1 sur blanc, blanc sur accent : 6,6:1
+          hover: v('accent-hover'),
+          wash: v('accent-wash'),
+          ring: v('accent-ring'), // anneau de focus (identique au bleu des graphiques)
         },
+        // Texte posé sur un fond d'accent (bouton principal) : blanc en clair, encre foncée en sombre
+        'on-accent': v('on-accent'),
         // États (toujours accompagnés d'un texte)
-        danger: { DEFAULT: '#b42318', wash: '#fef3f2', line: '#fecdca' },
-        success: { DEFAULT: '#067647', wash: '#ecfdf3', line: '#abefc6' },
+        danger: { DEFAULT: v('danger'), wash: v('danger-wash'), line: v('danger-line') },
+        success: { DEFAULT: v('success'), wash: v('success-wash'), line: v('success-line') },
       },
       fontFamily: {
         // Inter si elle est installée, sinon la police système : aucun chargement externe

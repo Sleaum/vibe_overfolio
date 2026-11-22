@@ -10,6 +10,18 @@
       content="Overfolio transforme ton Google Sheet en graphiques clairs : répartition, évolution et flux de ton patrimoine."
     />
     <title>Overfolio</title>
+    <!-- Mode sombre posé avant le premier affichage (pas de flash blanc) : choix enregistré, sinon réglage du système -->
+    <script>
+      (function () {
+        var theme = null
+        try { theme = localStorage.getItem('overfolio-theme') } catch (e) {}
+        var dark = theme === 'dark' || (theme !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (dark) {
+          document.documentElement.classList.add('dark')
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#16191d')
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

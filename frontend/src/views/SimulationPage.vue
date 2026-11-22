@@ -36,7 +36,7 @@
       <section aria-labelledby="titre-resultats" class="mt-10">
         <h2 id="titre-resultats" class="sr-only">Résultats</h2>
         <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-live="polite">
-          <div v-for="kpi in kpis" :key="kpi.label" class="rounded-xl border border-line bg-white p-5 shadow-soft">
+          <div v-for="kpi in kpis" :key="kpi.label" class="rounded-xl border border-line bg-paper p-5 shadow-soft">
             <dt class="text-sm text-ink-2">{{ kpi.label }}</dt>
             <dd class="mt-1 text-2xl font-bold tabular-nums" :class="kpi.tone || 'text-ink'">{{ kpi.value }}</dd>
             <dd class="mt-1 text-sm text-ink-3">{{ kpi.hint }}</dd>
@@ -45,7 +45,7 @@
       </section>
 
       <!-- Éventail -->
-      <section class="mt-8 rounded-xl border border-line bg-white shadow-soft" aria-labelledby="titre-eventail">
+      <section class="mt-8 rounded-xl border border-line bg-paper shadow-soft" aria-labelledby="titre-eventail">
         <header class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-line px-4 py-4 sm:px-6">
           <div class="min-w-0">
             <h2 id="titre-eventail" class="text-h3 text-ink">Patrimoine net simulé</h2>
@@ -81,7 +81,7 @@
       </section>
 
       <!-- Hypothèses -->
-      <section class="mt-8 rounded-xl border border-line bg-white shadow-soft" aria-labelledby="titre-hypotheses">
+      <section class="mt-8 rounded-xl border border-line bg-paper shadow-soft" aria-labelledby="titre-hypotheses">
         <header class="flex flex-wrap items-start justify-between gap-4 border-b border-line px-4 py-4 sm:px-6">
           <div>
             <h2 id="titre-hypotheses" class="text-h3 text-ink">Hypothèses</h2>
@@ -103,7 +103,7 @@
               id="sim-date"
               v-model="settings.goalDate"
               type="date"
-              class="mt-1 w-full rounded-lg border border-line-strong bg-white px-3 py-2 text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              class="mt-1 w-full rounded-lg border border-line-strong bg-paper px-3 py-2 text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
             <p class="mt-1 text-sm text-ink-3">La simulation va jusqu’à cette date.</p>
           </div>
@@ -204,7 +204,7 @@ const VIEWS = [
   { value: 'table', label: 'Tableau' },
 ]
 const cellInput =
-  'w-24 rounded-md border border-line-strong bg-white px-2 py-1 text-right tabular-nums text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+  'w-24 rounded-md border border-line-strong bg-paper px-2 py-1 text-right tabular-nums text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 const runsLabel = new Intl.NumberFormat('fr-FR').format(RUNS)
 
 // Champ numérique avec libellé, unité et aide
@@ -223,7 +223,7 @@ const NumberField = defineComponent({
             value: props.modelValue,
             'aria-describedby': props.hint ? `${props.id}-aide` : undefined,
             class:
-              'w-full rounded-lg border border-line-strong bg-white px-3 py-2 text-right tabular-nums text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              'w-full rounded-lg border border-line-strong bg-paper px-3 py-2 text-right tabular-nums text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             onInput: (event) => {
               const value = event.target.valueAsNumber
               if (Number.isFinite(value)) emit('update:modelValue', value)

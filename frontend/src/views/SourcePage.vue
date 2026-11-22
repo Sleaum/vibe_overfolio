@@ -38,7 +38,7 @@
               <select
                 id="onglet"
                 v-model="selected"
-                class="h-11 w-full appearance-none rounded-lg border border-line-strong bg-white pl-3.5 pr-10 text-[0.9375rem] text-ink sm:w-72"
+                class="h-11 w-full appearance-none rounded-lg border border-line-strong bg-paper pl-3.5 pr-10 text-[0.9375rem] text-ink sm:w-72"
               >
                 <option v-for="option in options" :key="option.name" :value="option.name">{{ option.label }}</option>
               </select>
@@ -88,7 +88,7 @@
             type="search"
             autocomplete="off"
             placeholder="Rechercher dans l’onglet"
-            class="h-11 w-full rounded-lg border border-line-strong bg-white pl-11 pr-3 text-[0.9375rem] text-ink placeholder:text-ink-3"
+            class="h-11 w-full rounded-lg border border-line-strong bg-paper pl-11 pr-3 text-[0.9375rem] text-ink placeholder:text-ink-3"
           />
         </div>
       </div>
@@ -164,7 +164,7 @@
           <template v-else>
             <div
               ref="scroller"
-              class="max-h-[70vh] overflow-auto rounded-xl border border-line bg-white shadow-soft transition-opacity"
+              class="max-h-[70vh] overflow-auto rounded-xl border border-line bg-paper shadow-soft transition-opacity"
               :class="loading ? 'opacity-60' : ''"
               role="region"
               tabindex="0"

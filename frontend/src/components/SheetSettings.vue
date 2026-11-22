@@ -6,7 +6,7 @@
   - Événements : `loaded` et `saved` avec la configuration ({ source, values, private_key_set, … }).
 -->
 <template>
-  <section class="mt-10 rounded-xl border border-line bg-white shadow-soft" aria-labelledby="sheet-settings-title">
+  <section class="mt-10 rounded-xl border border-line bg-paper shadow-soft" aria-labelledby="sheet-settings-title">
     <div class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 id="sheet-settings-title" class="text-h3 text-ink">Connexion à Google Sheets</h2>
@@ -259,7 +259,7 @@ const dirty = computed(
 
 function inputClass(name) {
   return [
-    'mt-1.5 h-11 w-full rounded-lg border bg-white px-3.5 text-[0.9375rem] text-ink placeholder:text-ink-3',
+    'mt-1.5 h-11 w-full rounded-lg border bg-paper px-3.5 text-[0.9375rem] text-ink placeholder:text-ink-3',
     errors.value[name] ? 'border-danger' : 'border-line-strong',
   ]
 }

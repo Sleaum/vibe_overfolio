@@ -5,7 +5,7 @@
 <template>
   <div class="page-container py-12 sm:py-16">
     <div class="mx-auto w-full max-w-md">
-      <div class="rounded-xl border border-line bg-white p-6 shadow-soft sm:p-8">
+      <div class="rounded-xl border border-line bg-paper p-6 shadow-soft sm:p-8">
         <header class="text-center">
           <h1 class="text-h2 text-ink">Connexion</h1>
           <p class="mt-2 text-ink-2">Accédez à votre espace personnel</p>
@@ -28,7 +28,7 @@
                 type="email"
                 autocomplete="email"
                 required
-                class="h-11 w-full rounded-lg border border-line-strong bg-white pl-10 pr-4 text-[0.9375rem] text-ink placeholder:text-ink-3"
+                class="h-11 w-full rounded-lg border border-line-strong bg-paper pl-10 pr-4 text-[0.9375rem] text-ink placeholder:text-ink-3"
               />
             </div>
           </div>
@@ -48,7 +48,7 @@
                 :type="showPassword ? 'text' : 'password'"
                 autocomplete="current-password"
                 required
-                class="h-11 w-full rounded-lg border border-line-strong bg-white pl-10 pr-12 text-[0.9375rem] text-ink placeholder:text-ink-3"
+                class="h-11 w-full rounded-lg border border-line-strong bg-paper pl-10 pr-12 text-[0.9375rem] text-ink placeholder:text-ink-3"
               />
               <button
                 type="button"
@@ -82,7 +82,7 @@
           <!-- Bouton de connexion -->
           <AppButton block :disabled="isLoading" @click="handleLogin">
             <template v-if="isLoading">
-              <span class="h-4 w-4 rounded-full border-2 border-white border-t-transparent motion-safe:animate-spin" aria-hidden="true"></span>
+              <span class="h-4 w-4 rounded-full border-2 border-on-accent border-t-transparent motion-safe:animate-spin" aria-hidden="true"></span>
               Connexion en cours…
             </template>
             <template v-else>Se connecter</template>
@@ -95,7 +95,7 @@
             <div class="w-full border-t border-line"></div>
           </div>
           <div class="relative flex justify-center text-sm">
-            <span class="bg-white px-4 text-ink-3">ou</span>
+            <span class="bg-paper px-4 text-ink-3">ou</span>
           </div>
         </div>
 

@@ -24,6 +24,19 @@ export const INK_2 = '#4b5159'
 export const GRID = '#e4e6e9'
 export const AXIS = '#cfd3d8'
 
+// Mode sombre : chaque couleur claire ci-dessus est remplacée par son équivalent sombre (BaseChart.vue,
+// lib/chartTheme.js). Les graphiques sont toujours construits en clair ; seules ces valeurs exactes changent.
+// Pour un texte blanc posé sur une couleur de série, écrire '#fff' (et non '#ffffff') : il reste blanc.
+export const DARK = {
+  [SURFACE]: '#16191d', // fond des cartes (paper sombre)
+  [INK]: '#e6e8eb',
+  [INK_2]: '#b4bac2',
+  [GRID]: '#2b3036',
+  [AXIS]: '#3d434b',
+  'rgba(31, 35, 40, 0.04)': 'rgba(255, 255, 255, 0.06)', // ombre de survol des barres
+  'rgba(31,35,40,0.22)': 'rgba(0,0,0,0.55)', // ombre des infobulles
+}
+
 export const FONT =
   'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
 

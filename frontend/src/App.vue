@@ -2,7 +2,7 @@
   <!-- Lien d'évitement : premier élément atteint au clavier, visible seulement au focus -->
   <a
     href="#contenu"
-    class="sr-only z-50 rounded-lg bg-white px-4 py-2 font-medium text-ink shadow-lift focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+    class="sr-only z-50 rounded-lg bg-paper px-4 py-2 font-medium text-ink shadow-lift focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
     @click.prevent="focusMain"
   >
     Aller au contenu

@@ -5,7 +5,7 @@
 -->
 <template>
   <figure class="relative mx-auto w-full max-w-xl lg:mx-0 lg:max-w-none">
-    <div class="rounded-xl border border-line bg-white p-5 pb-16 shadow-lift sm:p-6 sm:pb-20">
+    <div class="rounded-xl border border-line bg-paper p-5 pb-16 shadow-lift sm:p-6 sm:pb-20">
       <div class="flex items-start justify-between gap-4">
         <div>
           <p class="text-sm text-ink-2">Patrimoine net</p>
@@ -24,7 +24,7 @@
 
     <!-- Morceau de feuille : les deux dernières lignes sont celles de la fin de la courbe -->
     <div
-      class="relative -mt-14 ml-4 w-[19rem] max-w-[calc(100%-2rem)] overflow-hidden rounded-xl border border-line-strong bg-white shadow-lift sm:-mt-16 sm:ml-8"
+      class="relative -mt-14 ml-4 w-[19rem] max-w-[calc(100%-2rem)] overflow-hidden rounded-xl border border-line-strong bg-paper shadow-lift sm:-mt-16 sm:ml-8"
       aria-hidden="true"
     >
       <table class="w-full border-collapse text-xs tabular-nums">

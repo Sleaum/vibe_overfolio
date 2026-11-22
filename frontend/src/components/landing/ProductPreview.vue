@@ -14,10 +14,10 @@
       <div class="mt-14 grid grid-cols-12 gap-y-12 lg:gap-x-8">
         <!-- Page GoogleSheet -->
         <figure class="col-span-12 lg:col-span-7">
-          <div class="overflow-hidden rounded-xl border border-line bg-white shadow-soft" aria-hidden="true">
+          <div class="overflow-hidden rounded-xl border border-line bg-paper shadow-soft" aria-hidden="true">
             <div class="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
               <span class="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-ink">portfolio</span>
-              <span class="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white">Tout actualiser</span>
+              <span class="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-on-accent">Tout actualiser</span>
             </div>
             <div class="overflow-x-auto">
               <table class="min-w-full border-collapse text-sm">
@@ -48,7 +48,7 @@
 
         <!-- Page Graphiques -->
         <figure class="col-span-12 lg:col-span-5">
-          <div class="rounded-xl border border-line bg-white p-5 shadow-soft">
+          <div class="rounded-xl border border-line bg-paper p-5 shadow-soft">
             <p class="text-sm font-medium text-ink">Répartition par type d’actif</p>
             <BaseChart :option="donut" :height="230" :label="donutLabel" class="mt-2" />
             <ul class="mt-2 space-y-2 text-sm" aria-hidden="true">

@@ -56,7 +56,7 @@
           <select
             id="enveloppe"
             v-model="scope"
-            class="h-11 w-full appearance-none rounded-lg border border-line-strong bg-white pl-3.5 pr-10 text-[0.9375rem] text-ink"
+            class="h-11 w-full appearance-none rounded-lg border border-line-strong bg-paper pl-3.5 pr-10 text-[0.9375rem] text-ink"
           >
             <option v-for="option in model.scopes" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
