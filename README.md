@@ -69,6 +69,7 @@ overfolio/
 ├── .env                            # secrets, NE PAS COMMITER
 ├── docker-compose.yml
 ├── init.sh
+├── CLAUDE.md                       # consignes pour Claude : façon de travailler, couleurs, fonctions à venir
 └── README.md
 ```
 
@@ -578,6 +579,10 @@ docker compose exec db psql -U overfoliouser -d overfoliodb
 | `git push` : mot de passe refusé | GitHub n'accepte plus les mots de passe | Clé SSH ou token d'accès personnel |
 
 > Les identifiants PostgreSQL ne sont lus qu'à la **première initialisation** du volume. Si tu les modifies dans `.env`, recrée le volume (`docker compose down -v`).
+
+## À venir
+
+- **Comptes et connexion.** La page `/newpage` est la future page de connexion ; elle est factice pour l'instant (aucun compte vérifié, rien n'est envoyé au serveur). Une fois branchée (comptes Django, session), l'API sera réservée aux utilisateurs connectés, ce qui permettra d'exposer le site sur Internet. Les nouvelles fonctions sont écrites en le prévoyant (voir `CLAUDE.md`).
 
 ## Sécurité
 
