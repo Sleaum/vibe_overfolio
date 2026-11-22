@@ -31,7 +31,7 @@ export function assetParts(entries, total) {
   return parts
 }
 
-export function donutOption(parts, total) {
+export function donutOption(parts, total, caption = t('chart.totalAssets')) {
   const ring = [...parts].sort((a, b) => a.slot - b.slot)
   return {
     ...baseOption(),
@@ -45,7 +45,7 @@ export function donutOption(parts, total) {
     }),
     title: {
       text: euro(total),
-      subtext: t('chart.totalAssets'),
+      subtext: caption,
       left: 'center',
       top: 'center',
       itemGap: 4,

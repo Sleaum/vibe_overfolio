@@ -150,6 +150,7 @@ export function trendOption(points, trend, goals = []) {
 
 export default {
   slug: 'patrimoine-tendance',
+  amounts: true, // suit le bouton Brut / Net (lib/amounts.js)
   get title() {
     return t('charts.trend.title')
   },

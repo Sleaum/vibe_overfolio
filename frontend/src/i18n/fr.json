@@ -155,7 +155,7 @@
       "source": "Table _history, colonnes Date, Asset et Assets Master Currency (montants supérieurs à 0), dernier relevé de chaque mois.",
       "explain": [
         "Chaque barre représente 100 % de ton patrimoine à la fin d’un mois, découpé par type d’actif. Les couleurs sont celles de l’anneau des types d’actifs.",
-        "Seuls les actifs comptent (les dettes sont exclues). Passe la souris sur une barre pour lire la part et le montant de chaque type."
+        "Les montants suivent le bouton Brut / Net du menu : en brut, les dettes ne comptent pas ; en net, chaque dette est retirée de son type d’actif. Passe la souris sur une barre pour lire la part et le montant de chaque type."
       ]
     },
     "assets": {
@@ -177,7 +177,7 @@
       "summary": "De combien ton patrimoine monte ou baisse, en %, d’un mois à l’autre.",
       "source": "Table _history, colonnes Date et Assets Master Currency, additionnées par date ; dernier relevé de chaque mois.",
       "explain": [
-        "Chaque barre compare le total de tes actifs à la fin d’un mois avec celui du mois précédent. Les barres bleues au-dessus du zéro sont des hausses, les barres orange en dessous sont des baisses.",
+        "Chaque barre compare le total de ton patrimoine (brut ou net, selon le bouton du menu) à la fin d’un mois avec celui du mois précédent. Les barres bleues au-dessus du zéro sont des hausses, les barres orange en dessous sont des baisses.",
         "Cette variation mélange deux causes : ce que tu as versé ou retiré, et ce que le marché a fait. Pour les séparer, il faut l’onglet inout, qui n’est pas encore utilisé ici."
       ]
     },
@@ -212,7 +212,7 @@
       "summary": "Ton patrimoine en euros à chaque relevé, avec la droite de tendance.",
       "source": "Table _history, colonne Date et colonne de montants en euros (EUR, sinon Assets Master Currency), additionnées par date. Les lignes sans Asset ni Instrument sont des objectifs.",
       "explain": [
-        "Chaque barre est le total de tes actifs en euros à la date d’un relevé. La droite est la tendance moyenne de tous les relevés : elle montre le rythme de croissance passé.",
+        "Chaque barre est le total de ton patrimoine en euros (brut ou net, selon le bouton du menu) à la date d’un relevé. La droite est la tendance moyenne de tous les relevés : elle montre le rythme de croissance passé.",
         "Les losanges orange sont tes objectifs : dans la table _history, ce sont les lignes qui n’ont qu’une date et un montant (ni type d’actif, ni instrument). La tendance est prolongée en pointillés jusqu’au dernier objectif : si elle passe au-dessus d’un losange, ton rythme actuel suffit pour l’atteindre.",
         "Les objectifs étirent l’axe du temps : le curseur du bas permet de zoomer sur les relevés."
       ]
@@ -297,6 +297,16 @@
       "priceNow": "Prix unitaire maintenant",
       "investment": "Placement",
       "type": "Type"
+    },
+    "debts": {
+      "title": "Tes dettes",
+      "summary": "Le montant de tes dettes, par type d’actif, mois après mois.",
+      "source": "Table _history, colonnes Date, Asset et Liabilities Master Currency (pour les anciens relevés sans cette colonne : la colonne EUR quand elle est négative).",
+      "none": "Aucune dette dans la table _history.",
+      "explain": [
+        "Chaque courbe suit les dettes d’un type d’actif : le prêt de la maison dans l’immobilier, le crédit de la voiture dans les biens qui se déprécient… Elle baisse à mesure que tu rembourses.",
+        "Ce graphique n’apparaît qu’en mode Brut : en mode Net, les dettes sont déjà retirées des autres graphiques."
+      ]
     }
   },
   "simulation": {
@@ -519,7 +529,7 @@
     "noData": "Sans données : {types}.",
     "columnsRead": "Colonnes lues pour le détail : {columns}.",
     "noColumnFor": "Pas de colonne pour : {dims}.",
-    "footer": "Les variations de l’année et du mois comparent le patrimoine brut aux relevés de la table _history ; elles incluent tes versements et retraits. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
+    "footer": "Les variations de l’année et du mois comparent le patrimoine (brut ou net, selon le bouton du menu de Charts) aux relevés de la table _history ; elles incluent tes versements et retraits. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
     "defaultSubtitle": "Ton patrimoine aujourd’hui, type d’actif par type d’actif.",
     "donutA11y": "Anneau de {count} types d’actifs pour {total} au total. Le plus gros : {biggest}, {share}.",
     "since": "Depuis le {date}",
@@ -530,7 +540,11 @@
     "afterDebts": "Après {amount} de dettes",
     "noDebtColumn": "Pas de colonne de dettes",
     "thisYear": "Cette année",
-    "thisMonth": "Ce mois-ci"
+    "thisMonth": "Ce mois-ci",
+    "yourNetWorth": "Ton patrimoine net",
+    "yourDebts": "Tes dettes",
+    "debtsTotal": "{amount} au total, par instrument.",
+    "typeDebts": "Après {amount} de dettes ; le détail montre ses actifs."
   },
   "strategyPage": {
     "loading": "Chargement de tes actions…",
@@ -794,5 +808,22 @@
     "legend": "Onglets du document",
     "instant": "Cocher ou décocher un onglet enregistre la liste aussitôt.",
     "removed": "Liste enregistrée. Absent du document, retiré : {tabs} | Liste enregistrée. Absents du document, retirés : {tabs}"
+  },
+  "amounts": {
+    "label": "Montants",
+    "mode": {
+      "gross": "Brut",
+      "net": "Net"
+    },
+    "help": {
+      "gross": "Brut : tes actifs, sans les dettes. S’applique à Flow, Snapshot et Envelopes.",
+      "net": "Net : tes actifs moins tes dettes. S’applique à Flow, Snapshot et Envelopes."
+    },
+    "note": {
+      "gross": "Montants bruts : tes actifs, sans les dettes.",
+      "net": "Montants nets : chaque dette est retirée de son type d’actif, de son enveloppe…",
+      "debt": "Montants : tes dettes, en valeur positive."
+    },
+    "dropped": "Écarté car ses dettes dépassent ses actifs : {names}. | Écartés car leurs dettes dépassent leurs actifs : {names}."
   }
 }

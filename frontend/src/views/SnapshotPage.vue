@@ -56,7 +56,11 @@
       <!-- Vue d'ensemble -->
       <section aria-labelledby="titre-actifs" class="mt-10 rounded-xl border border-line bg-paper shadow-soft">
         <div class="border-b border-line px-4 py-4 sm:px-6">
-          <h2 id="titre-actifs" class="text-h3 text-ink">{{ t('snapshotPage.yourAssets') }}</h2>
+          <h2 id="titre-actifs" class="text-h3 text-ink">
+            {{ model.mode === 'net' ? t('snapshotPage.yourNetWorth') : t('snapshotPage.yourAssets') }}
+          </h2>
+          <!-- Montants de l'anneau et du détail : bouton Brut / Net du menu de Charts -->
+          <p class="mt-1 text-sm text-ink-2">{{ amountsLine }}</p>
         </div>
 
         <div class="grid grid-cols-12 gap-y-8 p-4 sm:p-6 lg:gap-x-8">
@@ -84,6 +88,19 @@
         </div>
       </section>
 
+      <!-- Tes dettes (mode Brut) : par instrument, en positif -->
+      <section
+        v-if="model.debts.length"
+        aria-labelledby="titre-dettes"
+        class="mt-10 rounded-xl border border-line bg-paper p-4 shadow-soft sm:p-6"
+      >
+        <h2 id="titre-dettes" class="text-h3 text-ink">{{ t('snapshotPage.yourDebts') }}</h2>
+        <p class="mt-1 tabular-nums text-ink-2">
+          {{ t('snapshotPage.debtsTotal', { amount: euro(Math.abs(model.liabilities)) }) }}
+        </p>
+        <ShareBars class="mt-4 max-w-2xl" :items="model.debts" :color="DEBT_COLOR" :label="t('snapshotPage.yourDebts')" />
+      </section>
+
       <!-- Détail par type d'actif -->
       <section aria-labelledby="titre-detail" class="mt-14">
         <h2 id="titre-detail" class="text-h3 text-ink">{{ t('snapshotPage.detailTitle') }}</h2>
@@ -101,6 +118,10 @@
               <p class="mt-1 tabular-nums text-ink-2">
                 <span class="font-semibold text-ink">{{ euro(type.value) }}</span> ·
                 {{ t('snapshotPage.ofWealth', { share: percent(type.share) }) }}
+              </p>
+              <!-- Mode net : le détail ci-dessous reste celui des actifs du type -->
+              <p v-if="type.debts > 0" class="mt-1 text-sm tabular-nums text-ink-3">
+                {{ t('snapshotPage.typeDebts', { amount: euro(type.debts) }) }}
               </p>
             </div>
             <div class="space-y-6 p-4 sm:p-6">
@@ -142,12 +163,17 @@ import AppButton from '../components/ui/AppButton.vue'
 import BaseChart from '../components/charts/BaseChart.vue'
 import ShareBars from '../components/charts/ShareBars.vue'
 import { useTable } from '../composables/useTable.js'
-import { DataError } from '../lib/aggregate.js'
+import { DataError, collectDropped } from '../lib/aggregate.js'
+import { amountMode, amountNote, droppedNote } from '../lib/amounts.js'
+import { SERIES } from '../lib/palette.js'
 import { donutOption } from '../lib/charts/assetDonut.js'
 import { euro, formatDateLong, percent } from '../lib/format.js'
 import { buildSnapshot, signedPercent2 } from '../lib/snapshot.js'
 
 const { t } = useI18n()
+
+// Dettes : la couleur des baisses du site
+const DEBT_COLOR = SERIES[1]
 
 const portfolio = useTable('portfolio')
 const history = useTable('_history') // facultative : sert aux variations de l'année et du mois
@@ -156,7 +182,10 @@ const history = useTable('_history') // facultative : sert aux variations de l'a
 const model = computed(() => {
   if (!portfolio.data.value) return null
   try {
-    return buildSnapshot(portfolio.data.value, history.data.value)
+    const [result, dropped] = collectDropped(() =>
+      buildSnapshot(portfolio.data.value, history.data.value, undefined, amountMode.value),
+    )
+    return { ...result, dropped }
   } catch (err) {
     if (err instanceof DataError) return { problem: err.message }
     console.error(err)
@@ -180,12 +209,17 @@ const subtitle = computed(() =>
     : t('snapshotPage.defaultSubtitle'),
 )
 
-const donut = computed(() => (status.value === 'ready' ? donutOption(model.value.parts, model.value.gross) : {}))
+const donut = computed(() => (status.value === 'ready' ? donutOption(model.value.parts, model.value.total, model.value.mode === 'net' ? t('chart.netWorth') : t('chart.totalAssets')) : {}))
+
+// « Montants bruts : … » ou « Montants nets : … », et les types écartés parce que négatifs en net
+const amountsLine = computed(() =>
+  status.value === 'ready' ? [amountNote(model.value.mode), droppedNote(model.value.dropped)].filter(Boolean).join(' ') : '',
+)
 const donutSummary = computed(() =>
   status.value === 'ready'
     ? t('snapshotPage.donutA11y', {
         count: model.value.legend.length,
-        total: euro(model.value.gross),
+        total: euro(model.value.total),
         biggest: model.value.legend[0].name,
         share: model.value.legend[0].share,
       })

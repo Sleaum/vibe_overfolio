@@ -31,16 +31,18 @@ const props = defineProps({
 const tables = Object.fromEntries([...new Set(props.charts.map((spec) => spec.table))].map((name) => [name, useTable(name)]))
 
 const cards = computed(() =>
-  props.charts.map((spec) => {
-    const table = tables[spec.table]
-    const data = table.data.value
-    return {
-      spec,
-      data: data && props.transform ? props.transform(data, spec) : data,
-      error: table.error.value,
-      reload: table.reload,
-    }
-  }),
+  props.charts
+    .filter((spec) => !spec.hidden?.()) // graphique qui ne s'affiche que dans un mode (ex. « Tes dettes » en Brut)
+    .map((spec) => {
+      const table = tables[spec.table]
+      const data = table.data.value
+      return {
+        spec,
+        data: data && props.transform ? props.transform(data, spec) : data,
+        error: table.error.value,
+        reload: table.reload,
+      }
+    }),
 )
 
 defineExpose({ tables })

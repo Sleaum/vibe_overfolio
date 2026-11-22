@@ -12,6 +12,7 @@ import { ENVELOPE_CHARTS } from './envelopes.js'
 import flowAllocation from './flowAllocation.js'
 import flowAssets from './flowAssets.js'
 import flowCurrency from './flowCurrency.js'
+import flowDebts from './flowDebts.js'
 import flowTrend from './flowTrend.js'
 import flowVariation from './flowVariation.js'
 import inout from './inout.js'
@@ -20,7 +21,8 @@ import { t } from '../../i18n/index.js'
 import { MENU_NAMES } from '../../i18n/menu.js'
 
 // Les graphiques « Portfolio Flow » sont regroupés sur la page /portfolio-flow
-export const FLOW_CHARTS = [flowCurrency, flowAllocation, flowAssets, flowVariation, inout, flowTrend]
+// (« Tes dettes » ne s'y affiche qu'en mode Brut du bouton Brut / Net)
+export const FLOW_CHARTS = [flowCurrency, flowAllocation, flowAssets, flowDebts, flowVariation, inout, flowTrend]
 export { ENVELOPE_CHARTS, VOLATILITY_CHARTS }
 
 const PORTFOLIO_FLOW = { key: 'portfolio-flow', titleKey: 'pages.flow', to: '/portfolio-flow', charts: FLOW_CHARTS }

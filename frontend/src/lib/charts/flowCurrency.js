@@ -51,6 +51,7 @@ export function currencyOption(months, series) {
 
 export default {
   slug: 'patrimoine-devises',
+  amounts: true, // suit le bouton Brut / Net (lib/amounts.js)
   get title() {
     return t('charts.currency.title')
   },

@@ -52,6 +52,7 @@ export function assetsLinesOption(model) {
 
 export default {
   slug: 'evolution-par-actif',
+  amounts: true, // suit le bouton Brut / Net (lib/amounts.js)
   get title() {
     return t('charts.assets.title')
   },

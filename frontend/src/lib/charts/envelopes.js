@@ -4,7 +4,7 @@
 // qui ne détiennent que des liquidités, de l'immobilier ou un véhicule n'y figurent pas.
 // Quatre graphiques : anneau enveloppe → instrument, évolution de chaque enveloppe, répartition par sous-type, par zone.
 
-import { DataError, findColumn, latestDate, requireColumns, rowsOf, toLabel, toNumber } from '../aggregate.js'
+import { DataError, findColumn, latestDate, noteDropped, requireColumns, rowsOf, toLabel, toNumber } from '../aggregate.js'
 import { capitalize, euro, formatDateLong, formatMonthKey, percent } from '../format.js'
 import { CONTEXT, SERIES } from '../palette.js'
 import { toIsoDate } from '../dates.js'
@@ -59,8 +59,9 @@ function currentRows(table) {
 }
 
 /**
- * Montants > 0 des enveloppes de placement, détaillés par une colonne (ou par `labelOf(row)`) :
- * [{ name, total, parts: Map(libellé -> montant) }].
+ * Montants des enveloppes de placement, détaillés par une colonne (ou par `labelOf(row)`) :
+ * [{ name, total, parts: Map(libellé -> montant) }]. Chaque part est additionnée (dettes comprises en montants nets),
+ * puis seules les parts positives sont gardées ; une part négative est relevée (noteDropped).
  */
 export function envelopeBreakdown(rows, cols, detailColumn, labelOf = null) {
   const keep = investedEnvelopes(rows, cols.envelope, cols.asset)
@@ -68,14 +69,21 @@ export function envelopeBreakdown(rows, cols, detailColumn, labelOf = null) {
   for (const row of rows) {
     const key = lower(row[cols.envelope])
     const value = toNumber(row[cols.value])
-    if (!keep.has(key) || !(value > 0)) continue
+    if (!keep.has(key) || !value) continue
     const group = groups.get(key) ?? { name: envelopeLabel(row[cols.envelope]), total: 0, parts: new Map() }
     const part = labelOf ? labelOf(row) : detailColumn ? toLabel(row[detailColumn]) : t('chart.total')
-    group.total += value
     group.parts.set(part, (group.parts.get(part) ?? 0) + value)
     groups.set(key, group)
   }
-  return [...groups.values()].sort((a, b) => b.total - a.total)
+  for (const group of groups.values()) {
+    for (const [part, value] of group.parts) {
+      if (value > 0) continue
+      if (value < 0) noteDropped(`${group.name} · ${part}`)
+      group.parts.delete(part)
+    }
+    group.total = [...group.parts.values()].reduce((sum, value) => sum + value, 0)
+  }
+  return [...groups.values()].filter((group) => group.total > 0).sort((a, b) => b.total - a.total)
 }
 
 const noEnvelope = (table) => ({
@@ -123,6 +131,7 @@ function instrumentLabel(row, cols) {
 
 export const envelopeInstruments = {
   slug: 'enveloppes-instruments',
+  amounts: true, // suit le bouton Brut / Net (lib/amounts.js)
   get title() {
     return t('charts.envelopeInstruments.title')
   },
@@ -193,6 +202,7 @@ export const envelopeInstruments = {
 
 export const envelopeHistory = {
   slug: 'enveloppes-evolution',
+  amounts: true, // suit le bouton Brut / Net (lib/amounts.js)
   get title() {
     return t('charts.envelopeHistory.title')
   },
@@ -224,13 +234,21 @@ export const envelopeHistory = {
     for (const row of rows) {
       const key = lower(row[cols.envelope])
       const value = toNumber(row[cols.value])
-      if (!keep.has(key) || !(value > 0)) continue
+      if (!keep.has(key) || !value) continue
       const iso = toIsoDate(row[cols.date])
       if (!iso) continue
       if (!labels.has(key)) labels.set(key, envelopeLabel(row[cols.envelope]))
       const day = byDate.get(iso) ?? new Map()
       day.set(key, (day.get(key) ?? 0) + value)
       byDate.set(iso, day)
+    }
+    // Total négatif d'une enveloppe à une date (montants nets) : écarté et relevé
+    for (const day of byDate.values()) {
+      for (const [key, value] of day) {
+        if (value > 0) continue
+        if (value < 0) noteDropped(labels.get(key))
+        day.delete(key)
+      }
     }
 
     const last = byDate.get(months[months.length - 1].iso) ?? new Map()
@@ -269,6 +287,7 @@ export const envelopeHistory = {
 function mixSpec({ slug, key, names }) {
   return {
     slug,
+    amounts: true, // suit le bouton Brut / Net (lib/amounts.js)
     get title() {
       return t(`${key}.title`)
     },

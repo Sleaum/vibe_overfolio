@@ -161,6 +161,7 @@
 import { useI18n } from 'vue-i18n'
 import { computed, reactive, ref } from 'vue'
 import { DataError, findColumn } from '../../lib/aggregate.js'
+import { buildChart } from '../../lib/amounts.js'
 import { formatDateTime } from '../../lib/format.js'
 import { useTable } from '../../composables/useTable.js'
 import AppButton from '../ui/AppButton.vue'
@@ -202,7 +203,7 @@ const controls = computed(() => {
 const model = computed(() => {
   if (!data.value) return null
   try {
-    return props.spec.build(data.value, { ...values })
+    return buildChart(props.spec, data.value, { ...values })
   } catch (err) {
     if (err instanceof DataError) return { problem: err.message }
     console.error(err)
