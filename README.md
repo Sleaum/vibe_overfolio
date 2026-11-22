@@ -347,7 +347,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | GET | `/api/sheet?doc_name=&sheet_name=&header_row=&refresh=1` | Lit un onglet dans Google Sheets (cache 60 s, `refresh=1` pour le contourner) |
 | GET | `/api/data/` | Liste des tables en base (nom, nombre de lignes, date de synchronisation) |
 | GET | `/api/data/<onglet>/` | Colonnes (dans l'ordre) et lignes d'une table |
-| POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données ; 502 si aucun n'a pu être enregistré |
+| POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
 | GET | `/api/sheet-config/tabs/` | Onglets du document : `{ mode, tabs, selected }`, dans les deux modes |
@@ -364,7 +364,7 @@ La synchronisation recopie chaque onglet dans deux tables :
 
 | Table | Contenu |
 |---|---|
-| `googlesheet_sheettable` | Une ligne par onglet : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation |
+| `googlesheet_sheettable` | Une ligne par onglet : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ) |
 | `googlesheet_sheetrow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` |
 
 Chaque synchronisation remplace le contenu d'un onglet en une seule transaction. Un onglet en erreur n'empêche pas les autres, et un onglet qui renvoie zéro ligne n'écrase pas des données existantes.

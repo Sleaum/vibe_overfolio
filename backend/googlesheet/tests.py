@@ -283,3 +283,47 @@ class AccountToLoadTests(TestCase):
         response = self.client.put("/api/sheet-config/", json.dumps(other), content_type="application/json")
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["field_codes"].get("private_key"), "required")
+
+
+@mock.patch.dict("os.environ", PUBLIC_ENV, clear=False)
+class OtherDocumentTests(TestCase):
+    """Feuille changée sur la page : les tables de l'ancien document ne restent pas en base."""
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        from .models import SheetRow, SheetTable
+
+        cache.clear()
+        old = SheetTable.objects.create(name="ancien_onglet", source="id-ancien", columns=["A"], row_count=1)
+        SheetRow.objects.create(table=old, position=0, data={"A": 1})
+        SheetTable.objects.create(name="budget", source="id-ancien", columns=["A"], row_count=1)
+
+    def test_tables_of_another_document_are_removed(self):
+        from .models import SheetRow, SheetTable
+
+        with fake_download(xlsx_bytes()):
+            response = self.client.post("/api/data/sync/")
+        body = response.json()
+        self.assertEqual(response.status_code, 200, body)
+        # « budget » est vide dans le nouveau document : ses données venaient de l'ancien, retirées aussi
+        self.assertEqual(body["removed"], ["ancien_onglet", "budget"])
+        self.assertEqual(sorted(SheetTable.objects.values_list("name", flat=True)), ["portfolio"])
+        self.assertEqual(set(SheetTable.objects.values_list("source", flat=True)), {"id-public"})
+        self.assertFalse(SheetRow.objects.filter(table__name="ancien_onglet").exists())
+
+    def test_failed_tab_of_the_same_document_keeps_its_data(self):
+        from .models import SheetTable
+
+        SheetTable.objects.create(name="inout", source="id-public", columns=["A"], row_count=3)
+        with fake_download(xlsx_bytes()):
+            body = self.client.post("/api/data/sync/").json()
+        self.assertNotIn("inout", body["removed"])  # absent de la feuille ce coup-ci, mais même document
+        self.assertEqual(SheetTable.objects.get(name="inout").row_count, 3)
+
+    def test_nothing_is_removed_if_the_document_cannot_be_opened(self):
+        from .models import SheetTable
+
+        with fake_download(b"<html>connexion</html>"):
+            self.client.post("/api/data/sync/")
+        self.assertEqual(SheetTable.objects.count(), 2)

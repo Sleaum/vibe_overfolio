@@ -10,6 +10,9 @@ class SheetTable(models.Model):
     header_row = models.PositiveIntegerField(default=1)  # ligne d'en-tête dans la feuille
     row_count = models.PositiveIntegerField(default=0)
     synced_at = models.DateTimeField(null=True, blank=True)
+    # Document Google Sheets d'où vient la table (identifiant, ou « nom:<nom> ») ; vide = inconnu (avant ce champ).
+    # Une synchronisation retire les tables d'un autre document : elles ne correspondent plus à la feuille configurée.
+    source = models.CharField(max_length=200, blank=True, default="")
 
     def __str__(self):
         return self.name

@@ -366,7 +366,15 @@ async function refresh() {
     const tabs = result.tabs ?? []
     const failed = tabs.filter((tab) => !tab.ok)
     const saved = tabs.length - failed.length
-    showNotice(t('sheetPage.savedNotice', { count: saved }, saved))
+    const removed = result.removed ?? []
+    showNotice(
+      [
+        t('sheetPage.savedNotice', { count: saved }, saved),
+        removed.length ? t('sheetPage.removedNotice', { count: removed.length, names: removed.join(', ') }, removed.length) : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+    )
     if (failed.length) {
       const details = failed
         .map((tab) => t('sheetPage.tabFailure', { tab: tab.name, message: apiMessage(tab.code, tab.params, tab.message) || t('sheetPage.error') }))

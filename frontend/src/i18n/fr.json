@@ -575,9 +575,10 @@
     "optionRows": "{name} ({rows})",
     "notSynced": "{name} (pas encore synchronisé)",
     "savedNotice": "{count} onglet actualisé dans la base. | {count} onglets actualisés dans la base.",
-    "failedNotice": "{count} onglet non actualisé (anciennes données conservées) : {details} | {count} onglets non actualisés (anciennes données conservées) : {details}",
+    "failedNotice": "{count} onglet non actualisé : {details} | {count} onglets non actualisés : {details}",
     "tabFailure": "{tab} : {message}",
-    "error": "erreur"
+    "error": "erreur",
+    "removedNotice": "{count} onglet de l’ancien document retiré : {names}. | {count} onglets de l’ancien document retirés : {names}."
   },
   "sheetSettings": {
     "title": "Connexion à Google Sheets",

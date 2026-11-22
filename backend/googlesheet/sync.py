@@ -35,11 +35,28 @@ class TabResult:
 
 
 @transaction.atomic
-def _save_table(tab: str, header_row: int, columns: List[str], rows: List[dict]) -> None:
+class SyncResults(list):
+    """Résultats par onglet (une liste de TabResult), plus `removed` : tables d'un autre document retirées."""
+
+    removed: List[str]
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.removed = []
+
+
+def document_source(doc_name: str) -> str:
+    """Clé du document configuré : son identifiant, sinon « nom:<nom> » (recherche par nom)."""
+    sheet_id = config.sheet_id()
+    return sheet_id if sheet_id else f"nom:{doc_name}"
+
+
+def _save_table(tab: str, header_row: int, columns: List[str], rows: List[dict], source: str = "") -> None:
     """Remplace d'un seul bloc le contenu d'un onglet : tout est écrit, ou rien."""
     table, _ = SheetTable.objects.update_or_create(
         name=tab,
         defaults={
+            "source": source,
             "header_row": header_row,
             "columns": columns,
             "row_count": len(rows),
@@ -67,13 +84,16 @@ def sync_sheets(
     - Un onglet qui ne renvoie aucune ligne n'écrase pas des données existantes
       (sauf allow_empty=True) : cela évite de vider la base si la feuille est vide
       ou si la ligne d'en-tête est mal détectée.
-    - Lève SheetError si le document lui-même est inaccessible.
+    - Lève SheetError si le document lui-même est inaccessible (rien n'est alors modifié en base).
+    - Les tables venues d'un autre document (feuille changée sur la page GoogleSheet), ou d'origine inconnue
+      et non relues ici, sont retirées : la base ne garde que des données du document configuré.
     """
     tabs = tabs or configured_tabs()
     header_rows = header_rows or {}
     spreadsheet = open_spreadsheet(doc_name)
+    source = document_source(doc_name)
 
-    results: List[TabResult] = []
+    results = SyncResults()
     for tab in tabs:
         result = TabResult(tab=tab)
         results.append(result)
@@ -99,7 +119,7 @@ def sync_sheets(
             continue
 
         try:
-            _save_table(tab, header_row, columns, rows)
+            _save_table(tab, header_row, columns, rows, source)
         except Exception as exc:
             logger.exception("Écriture en base impossible pour l'onglet %s", tab)
             result.message = f"erreur base de données : {exc}"
@@ -109,4 +129,16 @@ def sync_sheets(
         result.ok = True
         result.saved = True
 
+    if not dry_run:
+        results.removed = _remove_other_documents(source)
     return results
+
+
+def _remove_other_documents(source: str) -> List[str]:
+    """Retire les tables qui ne viennent pas du document configuré ; renvoie leurs noms."""
+    others = SheetTable.objects.exclude(source=source)
+    names = sorted(others.values_list("name", flat=True))
+    if names:
+        logger.info("Tables d'un autre document retirées : %s", ", ".join(names))
+        others.delete()  # les lignes suivent (clé étrangère en cascade)
+    return names
