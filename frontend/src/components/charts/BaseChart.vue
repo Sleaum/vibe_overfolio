@@ -24,10 +24,11 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { computed, inject } from 'vue'
+import { computed } from 'vue'
 import VChart from 'vue-echarts'
 import '../../lib/echartsSetup.js'
 import { useReducedMotion } from '../../composables/useReducedMotion.js'
+import { pdfExport } from '../../lib/pdfExport.js'
 import { useTheme } from '../../composables/useTheme.js'
 import { toDark } from '../../lib/chartDark.js'
 
@@ -42,13 +43,12 @@ const props = defineProps({
 })
 
 const reducedMotion = useReducedMotion()
-// Dans le rapport PDF (page /rapport) : pas d'animation, le graphique est complet dès qu'il est dessiné
-const inReport = inject('report', false)
+// Pendant l'export PDF (bouton PDF de l'en-tête) : pas d'animation, le graphique est complet dès qu'il est dessiné
 
 const { isDark } = useTheme()
 
 const finalOption = computed(() => {
   const option = isDark.value ? toDark(props.option) : props.option
-  return reducedMotion.value || inReport ? { ...option, animation: false } : option
+  return reducedMotion.value || pdfExport.running ? { ...option, animation: false } : option
 })
 </script>

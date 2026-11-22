@@ -32,8 +32,6 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   // Simulation de Monte-Carlo : page à part, hors de la rubrique Graphiques (pas de menu à gauche)
-  // Tout le site en un PDF (bouton PDF de l'en-tête) : pages de Charts et Simulation à la suite, puis impression
-  { path: '/rapport', name: 'Report', component: () => import('../views/ReportPage.vue'), meta: { titleKey: 'pages.report' } },
   { path: '/simulation', name: 'Simulation', component: () => import('../views/SimulationPage.vue'), meta: { titleKey: 'pages.simulation' } },
   // Ancienne adresse de la page des graphiques
   { path: '/echart', redirect: '/graphiques' },

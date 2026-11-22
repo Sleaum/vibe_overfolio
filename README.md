@@ -429,7 +429,6 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3, ECharts et vue-i18n. Il ne
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone |
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Une bulle par placement : montant détenu et variation du prix unitaire sur 1 mois, 3 mois et 1 an |
 | `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
-| `/rapport` | `views/ReportPage.vue` | Bouton **PDF** de l'en-tête : tout le site en un PDF. Les pages Flow, Snapshot, Envelopes, Strategy, Volatility, Budget et Simulation à la suite, chacune sur une nouvelle page, avec les réglages en cours (brut ou net, clair ou sombre, langue). Quand tout est chargé, la fenêtre d'impression s'ouvre : choisir « Enregistrer au format PDF ». Voir « Le PDF » |
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `components/charts/WorldMapCard.vue`, `lib/strategy.js`, `lib/charts/sunburst.js` et `lib/charts/worldMap.js` | Strategy : une carte du monde des pays de tes actions (colonne `Area`), puis tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
@@ -555,11 +554,15 @@ La page `/strategie` reprend la page « Strategy » de Looker Studio : sept anne
 
 ### Le PDF
 
-Le bouton **PDF** de l'en-tête (entre Simulation et la langue) ouvre la page `/rapport` (`frontend/src/views/ReportPage.vue`) :
+Le bouton **PDF** de l'en-tête (entre Simulation et la langue) fabrique un PDF de **tout le site** : une page web = une page PDF, à sa taille réelle, sans découpage en A4. Tout est dans `frontend/src/lib/pdfExport.js` :
 
-- elle affiche à la suite Flow, Snapshot, Envelopes, Strategy, Volatility, Budget et Simulation, avec les réglages en cours : montants brut ou net, mode clair ou sombre, langue. Les filtres propres à une page (année de Flow, enveloppe de Strategy) restent ceux par défaut ;
-- elle attend que tout soit chargé (plus aucun élément `role="status"` dans les pages), puis ouvre la fenêtre d'impression du navigateur : choisir « Enregistrer au format PDF ». Rien n'est envoyé au serveur, aucune bibliothèque n'est ajoutée ;
-- mise en page (`assets/tailwind.css`, `@media print`) : A4 paysage, couleurs gardées (y compris le mode sombre), chaque page du site commence une nouvelle page, une carte n'est jamais coupée en deux. L'en-tête et le pied de page ne sont pas imprimés. Les graphiques du rapport ne sont pas animés (`provide('report')`, lu par `BaseChart.vue`).
+- le site parcourt lui-même chaque page (`sitePages()`) : accueil, GoogleSheet, Flow, Snapshot, Envelopes, Strategy, Volatility, la page de chaque graphique (`/graphiques/<nom>`, Budget compris), Simulation et la page de connexion. Une nouvelle page du site y est à ajouter ;
+- pour chaque page, il attend la fin du chargement (plus aucun élément `role="status"` dans le contenu pendant près d'une seconde, 25 s au plus), puis la photographie en entier telle qu'elle s'affiche (`html2canvas`) : mise en page, largeur de la fenêtre, mode clair ou sombre, brut ou net, langue, en-tête et pied de page compris ;
+- les images sont assemblées en un PDF (`jsPDF`), téléchargé sous le nom `Overfolio AAAA-MM-JJ.pdf` ; la page de départ revient ensuite. Rien n'est envoyé au serveur ;
+- pendant l'export, un bandeau (`components/PdfProgress.vue`) montre la progression et permet d'annuler ; il n'apparaît pas dans le PDF (`data-pdf-ignore`), et les graphiques ne sont pas animés (`BaseChart.vue`) ;
+- `html2canvas` et `jspdf` (licence MIT) ne sont chargés qu'au clic sur le bouton.
+
+Le PDF est fait d'images : le texte n'y est pas sélectionnable. Compter une quarantaine de secondes et quelques Mo pour tout le site.
 
 ### La simulation
 

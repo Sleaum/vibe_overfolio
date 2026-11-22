@@ -40,8 +40,7 @@
     "envelopes": "Enveloppes",
     "volatility": "Volatilité",
     "simulation": "Simulation",
-    "notFound": "Page introuvable",
-    "report": "Rapport PDF"
+    "notFound": "Page introuvable"
   },
   "apiErrors": {
     "unreachable": "Impossible de joindre le serveur. Vérifie que l’application est démarrée.",
@@ -843,22 +842,11 @@
     "source": "Pays lu dans la colonne Area, la même que l’anneau « Localisation ». Plus un pays est foncé et sa bulle grande, plus tu y as investi.",
     "a11y": "Carte du monde de {count} pays pour {total}. Le plus gros : {biggest}, {share}."
   },
-  "report": {
-    "title": "Overfolio : rapport du {date}",
-    "settings": "Réglages : montants {amounts}, mode {theme}, langue {language}.",
-    "amounts": {
-      "gross": "bruts",
-      "net": "nets"
-    },
-    "theme": {
-      "light": "clair",
-      "dark": "sombre"
-    },
-    "preparing": "Préparation du PDF : chargement de toutes les pages ({done}/{total})…",
-    "ready": "Prêt. Dans la fenêtre d’impression, choisis « Enregistrer au format PDF ».",
-    "timeout": "Certaines pages ont mis trop de temps à charger : le PDF peut être incomplet.",
-    "print": "Enregistrer en PDF",
-    "back": "Retour",
-    "hint": "Les réglages de chaque page (année de Flow, enveloppe de Strategy…) sont ceux par défaut."
+  "pdf": {
+    "progress": "Création du PDF : page {done} sur {total}…",
+    "hint": "Le site parcourt chaque page : ne touche à rien jusqu’au téléchargement.",
+    "cancel": "Annuler",
+    "error": "Le PDF n’a pas pu être créé : {message}",
+    "close": "Fermer"
   }
 }
