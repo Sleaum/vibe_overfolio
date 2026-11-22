@@ -1,7 +1,10 @@
 // Portfolio Flow 1 : patrimoine exprimé en CHF, EUR et USD, un groupe de barres par mois.
-// Table `_history` : une colonne de montants par devise (par exemple « Assets CHF »).
+// Table `_history` : une colonne de montants par devise (par exemple « EUR »).
+// Montant BRUT, comme les autres graphiques (Assets Master Currency) : dans la feuille, les colonnes de devise
+// portent aussi les dettes, en négatif. Une ligne de dette (Liabilities Master Currency renseignée) ou un montant
+// négatif n'est donc pas compté.
 
-import { DataError, requireColumns, rowsOf } from '../aggregate.js'
+import { DataError, findColumn, requireColumns, rowsOf, toNumber } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
 import { formatMonthKey, formatMonthKeyTiny } from '../format.js'
 import { HOVER_SHADE, SERIES } from '../palette.js'
@@ -82,12 +85,15 @@ export default {
       )
     }
 
-    const rows = rowsOf(table)
+    // Actifs seulement : ni les lignes de dette, ni les montants négatifs (dettes des relevés sans colonne de dette)
+    const liabilities = findColumn(table.columns, ['Liabilities Master Currency'])
+    const rows = rowsOf(table).filter((row) => !liabilities || !toNumber(row[liabilities]))
     const months = monthEnds(rows, cols.date)
     if (!months.length) return { empty: t('errors.noDates', { table: '_history' }) }
 
     const series = found.map((currency) => {
-      const totals = totalsByDate(rows, cols.date, currency.column)
+      const assets = rows.filter((row) => toNumber(row[currency.column]) > 0)
+      const totals = totalsByDate(assets, cols.date, currency.column)
       return { ...currency, values: months.map((month) => totals.get(month.iso) ?? 0) }
     })
     const last = months.length - 1

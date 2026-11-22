@@ -480,7 +480,7 @@ Quatorze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de
 | `<nom>` dans l'adresse | Table | Colonnes lues |
 |---|---|---|
 | `flux-budget` | `budget` | `Source`, `Destination`, `Valeur`. Lignes supérieures à 0, doublons additionnés |
-| `patrimoine-devises` | `_history` | `Date` et une colonne de montants par devise dont le nom contient `CHF`, `EUR` ou `USD` (par exemple `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées |
+| `patrimoine-devises` | `_history` | `Date` et une colonne de montants par devise dont le nom contient `CHF`, `EUR` ou `USD` (par exemple `EUR` ou `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées. Montant **brut**, comme les autres graphiques : les colonnes de devise de la feuille portent aussi les dettes (en négatif), donc les lignes de dette (`Liabilities Master Currency` renseignée) et les montants négatifs ne sont pas comptés |
 | `repartition-mensuelle` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Barres à 100 % par mois |
 | `evolution-par-actif` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Une courbe par type d'actif |
 | `variation-mensuelle` | `_history` | `Date`, `Assets Master Currency`. Variation en % du total d'un mois à l'autre |

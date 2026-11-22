@@ -138,10 +138,10 @@
     },
     "currency": {
       "title": "Wealth by currency",
-      "summary": "The value of your wealth in CHF, euros and dollars, month by month.",
-      "source": "_history table, Date column and one amount column per currency (CHF, EUR, USD), added up by date.",
+      "summary": "The gross value of your wealth (your assets, without debts) in CHF, euros and dollars, month by month.",
+      "source": "_history table, Date column and one amount column per currency (CHF, EUR, USD), added up by date. Debt lines (Liabilities Master Currency) and negative amounts are left out: it’s gross, like the other charts.",
       "explain": [
-        "For each month, three bars give the total value of your wealth expressed in each currency. This isn’t a breakdown: it’s the same wealth, converted three times.",
+        "For each month, three bars give the gross value of your wealth (your assets, debts not deducted) expressed in each currency. This isn’t a breakdown: it’s the same wealth, converted three times.",
         "So the bars move together; the gap between them only changes with exchange rates. A month’s amount is that of the last record of the month."
       ],
       "noColumn": "No amount column in CHF, EUR or USD in the “{table}” table. Available columns: {available}.",

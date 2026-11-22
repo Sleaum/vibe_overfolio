@@ -138,10 +138,10 @@
     },
     "currency": {
       "title": "Patrimoine par devise",
-      "summary": "La valeur de ton patrimoine exprimée en CHF, en euros et en dollars, mois par mois.",
-      "source": "Table _history, colonne Date et une colonne de montants pour chaque devise (CHF, EUR, USD), additionnées par date.",
+      "summary": "La valeur brute de ton patrimoine (tes actifs, sans les dettes) exprimée en CHF, en euros et en dollars, mois par mois.",
+      "source": "Table _history, colonne Date et une colonne de montants pour chaque devise (CHF, EUR, USD), additionnées par date. Les lignes de dette (Liabilities Master Currency) et les montants négatifs sont écartés : c’est du brut, comme les autres graphiques.",
       "explain": [
-        "Pour chaque mois, trois barres donnent la valeur totale de ton patrimoine exprimée dans chaque devise. Ce n’est pas une répartition : c’est le même patrimoine, converti trois fois.",
+        "Pour chaque mois, trois barres donnent la valeur brute de ton patrimoine (tes actifs, sans déduire les dettes) exprimée dans chaque devise. Ce n’est pas une répartition : c’est le même patrimoine, converti trois fois.",
         "Les barres changent donc ensemble ; leur écart ne bouge qu’avec les taux de change. Le montant d’un mois est celui du dernier relevé de ce mois."
       ],
       "noColumn": "Aucune colonne de montants en CHF, EUR ou USD dans la table « {table} ». Colonnes disponibles : {available}.",
