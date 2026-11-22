@@ -94,3 +94,12 @@ export const resetSheetConfig = () => request('/api/sheet-config/', { method: 'D
 
 // Onglets du document (lien public ou compte de service) : { mode, tabs: [noms], selected: [noms] }
 export const getSheetTabs = () => request('/api/sheet-config/tabs/')
+
+// Enregistre seulement la liste des onglets à synchroniser ("portfolio, budget") ; renvoie la configuration
+export const saveSyncTabs = (syncTabs) =>
+  request('/api/sheet-config/tabs/', {
+    fieldLabel: (field) => t(`sheetSettings.fields.${field}`),
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sync_tabs: syncTabs }),
+  })

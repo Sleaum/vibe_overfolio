@@ -3,6 +3,7 @@
   - Les champs sont préremplis avec les valeurs en vigueur : celles enregistrées ici, sinon celles du .env.
   - La clé privée n'est jamais renvoyée par le serveur : laissée vide, la clé en vigueur est conservée.
   - « Importer le fichier JSON » remplit les champs du compte de service depuis le fichier téléchargé dans Google Cloud.
+  - Les onglets à synchroniser ne sont pas ici : section Onglet de la page (SyncTabs.vue).
   - Événements : `loaded` et `saved` avec la configuration ({ source, values, private_key_set, … }).
 -->
 <template>
@@ -90,24 +91,6 @@
               {{ errors[field.name] || t(`sheetSettings.help.${field.name}`) }}
             </p>
           </div>
-        </div>
-
-        <!-- Onglets proposés : lus dans le document (lien public ou compte de service), cochés = synchronisés -->
-        <div class="mt-4">
-          <AppButton variant="outline" size="sm" :disabled="tabsLoading" @click="loadTabs">
-            {{ tabsLoading ? t('sheetSettings.tabs.loading') : t('sheetSettings.tabs.suggest') }}
-          </AppButton>
-          <p v-if="tabsError" class="mt-2 text-sm text-danger" role="alert">{{ tabsError }}</p>
-          <fieldset v-if="tabs.length" class="mt-3">
-            <legend class="text-sm font-medium text-ink">{{ t('sheetSettings.tabs.legend') }}</legend>
-            <div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
-              <label v-for="tab in tabs" :key="tab" class="flex cursor-pointer items-center gap-2 text-sm text-ink">
-                <input type="checkbox" class="h-4 w-4 accent-accent" :checked="selectedTabs.includes(tab)" @change="toggleTab(tab)" />
-                {{ tab }}
-              </label>
-            </div>
-            <p v-if="dirty" class="mt-2 text-sm text-ink-3">{{ t('sheetSettings.tabs.unsaved') }}</p>
-          </fieldset>
         </div>
       </fieldset>
 
@@ -244,7 +227,7 @@ import { useI18n } from 'vue-i18n'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import AppButton from './ui/AppButton.vue'
 import SegmentedControl from './ui/SegmentedControl.vue'
-import { getSheetConfig, getSheetTabs, resetSheetConfig, saveSheetConfig } from '../lib/api.js'
+import { getSheetConfig, resetSheetConfig, saveSheetConfig } from '../lib/api.js'
 import { formatDateTime } from '../lib/format.js'
 
 const { t } = useI18n()
@@ -262,11 +245,9 @@ const DOC_FIELDS = [
     name: 'doc_name',
     placeholder: 'overfolio',
   },
-  {
-    name: 'sync_tabs',
-    placeholder: 'portfolio, inout, stock, budget, _history',
-  },
 ]
+// Les onglets à synchroniser se règlent dans la section Onglet de la page (SyncTabs.vue) : ce formulaire ne les envoie pas,
+// le serveur garde la liste enregistrée
 
 // Modes de connexion (cartes à choix unique en haut du formulaire)
 const METHODS = ['public_link', 'service_account', 'google']
@@ -286,7 +267,7 @@ watch(method, (next) => {
   for (const [name, value] of Object.entries(account.values)) form[name] = value ?? ''
   accountLoadedFrom.value = account.source
 })
-// Mode 1 : seuls le lien et les onglets ; le nom du document ne sert qu'avec un compte de service
+// Mode 1 : seul le lien ; le nom du document ne sert qu'avec un compte de service
 // Mode 2 : document trouvé par son lien ou par son nom ; mode 1 : toujours le lien
 const lookup = ref('link') // 'link' | 'name'
 const LOOKUPS = [
@@ -294,7 +275,7 @@ const LOOKUPS = [
   { value: 'name', label: t('sheetSettings.lookup.name') },
 ]
 const byName = computed(() => method.value === 'service_account' && lookup.value === 'name')
-// Champs du bloc Document : le lien OU le nom (pleine largeur), puis les onglets
+// Champs du bloc Document : le lien OU le nom (pleine largeur)
 const docFields = computed(() =>
   DOC_FIELDS.filter((field) => (field.name === 'doc_name' ? byName.value : field.name === 'sheet_id' ? !byName.value : true)).map(
     (field) => (field.name === 'doc_name' ? { ...field, wide: true } : field),
@@ -449,38 +430,6 @@ async function backToEnv() {
   } finally {
     saving.value = false
   }
-}
-
-/* ---------- Onglets proposés ---------- */
-
-const tabs = ref([])
-const tabsLoading = ref(false)
-const tabsError = ref('')
-const selectedTabs = computed(() =>
-  form.sync_tabs
-    .split(',')
-    .map((name) => name.trim())
-    .filter(Boolean),
-)
-
-async function loadTabs() {
-  tabsLoading.value = true
-  tabsError.value = ''
-  try {
-    tabs.value = (await getSheetTabs()).tabs ?? []
-  } catch (err) {
-    tabs.value = []
-    tabsError.value = err.message
-  } finally {
-    tabsLoading.value = false
-  }
-}
-
-// Coche ou décoche un onglet : met à jour la liste « Onglets à synchroniser » (enregistrée avec le formulaire)
-function toggleTab(name) {
-  const current = selectedTabs.value
-  const next = current.includes(name) ? current.filter((tab) => tab !== name) : [...current, name]
-  form.sync_tabs = next.join(', ')
 }
 
 // Remplit les champs du compte de service depuis le fichier JSON de Google (lu dans le navigateur, rien n'est envoyé)

@@ -50,6 +50,7 @@ overfolio/
 │       ├── components/
 │       │   ├── Header.vue, Footer.vue
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
+│       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
 │       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue)
 │       │   ├── landing/            # sections de la page de présentation
 │       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard
@@ -237,7 +238,7 @@ compte de service + lien ──► API Google Sheets (gspread) ─────�
 2. Partage le document avec l'adresse du compte de service (`CLIENT_EMAIL`), en **Lecteur**. La feuille peut rester privée.
 3. Renseigne les paramètres sur la page **GoogleSheet** (`/sheet`, bloc « Connexion à Google Sheets », bouton « Importer le fichier JSON »), ou dans `.env`. Le compte de service est complet dès qu'un de ses champs est rempli. Choisir la carte « 1. Lien public » puis Enregistrer repasse en lecture par lien.
 
-**Onglets** : dans les deux modes, « Proposer les onglets du document » lit la liste des onglets de la feuille et les présente en cases à cocher, qui remplissent « Onglets à synchroniser ».
+**Onglets** : ils se règlent sur la page **GoogleSheet**, juste au-dessus de **Tout actualiser**, à part du formulaire de connexion. Le champ « Onglets à synchroniser » (noms séparés par des virgules, bouton Enregistrer) et, juste en dessous, « Proposer les onglets du document », qui lit les onglets de la feuille enregistrée (dans les deux modes) et les présente en cases à cocher. Cocher ou décocher une case enregistre la liste aussitôt. Si tu changes de document, enregistre d'abord la connexion : la liste proposée est celle du document enregistré.
 
 ### Paramètres saisis sur la page GoogleSheet
 
@@ -249,6 +250,7 @@ Les variables Google du `.env` (`TYPE`, `PROJECT_ID`, `PRIVATE_KEY_ID`, `PRIVATE
 - **Importer le fichier JSON** remplit les champs du compte de service depuis le fichier téléchargé dans Google Cloud (lu dans le navigateur).
 - L'identifiant du document accepte aussi l'adresse complète du Google Sheet.
 - La **clé privée n'est jamais renvoyée au navigateur** : le champ reste vide. Laissé vide, la clé en vigueur est conservée.
+- Les **onglets à synchroniser** (`SHEET_SYNC_TABS`) ne font pas partie du formulaire de connexion : ils s'enregistrent seuls, au-dessus de Tout actualiser (`PUT /api/sheet-config/tabs/`). Le formulaire de connexion garde la liste enregistrée. Enregistrer les onglets alors que rien n'était enregistré recopie les valeurs du `.env` en base, comme le formulaire.
 
 API : `GET /api/sheet-config/` (valeurs, sans la clé privée), `PUT /api/sheet-config/` (enregistre ; 400 avec `fields` si la saisie est incomplète), `DELETE /api/sheet-config/` (retour au `.env`).
 
@@ -350,7 +352,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
-| GET | `/api/sheet-config/tabs/` | Onglets du document : `{ mode, tabs, selected }`, dans les deux modes |
+| GET, PUT | `/api/sheet-config/tabs/` | `GET` : onglets du document, `{ mode, tabs, selected }`, dans les deux modes. `PUT {"sync_tabs": "portfolio, budget"}` : enregistre seulement la liste des onglets à synchroniser et renvoie les paramètres comme `/api/sheet-config/` (400 `sync_tabs_required` si la liste est vide) |
 
 Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "code_stable", "params": {…}}` (`backend/googlesheet/errors.py`) : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google). Le site affiche le message dans la langue choisie à partir de `code` et `params` (rubrique `apiErrors` de `frontend/src/i18n/*.json`) ; `error` reste en français pour la ligne de commande. Un formulaire invalide (`400`) ajoute `fields` (messages par champ) et `field_codes` (codes par champ). Le résultat de chaque onglet d'une synchronisation porte aussi `code` et `params`.
 
@@ -418,7 +420,7 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3, ECharts et vue-i18n. Il ne
 | Adresse | Fichier | Contenu |
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, questions fréquentes |
-| `/sheet` | `views/SourcePage.vue` | Menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
+| `/sheet` | `views/SourcePage.vue` | Connexion (`SheetSettings.vue`), onglets à synchroniser (`SyncTabs.vue`), menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
 | `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Flow, Snapshot, Envelopes, Strategy, Volatility, Budget), page choisie à droite. `/graphiques` ouvre Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
 | `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Flow, Envelopes ou Volatility (leur fil d'Ariane passe par leur page) |
 | `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les 6 graphiques de Flow sur une seule page, avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |

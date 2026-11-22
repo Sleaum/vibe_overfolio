@@ -327,3 +327,34 @@ class OtherDocumentTests(TestCase):
         with fake_download(b"<html>connexion</html>"):
             self.client.post("/api/data/sync/")
         self.assertEqual(SheetTable.objects.count(), 2)
+
+
+@mock.patch.dict("os.environ", ENV, clear=False)
+class SaveTabsTests(TestCase):
+    url = "/api/sheet-config/tabs/"
+
+    def put(self, data):
+        return self.client.put(self.url, json.dumps(data), content_type="application/json")
+
+    def test_tabs_alone_are_saved_and_access_is_unchanged(self):
+        response = self.put({"sync_tabs": " portfolio ,budget,"})
+        self.assertEqual(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertEqual(body["values"]["sync_tabs"], "portfolio,budget")
+        self.assertEqual(body["mode"], "service_account")  # .env repris tel quel, clé comprise
+        self.assertTrue(body["private_key_set"])
+        self.assertEqual(config.sync_tabs(), ["portfolio", "budget"])
+
+    def test_empty_list_is_refused(self):
+        response = self.put({"sync_tabs": " , "})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["field_codes"], {"sync_tabs": "sync_tabs_required"})
+        self.assertFalse(SheetConfig.objects.exists())
+
+    def test_connection_form_keeps_the_tabs(self):
+        self.put({"sync_tabs": "budget"})
+        values = dict(self.client.get("/api/sheet-config/").json()["values"])
+        values.pop("sync_tabs")
+        response = self.client.put("/api/sheet-config/", json.dumps(values), content_type="application/json")
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(config.sync_tabs(), ["budget"])
