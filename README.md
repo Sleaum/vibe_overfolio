@@ -67,6 +67,7 @@ overfolio/
 ├── nginx/
 │   └── default.conf
 ├── .env                            # secrets, NE PAS COMMITER
+├── .gitignore                      # exclut .env, clés SSH et fichiers de compte de service
 ├── docker-compose.yml
 ├── init.sh
 ├── CLAUDE.md                       # consignes pour Claude : façon de travailler, couleurs, fonctions à venir
@@ -586,7 +587,7 @@ docker compose exec db psql -U overfoliouser -d overfoliodb
 
 ## Sécurité
 
-- `.env` ne doit jamais être commité, ni les fichiers `env` ou `backend/overfolio/.env`. Si une clé privée a été exposée (capture d'écran, commit), la révoquer dans Google Cloud (IAM → Comptes de service → Clés) et en générer une nouvelle.
+- `.env` ne doit jamais être commité, ni les fichiers `env` ou `backend/overfolio/.env`, ni une clé SSH ou un fichier JSON de compte de service : le `.gitignore` de la racine les exclut. Un fichier déjà suivi par git n'est pas concerné par le `.gitignore` : le retirer avec `git rm --cached <fichier>`. Si une clé privée a été exposée (capture d'écran, commit), la révoquer dans Google Cloud (IAM → Comptes de service → Clés) et en générer une nouvelle.
 - Ne partage pas le Google Sheet par lien public : il contient l'intégralité du patrimoine. Partage-le seulement avec `CLIENT_EMAIL`.
 - Passer à `DEBUG=False` et restreindre `ALLOWED_HOSTS` en production.
 - Les routes `/api/sheet`, `/api/data/` et `/api/sheet-config/` sont publiques : les restreindre avant toute exposition sur Internet.

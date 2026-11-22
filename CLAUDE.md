@@ -31,4 +31,4 @@ Quand elle sera branchée : comptes Django, session, et API réservée aux utili
 ## Sécurité
 
 - Ne jamais commiter de secret : `.env`, clés privées, identifiants Google.
-- Le dépôt est public. Le fichier `keysave` à la racine est une clé SSH privée exposée, à retirer (le propriétaire du dépôt gère la révocation et la réécriture de l'historique).
+- Le dépôt est public. Une clé SSH privée (`keysave`) a été commitée par erreur puis retirée : elle reste dans l'historique git, ne jamais la réutiliser. Le `.gitignore` de la racine exclut désormais `.env`, les clés et les fichiers de compte de service.
