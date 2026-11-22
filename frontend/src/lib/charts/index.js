@@ -34,13 +34,13 @@ export const MENU = [
   {
     key: PORTFOLIO_FLOW.key,
     to: PORTFOLIO_FLOW.to,
-    title: PORTFOLIO_FLOW.title,
+    title: 'Flow',
     summary: 'L’historique de ton patrimoine mois par mois : devises, répartition, évolution par type d’actif, variation, entrées et sorties, tendance et objectifs.',
   },
   {
     key: 'portfolio-snapshot',
     to: '/portfolio-snapshot',
-    title: 'Portfolio Snapshot',
+    title: 'Snapshot',
     summary: 'Ton patrimoine aujourd’hui : brut, net, variation de l’année et du mois, détail type d’actif par type d’actif.',
   },
   {
@@ -52,7 +52,7 @@ export const MENU = [
   {
     key: 'strategie',
     to: '/strategie',
-    title: 'Stratégie CTO',
+    title: 'Strategy',
     summary: 'Tes actions en anneaux à deux niveaux : secteur, moat, localisation, note S&P, business et place de cotation.',
   },
   {
@@ -64,7 +64,7 @@ export const MENU = [
   {
     key: budgetFlow.slug,
     to: { name: 'ChartPage', params: { slug: budgetFlow.slug } },
-    title: budgetFlow.title,
+    title: 'Budget',
     summary: budgetFlow.summary,
   },
 ]
