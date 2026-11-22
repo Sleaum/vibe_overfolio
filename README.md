@@ -213,7 +213,7 @@ Sur la page **GoogleSheet**, le bloc « Connexion à Google Sheets » commence p
 | Carte | Champs affichés |
 |---|---|
 | **1. Lien public** | lien du Google Sheet, onglets à synchroniser (+ onglets proposés). Pas de nom de document : l'identifiant vient du lien |
-| **2. Compte de service** | comme avant : lien, nom du document (seulement si le lien est vide), onglets, compte de service (import du fichier JSON, champs, champs avancés) |
+| **2. Compte de service** | « Trouver le document par » **Lien** ou **Nom** (un seul des deux champs affiché ; enregistrer par nom vide le lien, sinon il serait utilisé à la place), onglets, compte de service (import du fichier JSON, champs, champs avancés). Le lien est plus sûr : la recherche par nom demande l'API Drive et prend le premier document de ce nom |
 | **3. Compte Google** | présentation de la connexion standard « Se connecter avec Google » (sélecteur de fichiers de Google, feuille privée). **Pas encore branchée** : elle arrivera avec les comptes Overfolio |
 
 Enregistrer en mode 1 retire le compte de service enregistré (après confirmation). Cocher la carte 2 alors qu'aucun compte n'est en vigueur recharge le compte de service de la **base** s'il y en a un, sinon celui du **`.env`** (message « Compte de service chargé depuis… ») ; la clé privée n'est jamais envoyée au navigateur, elle est reprise à l'enregistrement, et celle du `.env` seulement pour le même e-mail de compte. Côté serveur, le mode en vigueur se déduit des valeurs enregistrées (`access_mode()` dans `backend/googlesheet/config.py`) :
