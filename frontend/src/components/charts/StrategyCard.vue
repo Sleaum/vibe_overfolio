@@ -22,7 +22,7 @@
         :caption="t('chartUi.tableVersion', { title: chart.title })"
       />
       <template v-else>
-        <BaseChart :option="option" :height="300" :label="chart.summary" />
+        <BaseChart :option="option" :height="380" :label="chart.summary" />
         <ul class="mt-5 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2" :aria-label="t('chartUi.partsOf', { title: chart.title })">
           <li v-for="item in chart.legend" :key="item.name" class="flex items-start gap-2.5 py-1.5">
             <span class="mt-1.5 h-3 w-3 shrink-0 rounded-[3px]" :style="{ backgroundColor: item.color }" aria-hidden="true"></span>
@@ -35,7 +35,7 @@
           </li>
         </ul>
         <p v-if="chart.detailTitle" class="mt-4 text-sm text-ink-3">
-          {{ t('chartUi.ringsHint', { inner: chart.title, outer: chart.detailTitle }) }}
+          {{ t('chartUi.ringsHint', { inner: chart.innerTitle, outer: chart.detailTitle }) }}
         </p>
       </template>
     </div>
@@ -45,7 +45,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import { computed, ref } from 'vue'
-import { sunburstOption } from '../../lib/charts/sunburst.js'
+import { sunburstOption, withLabels } from '../../lib/charts/sunburst.js'
 import SegmentedControl from '../ui/SegmentedControl.vue'
 import BaseChart from './BaseChart.vue'
 import DataTableView from './DataTableView.vue'
@@ -63,5 +63,5 @@ const VIEWS = [
 
 const view = ref('chart')
 const titleId = computed(() => `strategie-${props.chart.key}`)
-const option = computed(() => sunburstOption(props.chart.categories, props.chart.total))
+const option = computed(() => withLabels(sunburstOption(props.chart.categories, props.chart.total), props.chart.total))
 </script>

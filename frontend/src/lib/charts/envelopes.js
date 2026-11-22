@@ -13,7 +13,7 @@ import { stackedOption } from './stackedBars.js'
 import { dataSubtitle } from './common.js'
 import { assetsLinesOption } from './flowAssets.js'
 import { monthEnds, monthsSubtitle, skippedNote } from './flowData.js'
-import { sunburstOption } from './sunburst.js'
+import { sunburstOption, withLabels } from './sunburst.js'
 import { t, tList } from '../../i18n/index.js'
 
 const ENVELOPE_NAMES = ['Envelope', 'Enveloppe', 'Account', 'Compte', 'Wrapper']
@@ -92,32 +92,6 @@ const noEnvelope = (table) => ({
 
 /* ---------- 1. Anneau enveloppe → instrument ---------- */
 
-/**
- * Étiquettes de l'anneau : le nom de chaque enveloppe à l'intérieur, et celui des instruments dont la part est assez
- * large pour être lisible (les autres se lisent au survol et dans la vue en tableau).
- */
-function labelRings(option, total) {
-  for (const series of [].concat(option.series ?? [])) {
-    for (const node of series.data ?? []) {
-      node.label = { show: true, rotate: 0, color: '#fff', fontWeight: 600, fontSize: 13, minAngle: 12 } // couleur fixe : texte blanc sur couleur de série
-      for (const child of node.children ?? []) {
-        // Grande part : texte le long de l'arc (plus de place) ; petite part : texte en travers de l'anneau
-        const wide = child.value / total >= 0.12
-        child.label = {
-          show: true,
-          rotate: wide ? 'tangential' : 'radial',
-          color: '#1f2937', // couleur fixe : texte foncé sur couleur de série
-          fontSize: 11,
-          minAngle: 7,
-          overflow: 'truncate',
-          width: wide ? 160 : 90,
-        }
-      }
-    }
-  }
-  return option
-}
-
 /** « DE:UETW » -> « UETW » ; vide si la ligne n'a pas de ticker. */
 const shortTicker = (value) => String(value ?? '').trim().split(':').pop().toUpperCase()
 
@@ -182,7 +156,7 @@ export const envelopeInstruments = {
         total: euro(total),
         shares: groups.map((group) => `${group.name} ${percent(group.total / total)}`).join(', '),
       }),
-      option: labelRings(sunburstOption(categories, total), total),
+      option: withLabels(sunburstOption(categories, total), total),
       height: 520,
       table: {
         columns: [t('charts.envelopes.envelope'), t('charts.envelopes.instrument'), t('chart.amount'), t('charts.envelopes.shareOfEnvelope')],

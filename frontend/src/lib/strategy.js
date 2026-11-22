@@ -326,9 +326,9 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
   if (envelopeColumn) used.push(t('strategy.used.column', { title: t('strategy.envelope'), column: envelopeColumn }))
 
   const instrumentOf = instrumentColumn ? (row) => cell(row, instrumentColumn) : null
-  // Une seule enveloppe en jeu : l'anneau extérieur des instruments serait toujours le même, on le supprime
-  const singleEnvelope = !envelopeColumn || !scopes.length || current.startsWith('env:')
-  const envelopeOf = envelopeColumn && !singleEnvelope ? (row) => cell(row, envelopeColumn) : null
+  const envelopeOf = envelopeColumn ? (row) => cell(row, envelopeColumn) : null
+  // « cto » -> « CTO » : les noms d'enveloppe courts sont des sigles
+  const envelopeName = (text) => (String(text).trim().length <= 4 ? String(text).trim().toUpperCase() : capitalize(text))
 
   // Anneaux : les attributs d'abord, puis les instruments (détail = enveloppe)
   const defs = ATTRIBUTES.filter((attr) => getters[attr.key]).map((attr) => ({
@@ -340,15 +340,29 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
     labelOf: attr.key === 'rating' ? ratingLabel : capitalize,
     rankOf: attr.key === 'rating' ? ratingRank : null,
   }))
+  // Anneau « Instruments » : les enveloppes au centre (CTO, PEA…), les instruments autour, comme les autres anneaux
+  // (catégorie au centre, instruments autour). Sans colonne d'enveloppe : les instruments seuls.
   if (instrumentOf) {
-    defs.push({
-      key: 'instrument',
-      title: t('strategy.rings.instruments'),
-      inner: instrumentOf,
-      outer: envelopeOf,
-      detailTitle: envelopeOf ? t('strategy.envelope') : '',
-      labelOf: (text) => text, // les noms d'instruments gardent leur graphie
-    })
+    defs.push(
+      envelopeOf
+        ? {
+            key: 'instrument',
+            title: t('strategy.rings.instruments'),
+            innerTitle: t('strategy.envelope'),
+            inner: envelopeOf,
+            outer: instrumentOf,
+            detailTitle: t('strategy.instrument'),
+            labelOf: envelopeName,
+          }
+        : {
+            key: 'instrument',
+            title: t('strategy.rings.instruments'),
+            inner: instrumentOf,
+            outer: null,
+            detailTitle: '',
+            labelOf: (text) => text, // les noms d'instruments gardent leur graphie
+          },
+    )
   }
 
   if (!defs.length) {
@@ -370,6 +384,7 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
     return {
       key: def.key,
       title: def.title,
+      innerTitle: def.innerTitle ?? def.title, // nom de l'anneau intérieur (Enveloppe pour l'anneau Instruments)
       detailTitle: def.detailTitle,
       total,
       categories,
@@ -389,7 +404,7 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
         share: percent(biggest.share),
       }),
       legend: categories.map((c) => ({ name: c.name, color: c.color, amount: euro(c.value), share: percent(c.share) })),
-      table: tableOf(def.title, def.detailTitle, categories, total),
+      table: tableOf(def.innerTitle ?? def.title, def.detailTitle, categories, total),
     }
   })
 
