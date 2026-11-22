@@ -14,9 +14,10 @@ overfolio/
 │   │   └── urls.py                 # routage principal
 │   ├── googlesheet/                # app : lecture et copie du Google Sheet
 │   │   ├── services.py             # connexion Google, lecture des onglets
-│   │   ├── views.py                # GET /api/sheet (lecture en direct)
+│   │   ├── views.py, urls.py       # GET /api/sheet (lecture en direct)
 │   │   ├── data_views.py           # /api/data/ (lecture et synchronisation de la base)
 │   │   ├── data_urls.py
+│   │   ├── middleware.py           # DisableCSPMiddleware
 │   │   ├── models.py               # SheetTable, SheetRow, SheetConfig
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
 │   │   ├── sync.py                 # copie des onglets vers la base
@@ -25,11 +26,13 @@ overfolio/
 │   │   └── management/commands/sync_sheets.py
 ├── frontend/
 │   ├── Dockerfile                  # stage "build" (Vite)
-│   ├── tailwind.config.js          # jetons de design : couleurs, typographie, ombres
+│   ├── index.html                  # page HTML ; pose le mode sombre avant l'affichage
+│   ├── vite.config.ts              # build ; plugin « theme » (index.html, contrôle des couleurs)
+│   ├── tailwind.config.js          # classes de couleur et variables CSS générées depuis lib/theme.js, typographie, ombres
 │   └── src/
 │       ├── App.vue                 # en-tête, page affichée, pied de page
 │       ├── router/index.ts         # routes (pages chargées à la demande)
-│       ├── assets/tailwind.css     # base : focus clavier, animations réduites, colonne de contenu
+│       ├── assets/tailwind.css     # base : focus clavier, animations réduites, colonne de contenu (aucune couleur)
 │       ├── views/                  # une page par route
 │       │   ├── HeroSection.vue     #   /                   présentation et vente
 │       │   ├── SourcePage.vue      #   /sheet              onglets de la base, bouton Tout actualiser
@@ -42,18 +45,21 @@ overfolio/
 │       │   ├── VolatilityPage.vue  #   /volatilite         variation du prix de chaque placement
 │       │   ├── SimulationPage.vue  #   /simulation         simulation de Monte-Carlo du patrimoine
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
-│       │   └── NewPage.vue          # /newpage (connexion)
+│       │   └── NewPage.vue         #   /newpage            connexion
 │       ├── components/
 │       │   ├── Header.vue, Footer.vue
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
-│       │   ├── ui/                 # AppButton, SegmentedControl
+│       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (bouton clair / sombre)
 │       │   ├── landing/            # sections de la page de présentation
 │       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard
-│       ├── composables/            # useTable (charge une table), useReducedMotion
+│       ├── composables/            # useTable (charge une table), useTheme (mode clair / sombre), useReducedMotion
 │       └── lib/
 │           ├── api.js              # appels /api/data/...
 │           ├── aggregate.js, dates.js, format.js   # calculs et formats français
-│           ├── palette.js, chartTheme.js, echartsSetup.js
+│           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre) et de la clé du thème
+│           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
+│           ├── chartDark.js        # passe un graphique en sombre
+│           ├── simulation.js, simulation.worker.js         # calculs de la page Simulation
 │           ├── snapshot.js         # calculs de la page Portfolio Snapshot
 │           ├── strategy.js         # calculs de la page Stratégie CTO
 │           ├── sample.js           # données FICTIVES de la page de présentation
@@ -178,6 +184,14 @@ docker compose up --build -d
 | http://localhost/admin/ | Admin Django |
 
 Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx.
+
+### Utilisation
+
+1. **Brancher le Google Sheet** : page GoogleSheet (`/sheet`), bloc « Connexion à Google Sheets » (ou `.env`, voir « Google Sheets »).
+2. **Copier les données en base** : bouton **Tout actualiser** de la même page (ou `./init.sh --sync`). Les graphiques lisent la base, pas le Google Sheet : sans cette étape, ils restent vides. Recommencer après chaque mise à jour de la feuille, ou automatiser (« Synchronisation automatique »).
+3. **Lire les graphiques** : rubrique **Graphiques**, menu à gauche (Flow, Snapshot, Enveloppes, Strategy, Volatilité, Budget). Chaque graphique a une vue Tableau et une page d'explication (source des chiffres).
+4. **Projeter** : page **Simulation**, réglages dans la page.
+5. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur.
 
 ### Créer un compte administrateur
 
@@ -377,9 +391,48 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que l
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `lib/strategy.js` et `lib/charts/sunburst.js` | Stratégie CTO : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
-| `/newpage` | `views/NewPage.vue` | Connexion, au style du site (fond blanc, carte à filet fin, bleu d'accent). La connexion est encore une simulation : rien n'est envoyé au serveur |
+| `/newpage` | `views/NewPage.vue` | Connexion, au style du site (carte à filet fin, bleu d'accent, clair ou sombre). La connexion est encore une simulation : rien n'est envoyé au serveur |
 
 Les pages, hors accueil, sont chargées à la demande : ECharts n'est téléchargé que lorsqu'on ouvre un graphique.
+
+### Fonctionnement du frontend
+
+D'une table de la base à un graphique affiché :
+
+```
+Page (views/*.vue)
+  │  useTable('portfolio')                  composables/useTable.js
+  ▼
+lib/api.js ──► GET /api/data/<onglet>/ ──► PostgreSQL
+  │  { columns, rows }
+  ▼
+Spécification du graphique                  lib/charts/<nom>.js : build(table)
+  │  { option ECharts, tableau, textes }    couleurs prises dans lib/palette.js
+  ▼
+BaseChart.vue ──► en mode sombre : lib/chartDark.js remplace les couleurs claires
+  │
+  ▼
+ECharts (canvas)          + vue Tableau (DataTableView.vue) avec les mêmes chiffres
+```
+
+Mode clair / sombre : une seule source, `lib/theme.js`, lue par tous les autres fichiers (dans un seul sens).
+
+```
+                            lib/theme.js
+               (couleurs clair + sombre, clé du choix)
+  ┌────────────────────┬──────────┴─────────┬─────────────────────┐
+  ▼                    ▼                    ▼                     ▼
+tailwind.config.js   vite.config.ts       lib/palette.js        composables/useTheme.js
+classes + variables  injecte dans         couleurs des          état isDark, bascule,
+CSS :root/html.dark  index.html           graphiques + DARK     choix mémorisé
+  │                    │                    │                     │               │
+  ▼                    ▼                    ▼◄────────────────────┘               ▼
+composants Vue       script d'avant-      BaseChart.vue                         ThemeToggle.vue
+(bg-paper,           affichage : classe   (recolore en                          (bouton de
+ text-ink…)          « dark » sur <html>  sombre)                               l'en-tête)
+```
+
+La classe `dark` sur `<html>` décide de tout : les composants n'utilisent que des noms de couleur (`bg-paper`, `text-ink`) et ne savent pas dans quel mode ils sont.
 
 ### Les graphiques
 
@@ -422,16 +475,6 @@ Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en 
 
 ### Stratégie CTO
 
-### La simulation
-
-La page `/simulation` (lien de l'en-tête, à part de la rubrique Graphiques) tire 5 000 trajectoires mois par mois jusqu'à la date de l'objectif. Elle affiche la médiane, les fourchettes 25-75 % et 10-90 %, et la part des trajectoires qui atteignent l'objectif à sa date.
-
-- **Point de départ** : la table `portfolio` (montants par `Asset` au dernier relevé, et dette totale tirée de `Liabilities Master Currency`).
-- **Valeurs proposées** : le versement mensuel est la moyenne des 12 derniers mois complets de `inout` (`in - out - tax`). L'objectif est la prochaine ligne d'objectif de `_history`. Les hypothèses par type d'actif (rendement, volatilité, lien avec les actions) sont des ordres de grandeur de long terme, dans `DEFAULT_ASSUMPTIONS` de `lib/simulation.js`.
-- **Modèle** : rendements mensuels log-normaux, chocs de Student à 5 degrés de liberté (krachs plus fréquents qu'avec une loi normale) et corrélation par un facteur « marché actions ». Les versements sont répartis au prorata des actifs cochés, et les frais sont prélevés sur les actifs financiers. La dette baisse du capital remboursé chaque mois.
-- **Limites** : ni impôt à la sortie ni rééquilibrage. Les résultats sont reproductibles : une graine fixe donne le même résultat pour les mêmes hypothèses.
-- Tout se règle dans la page, et les réglages sont gardés par le navigateur (`localStorage`). Le calcul tourne dans un Web Worker, en 0,3 s environ.
-
 La page `/strategie` reprend la page « Stratégie CTO » de Looker Studio : sept anneaux à deux niveaux (graphiques « sunburst » d'ECharts, sans bibliothèque en plus). L'anneau intérieur donne les catégories, l'anneau extérieur leur détail, en nuances de la même couleur. Tous les calculs sont dans `frontend/src/lib/strategy.js`.
 
 | Anneau | Intérieur | Extérieur | Colonnes cherchées (la première trouvée est lue) |
@@ -450,12 +493,24 @@ La page `/strategie` reprend la page « Stratégie CTO » de Looker Studio : sep
 - **Couleurs.** Les 8 plus grosses catégories prennent les couleurs de la palette dans l'ordre ; le reste est regroupé en « Autres (n) » (gris), « Non renseigné » est toujours en dernier (gris clair). L'anneau extérieur montre au plus 6 détails par catégorie puis « Autres (n) » ; la vue Tableau liste tout. Les notes S&P suivent l'échelle (AAA, AA+, AA…) au lieu de la taille.
 - Pour accepter un autre nom de colonne, l'ajouter dans la liste `ATTRIBUTES` de `strategy.js`.
 
+### La simulation
+
+La page `/simulation` (lien de l'en-tête, à part de la rubrique Graphiques) tire 5 000 trajectoires mois par mois jusqu'à la date de l'objectif. Elle affiche la médiane, les fourchettes 25-75 % et 10-90 %, et la part des trajectoires qui atteignent l'objectif à sa date.
+
+- **Point de départ** : la table `portfolio` (montants par `Asset` au dernier relevé, et dette totale tirée de `Liabilities Master Currency`).
+- **Valeurs proposées** : le versement mensuel est la moyenne des 12 derniers mois complets de `inout` (`in - out - tax`). L'objectif est la prochaine ligne d'objectif de `_history`. Les hypothèses par type d'actif (rendement, volatilité, lien avec les actions) sont des ordres de grandeur de long terme, dans `DEFAULT_ASSUMPTIONS` de `lib/simulation.js`.
+- **Modèle** : rendements mensuels log-normaux, chocs de Student à 5 degrés de liberté (krachs plus fréquents qu'avec une loi normale) et corrélation par un facteur « marché actions ». Les versements sont répartis au prorata des actifs cochés, et les frais sont prélevés sur les actifs financiers. La dette baisse du capital remboursé chaque mois.
+- **Limites** : ni impôt à la sortie ni rééquilibrage. Les résultats sont reproductibles : une graine fixe donne le même résultat pour les mêmes hypothèses.
+- Tout se règle dans la page, et les réglages sont gardés par le navigateur (`localStorage`). Le calcul tourne dans un Web Worker, en 0,3 s environ.
+
 ### Ajouter un graphique
 
 1. Copier `frontend/src/lib/charts/budgetFlow.js` sous un nouveau nom (c'est le plus simple à lire).
 2. Renseigner `slug` (l'adresse), `title`, `summary` (une phrase), `table` (l'onglet lu), `explain` (un ou deux paragraphes) et `source` (les colonnes utilisées). Ajouter `thumb` (miniature de la carte : `line`, `donut`, `sunburst` ou `sankey`) si le graphique a sa propre carte.
 3. Écrire `build(table)` : `requireColumns(table, …)` retrouve les colonnes et lève un message clair si l'une manque, puis la fonction renvoie `{ subtitle, summary, option, height, table: { columns, numeric, rows } }`, ou `{ empty: 'message' }` quand il n'y a rien à afficher.
 4. L'ajouter à `frontend/src/lib/charts/index.js` : `import` et tableau `CHARTS` (la page `/graphiques/<slug>` apparaît seule). Pour une entrée dans le menu de la rubrique Graphiques, ajouter aussi une entrée à `MENU` ; pour l'intégrer à une page qui en réunit plusieurs, l'ajouter à `FLOW_CHARTS`, `ENVELOPE_CHARTS` ou `VOLATILITY_CHARTS` (liste `GROUPS`).
+
+Couleurs : n'en écrire aucune en dur, les prendre dans `lib/palette.js` (`SERIES`, `INK`, `GRID`…), sinon elles ne passent pas en mode sombre. Le build le signale ; une couleur voulue fixe (texte blanc sur une couleur de série) porte le commentaire « couleur fixe ».
 
 Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) doit être enregistré dans `lib/echartsSetup.js` (actuellement : barres, courbes, secteurs, Sankey, nuage de points, anneaux à deux niveaux, ligne de repère).
 
