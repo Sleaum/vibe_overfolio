@@ -4,6 +4,11 @@ Paramètres d'accès au Google Sheet.
 Ils sont saisis sur la page GoogleSheet et enregistrés en base (modèle SheetConfig).
 Tant que rien n'a été enregistré, les valeurs du .env s'appliquent : ce sont aussi
 les valeurs proposées par défaut dans le formulaire.
+
+Deux façons de lire la feuille (access_mode) :
+- « service_account » : un compte de service complet est renseigné -> API Google Sheets (feuille privée possible) ;
+- « public_link » : pas de compte de service, seulement le lien -> export d'une feuille partagée par lien ;
+- « none » : ni l'un ni l'autre.
 """
 import os
 import re
@@ -98,6 +103,24 @@ def current_values() -> Dict[str, str]:
     return values
 
 
+# Champs qui comptent pour savoir si un compte de service est renseigné (« type » a toujours une valeur par défaut)
+ACCOUNT_FIELDS = [field for field in CREDENTIAL_FIELDS if field != "type"]
+
+
+def _has_account(values: Dict[str, str]) -> bool:
+    return all(values.get(field, "").strip() for field in REQUIRED_CREDENTIALS)
+
+
+def access_mode(values: Optional[Dict[str, str]] = None) -> str:
+    """'service_account' (compte de service complet), 'public_link' (lien seul) ou 'none'."""
+    values = values or current_values()
+    if _has_account(values):
+        return "service_account"
+    if normalize_sheet_id(values.get("sheet_id", "")):
+        return "public_link"
+    return "none"
+
+
 def credentials() -> Dict[str, str]:
     values = current_values()
     return {field: values[field] for field in CREDENTIAL_FIELDS}
@@ -122,6 +145,7 @@ def public_view() -> dict:
     env = env_values()
     return {
         "source": "page" if config else "env",
+        "mode": access_mode(values),
         "updated_at": config.updated_at.isoformat() if config else None,
         "values": {field: values[field] for field in FIELDS if field not in SECRET_FIELDS},
         "private_key_set": bool(values["private_key"].strip()),
@@ -147,8 +171,14 @@ def save(data: dict) -> SheetConfig:
 
     La clé privée laissée vide conserve la clé en vigueur (celle déjà enregistrée, ou celle du .env) :
     elle n'est jamais renvoyée au navigateur, le champ arrive donc vide tant qu'on ne la remplace pas.
+
+    clear_credentials (vrai) : retire tout le compte de service, clé comprise -> lecture par lien public.
+    Le compte de service est facultatif : vide, la feuille est lue par son lien ; commencé, il doit être complet.
     """
     current = current_values()
+    if data.get("clear_credentials") is True:
+        current = {**current, "private_key": ""}
+        data = {**data, **{field: "" for field in ACCOUNT_FIELDS}}
     values = {}
     for field in FIELDS:
         raw = data.get(field, current[field] if field in SECRET_FIELDS else "")
@@ -172,17 +202,24 @@ def save(data: dict) -> SheetConfig:
         "private_key": "Clé privée",
         "client_email": "E-mail du compte de service",
     }
-    for field in REQUIRED_CREDENTIALS:
-        if not values[field]:
-            errors[field] = f"{labels[field]} : champ obligatoire."
-            codes[field] = "required"
+    # Compte de service : facultatif, mais complet dès qu'un de ses champs est rempli
+    account_started = any(values[field].strip() for field in ACCOUNT_FIELDS)
+    if account_started:
+        for field in REQUIRED_CREDENTIALS:
+            if not values[field]:
+                errors[field] = f"{labels[field]} : champ obligatoire."
+                codes[field] = "required"
     if values["private_key"] and "PRIVATE KEY" not in values["private_key"]:
         errors["private_key"] = "Clé privée : elle doit commencer par -----BEGIN PRIVATE KEY-----."
         codes["private_key"] = "private_key_format"
     if values["client_email"] and "@" not in values["client_email"]:
         errors["client_email"] = "E-mail du compte de service : adresse invalide."
         codes["client_email"] = "email_invalid"
-    if not values["sheet_id"] and not values["doc_name"]:
+    if not account_started and not values["sheet_id"]:
+        # Sans compte de service, seul le lien permet de lire la feuille
+        errors["sheet_id"] = "Colle le lien du Google Sheet (ou renseigne un compte de service)."
+        codes["sheet_id"] = "sheet_link_required"
+    elif not values["sheet_id"] and not values["doc_name"]:
         errors["sheet_id"] = "Renseigne l'identifiant du document ou son nom."
         codes["sheet_id"] = "sheet_id_or_name"
     if not values["sync_tabs"]:

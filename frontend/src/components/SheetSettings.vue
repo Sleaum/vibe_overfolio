@@ -17,8 +17,8 @@
             {{ updatedLabel ? t('sheetSettings.savedHereOn', { date: updatedLabel }) : t('sheetSettings.savedHere') }}
           </template>
           <template v-else>{{ t('sheetSettings.fromEnv') }}</template>
-          <span v-if="!loading && !loadError && config?.values.client_email">
-            {{ t('sheetSettings.readBy', { email: config.values.client_email }) }}
+          <span v-if="!loading && !loadError && config" class="block font-medium text-ink">
+            {{ t(`sheetSettings.mode.${config.mode}`, { email: config.values.client_email }) }}
           </span>
         </p>
       </div>
@@ -67,15 +67,36 @@
             </p>
           </div>
         </div>
+
+        <!-- Onglets proposés : lus dans le document (lien public ou compte de service), cochés = synchronisés -->
+        <div class="mt-4">
+          <AppButton variant="outline" size="sm" :disabled="tabsLoading" @click="loadTabs">
+            {{ tabsLoading ? t('sheetSettings.tabs.loading') : t('sheetSettings.tabs.suggest') }}
+          </AppButton>
+          <p v-if="tabsError" class="mt-2 text-sm text-danger" role="alert">{{ tabsError }}</p>
+          <fieldset v-if="tabs.length" class="mt-3">
+            <legend class="text-sm font-medium text-ink">{{ t('sheetSettings.tabs.legend') }}</legend>
+            <div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+              <label v-for="tab in tabs" :key="tab" class="flex cursor-pointer items-center gap-2 text-sm text-ink">
+                <input type="checkbox" class="h-4 w-4 accent-accent" :checked="selectedTabs.includes(tab)" @change="toggleTab(tab)" />
+                {{ tab }}
+              </label>
+            </div>
+            <p v-if="dirty" class="mt-2 text-sm text-ink-3">{{ t('sheetSettings.tabs.unsaved') }}</p>
+          </fieldset>
+        </div>
       </fieldset>
 
       <!-- Compte de service -->
       <fieldset class="mt-8">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">{{ t('sheetSettings.account') }}</legend>
-          <div>
+          <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">{{ t('sheetSettings.accountOptional') }}</legend>
+          <div class="flex flex-wrap gap-3">
             <input ref="fileInput" type="file" accept="application/json,.json" class="sr-only" tabindex="-1" @change="importJson" />
             <AppButton variant="outline" size="sm" @click="fileInput?.click()">{{ t('sheetSettings.importJson') }}</AppButton>
+            <AppButton v-if="config?.mode === 'service_account'" variant="ghost" size="sm" :disabled="saving" @click="removeAccount">
+              {{ t('sheetSettings.removeAccount') }}
+            </AppButton>
           </div>
         </div>
         <p class="mt-2 text-sm text-ink-3">
@@ -88,7 +109,7 @@
         <div class="mt-4 grid gap-5 md:grid-cols-2">
           <div v-for="field in ACCOUNT_FIELDS" :key="field.name">
             <label :for="`cfg-${field.name}`" class="block text-sm font-medium text-ink">
-              {{ t(`sheetSettings.fields.${field.name}`) }}<span v-if="field.required" class="text-ink-3">{{ t('sheetSettings.required') }}</span>
+              {{ t(`sheetSettings.fields.${field.name}`) }}
             </label>
             <input
               :id="`cfg-${field.name}`"
@@ -107,7 +128,7 @@
 
           <div class="md:col-span-2">
             <label for="cfg-private_key" class="block text-sm font-medium text-ink">
-              {{ t('sheetSettings.fields.private_key') }}<span class="text-ink-3">{{ t('sheetSettings.required') }}</span>
+              {{ t('sheetSettings.fields.private_key') }}
             </label>
             <textarea
               id="cfg-private_key"
@@ -142,7 +163,7 @@
           <div class="grid gap-5 border-t border-line p-4 md:grid-cols-2">
             <div v-for="field in ADVANCED_FIELDS" :key="field.name">
               <label :for="`cfg-${field.name}`" class="block text-sm font-medium text-ink">
-                {{ t(`sheetSettings.fields.${field.name}`) }}<span v-if="field.required" class="text-ink-3">{{ t('sheetSettings.required') }}</span>
+                {{ t(`sheetSettings.fields.${field.name}`) }}
               </label>
               <input
                 :id="`cfg-${field.name}`"
@@ -188,7 +209,7 @@
 import { useI18n } from 'vue-i18n'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import AppButton from './ui/AppButton.vue'
-import { getSheetConfig, resetSheetConfig, saveSheetConfig } from '../lib/api.js'
+import { getSheetConfig, getSheetTabs, resetSheetConfig, saveSheetConfig } from '../lib/api.js'
 import { formatDateTime } from '../lib/format.js'
 
 const { t } = useI18n()
@@ -213,14 +234,14 @@ const DOC_FIELDS = [
 ]
 
 const ACCOUNT_FIELDS = [
-  { name: 'client_email', type: 'email', required: true },
-  { name: 'project_id', required: true },
+  { name: 'client_email', type: 'email' },
+  { name: 'project_id' },
   { name: 'private_key_id' },
   { name: 'client_id' },
 ]
 
 const ADVANCED_FIELDS = [
-  { name: 'type', required: true },
+  { name: 'type' },
   { name: 'universe_domain' },
   { name: 'auth_uri' },
   { name: 'token_uri' },
@@ -278,8 +299,8 @@ async function load() {
   try {
     config.value = await getSheetConfig()
     fill(config.value)
-    // Formulaire ouvert d'office tant que la connexion n'est pas configurée
-    if (!config.value.private_key_set || !config.value.values.client_email) open.value = true
+    // Formulaire ouvert d'office tant qu'aucun accès n'est configuré
+    if (config.value.mode === 'none') open.value = true
     emit('loaded', config.value)
   } catch (err) {
     loadError.value = err.message
@@ -334,6 +355,57 @@ async function backToEnv() {
   } finally {
     saving.value = false
   }
+}
+
+// Retire le compte de service : la feuille sera lue par son lien (solution « lien public »)
+async function removeAccount() {
+  if (!window.confirm(t('sheetSettings.confirmRemove'))) return
+  saving.value = true
+  saveError.value = ''
+  errors.value = {}
+  try {
+    config.value = await saveSheetConfig({ ...form, clear_credentials: true })
+    fill(config.value)
+    showNotice(t('sheetSettings.accountRemoved'))
+    emit('saved', config.value)
+  } catch (err) {
+    errors.value = err.fields || {}
+    saveError.value = Object.keys(errors.value).length ? t('sheetSettings.fixFields') : err.message
+  } finally {
+    saving.value = false
+  }
+}
+
+/* ---------- Onglets proposés ---------- */
+
+const tabs = ref([])
+const tabsLoading = ref(false)
+const tabsError = ref('')
+const selectedTabs = computed(() =>
+  form.sync_tabs
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean),
+)
+
+async function loadTabs() {
+  tabsLoading.value = true
+  tabsError.value = ''
+  try {
+    tabs.value = (await getSheetTabs()).tabs ?? []
+  } catch (err) {
+    tabs.value = []
+    tabsError.value = err.message
+  } finally {
+    tabsLoading.value = false
+  }
+}
+
+// Coche ou décoche un onglet : met à jour la liste « Onglets à synchroniser » (enregistrée avec le formulaire)
+function toggleTab(name) {
+  const current = selectedTabs.value
+  const next = current.includes(name) ? current.filter((tab) => tab !== name) : [...current, name]
+  form.sync_tabs = next.join(', ')
 }
 
 // Remplit les champs du compte de service depuis le fichier JSON de Google (lu dans le navigateur, rien n'est envoyé)

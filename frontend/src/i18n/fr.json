@@ -71,8 +71,14 @@
       "private_key_format": "Clé privée : elle doit commencer par -----BEGIN PRIVATE KEY-----.",
       "email_invalid": "E-mail du compte de service : adresse invalide.",
       "sheet_id_or_name": "Renseigne l’identifiant du document ou son nom.",
-      "sync_tabs_required": "Indique au moins un onglet à synchroniser."
-    }
+      "sync_tabs_required": "Indique au moins un onglet à synchroniser.",
+      "sheet_link_required": "Colle le lien du Google Sheet (ou renseigne un compte de service)."
+    },
+    "sheet_not_public": "La feuille n’est pas partagée par lien : dans Google Sheets, choisis « Tous les utilisateurs disposant du lien », ou renseigne un compte de service.",
+    "public_sheet_not_found": "Feuille introuvable : vérifie le lien du document.",
+    "public_export_too_big": "Feuille trop volumineuse pour être téléchargée.",
+    "public_export_unreadable": "Fichier exporté illisible : {detail}",
+    "no_access_configured": "Aucun accès configuré : colle le lien d’une feuille partagée par lien, ou renseigne un compte de service."
   },
   "data": {
     "unknown": "Non renseigné",
@@ -586,7 +592,7 @@
     "document": "Document",
     "account": "Compte de service Google",
     "importJson": "Importer le fichier JSON",
-    "accountHelp": "Le fichier se télécharge dans Google Cloud : IAM → Comptes de service → Clés. Partage ensuite le Google Sheet, en Lecteur, avec l’adresse du compte de service.",
+    "accountHelp": "Seulement si la feuille n’est pas partagée par lien. Le fichier se télécharge dans Google Cloud : IAM → Comptes de service → Clés ; partage ensuite la feuille, en Lecteur, avec l’adresse du compte. Si tu en renseignes un, l’e-mail, l’ID du projet et la clé privée sont obligatoires.",
     "required": " (obligatoire)",
     "keyAlreadySet": "Une clé est déjà enregistrée. Laisse vide pour la conserver, ou colle une nouvelle clé.",
     "keyInPlace": "Clé en place ({source}). Par sécurité, elle n’est jamais réaffichée.",
@@ -608,7 +614,7 @@
     "importFailed": "Import impossible : {reason}.",
     "unreadableJson": "fichier JSON illisible",
     "fields": {
-      "sheet_id": "Identifiant ou adresse du document",
+      "sheet_id": "Lien du Google Sheet",
       "doc_name": "Nom du document",
       "sync_tabs": "Onglets à synchroniser",
       "client_email": "E-mail du compte de service",
@@ -624,10 +630,25 @@
       "client_x509_cert_url": "client_x509_cert_url"
     },
     "help": {
-      "sheet_id": "Colle l’adresse du Google Sheet ou seulement la partie entre /d/ et /edit.",
-      "doc_name": "Utilisé seulement si l’identifiant est vide (demande alors l’API Google Drive).",
+      "sheet_id": "Colle l’adresse de la feuille (ou seulement la partie entre /d/ et /edit). Si elle est partagée « Tous les utilisateurs disposant du lien », le lien suffit ; sinon, renseigne aussi un compte de service ci-dessous.",
+      "doc_name": "Seulement avec un compte de service, si le lien est vide (demande alors l’API Google Drive).",
       "sync_tabs": "Noms exacts des onglets, séparés par des virgules."
-    }
+    },
+    "mode": {
+      "service_account": "Lecture par compte de service ({email}).",
+      "public_link": "Lecture par lien : la feuille doit être partagée « Tous les utilisateurs disposant du lien ».",
+      "none": "Aucun accès configuré : colle le lien de ta feuille."
+    },
+    "tabs": {
+      "suggest": "Proposer les onglets du document",
+      "loading": "Lecture des onglets…",
+      "legend": "Onglets du document",
+      "unsaved": "Liste lue avec les paramètres enregistrés : enregistre d’abord si tu as changé le lien ou le compte."
+    },
+    "accountOptional": "Compte de service Google (facultatif)",
+    "removeAccount": "Retirer le compte de service",
+    "confirmRemove": "Retirer le compte de service et lire la feuille par son lien ? Elle devra être partagée « Tous les utilisateurs disposant du lien ».",
+    "accountRemoved": "Compte de service retiré : la feuille sera lue par son lien."
   },
   "simulationPage": {
     "lead": "{runs} avenirs possibles pour ton patrimoine net, tirés au hasard à partir de tes montants actuels et des hypothèses ci-dessous. La fourchette montre ce qui peut raisonnablement arriver, pas une prévision.",
