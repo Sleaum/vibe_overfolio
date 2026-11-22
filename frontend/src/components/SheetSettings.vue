@@ -45,11 +45,30 @@
       novalidate
       @submit.prevent="save"
     >
-      <!-- Document -->
+      <!-- Mode de connexion : 1 lien public, 2 compte de service, 3 compte Google (à venir) -->
       <fieldset>
+        <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">{{ t('sheetSettings.method.legend') }}</legend>
+        <div class="mt-3 grid gap-3 md:grid-cols-3">
+          <label
+            v-for="option in METHODS"
+            :key="option"
+            class="flex cursor-pointer gap-3 rounded-lg border p-4 transition-colors"
+            :class="method === option ? 'border-accent bg-accent-wash' : 'border-line-strong hover:bg-wash'"
+          >
+            <input v-model="method" type="radio" name="sheet-method" :value="option" class="mt-1 h-4 w-4 shrink-0 accent-accent" />
+            <span>
+              <span class="block font-semibold text-ink">{{ t(`sheetSettings.method.${option}.title`) }}</span>
+              <span class="mt-1 block text-sm text-ink-2">{{ t(`sheetSettings.method.${option}.text`) }}</span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- Document (modes 1 et 2) -->
+      <fieldset v-if="method !== 'google'" class="mt-8">
         <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">{{ t('sheetSettings.document') }}</legend>
         <div class="mt-4 grid gap-5 md:grid-cols-2">
-          <div v-for="field in DOC_FIELDS" :key="field.name" :class="field.wide ? 'md:col-span-2' : ''">
+          <div v-for="field in docFields" :key="field.name" :class="field.wide ? 'md:col-span-2' : ''">
             <label :for="`cfg-${field.name}`" class="block text-sm font-medium text-ink">{{ t(`sheetSettings.fields.${field.name}`) }}</label>
             <input
               :id="`cfg-${field.name}`"
@@ -87,16 +106,13 @@
         </div>
       </fieldset>
 
-      <!-- Compte de service -->
-      <fieldset class="mt-8">
+      <!-- Compte de service (mode 2 seulement) -->
+      <fieldset v-if="method === 'service_account'" class="mt-8">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">{{ t('sheetSettings.accountOptional') }}</legend>
+          <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">{{ t('sheetSettings.accountTitle') }}</legend>
           <div class="flex flex-wrap gap-3">
             <input ref="fileInput" type="file" accept="application/json,.json" class="sr-only" tabindex="-1" @change="importJson" />
             <AppButton variant="outline" size="sm" @click="fileInput?.click()">{{ t('sheetSettings.importJson') }}</AppButton>
-            <AppButton v-if="config?.mode === 'service_account'" variant="ghost" size="sm" :disabled="saving" @click="removeAccount">
-              {{ t('sheetSettings.removeAccount') }}
-            </AppButton>
           </div>
         </div>
         <p class="mt-2 text-sm text-ink-3">
@@ -180,12 +196,22 @@
         </details>
       </fieldset>
 
+      <!-- Compte Google (mode 3) : présentation standard, pas encore branché -->
+      <section v-if="method === 'google'" class="mt-8 rounded-lg border border-line p-5" aria-labelledby="sheet-google-title">
+        <h3 id="sheet-google-title" class="font-semibold text-ink">{{ t('sheetSettings.google.title') }}</h3>
+        <p class="mt-2 max-w-2xl text-sm text-ink-2">{{ t('sheetSettings.google.text') }}</p>
+        <AppButton variant="secondary" class="mt-4" disabled aria-describedby="sheet-google-soon">
+          {{ t('sheetSettings.google.title') }}
+        </AppButton>
+        <p id="sheet-google-soon" class="mt-3 text-sm text-ink-3">{{ t('sheetSettings.google.soon') }}</p>
+      </section>
+
       <div v-if="saveError" role="alert" class="mt-6 rounded-lg border border-danger-line bg-danger-wash p-4">
         <p class="font-semibold text-danger">{{ t('sheetSettings.saveFailed') }}</p>
         <p class="mt-1 text-ink">{{ saveError }}</p>
       </div>
 
-      <div class="mt-6 flex flex-wrap items-center gap-3">
+      <div v-if="method !== 'google'" class="mt-6 flex flex-wrap items-center gap-3">
         <AppButton type="submit" :disabled="saving" :aria-busy="saving">
           {{ saving ? t('sheetSettings.saving') : t('sheetSettings.save') }}
         </AppButton>
@@ -233,6 +259,12 @@ const DOC_FIELDS = [
   },
 ]
 
+// Modes de connexion (cartes à choix unique en haut du formulaire)
+const METHODS = ['public_link', 'service_account', 'google']
+const method = ref('public_link')
+// Mode 1 : seuls le lien et les onglets ; le nom du document ne sert qu'avec un compte de service
+const docFields = computed(() => DOC_FIELDS.filter((field) => method.value === 'service_account' || field.name !== 'doc_name'))
+
 const ACCOUNT_FIELDS = [
   { name: 'client_email', type: 'email' },
   { name: 'project_id' },
@@ -274,7 +306,9 @@ const updatedLabel = computed(() => (config.value?.updated_at ? formatDateTime(c
 const dirty = computed(
   () =>
     !!config.value &&
-    (form.private_key.trim() !== '' || FIELD_NAMES.some((name) => form[name] !== (config.value.values[name] ?? ''))),
+    (method.value !== (config.value.mode === 'service_account' ? 'service_account' : 'public_link') ||
+      form.private_key.trim() !== '' ||
+      FIELD_NAMES.some((name) => form[name] !== (config.value.values[name] ?? ''))),
 )
 
 function inputClass(name) {
@@ -286,6 +320,7 @@ function inputClass(name) {
 
 function fill(next) {
   if (!next) return
+  method.value = next.mode === 'service_account' ? 'service_account' : 'public_link'
   for (const name of FIELD_NAMES) form[name] = next.values[name] ?? ''
   form.private_key = ''
   errors.value = {}
@@ -328,8 +363,14 @@ async function save() {
   errors.value = {}
   saveError.value = ''
   notice.value = ''
+  // Mode 1 : le compte de service éventuellement enregistré est retiré (sinon il resterait prioritaire)
+  const publicLink = method.value === 'public_link'
+  if (publicLink && config.value?.mode === 'service_account' && !window.confirm(t('sheetSettings.confirmRemove'))) {
+    saving.value = false
+    return
+  }
   try {
-    config.value = await saveSheetConfig({ ...form })
+    config.value = await saveSheetConfig(publicLink ? { ...form, clear_credentials: true } : { ...form })
     fill(config.value)
     showNotice(t('sheetSettings.savedNotice'))
     emit('saved', config.value)
@@ -352,25 +393,6 @@ async function backToEnv() {
     emit('saved', config.value)
   } catch (err) {
     saveError.value = err.message
-  } finally {
-    saving.value = false
-  }
-}
-
-// Retire le compte de service : la feuille sera lue par son lien (solution « lien public »)
-async function removeAccount() {
-  if (!window.confirm(t('sheetSettings.confirmRemove'))) return
-  saving.value = true
-  saveError.value = ''
-  errors.value = {}
-  try {
-    config.value = await saveSheetConfig({ ...form, clear_credentials: true })
-    fill(config.value)
-    showNotice(t('sheetSettings.accountRemoved'))
-    emit('saved', config.value)
-  } catch (err) {
-    errors.value = err.fields || {}
-    saveError.value = Object.keys(errors.value).length ? t('sheetSettings.fixFields') : err.message
   } finally {
     saving.value = false
   }
