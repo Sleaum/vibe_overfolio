@@ -2,7 +2,7 @@
 // Règles appliquées : marques fines, filets de 1 px pleins et discrets, texte en encre (jamais en couleur de série).
 
 import { esc } from './format.js'
-import { AXIS, FONT, GRID, INK, INK_2, SURFACE } from './palette.js'
+import { AXIS, FONT, GRID, INK, INK_2, SURFACE, TOOLTIP_SHADOW } from './palette.js'
 
 const labelStyle = { color: INK_2, fontSize: 12, fontFamily: FONT }
 
@@ -54,7 +54,7 @@ export function tooltipBox(extra = {}) {
     borderWidth: 1,
     padding: [10, 14],
     textStyle: { color: INK, fontSize: 13, fontFamily: FONT },
-    extraCssText: 'border-radius:12px;box-shadow:0 8px 24px -8px rgba(31,35,40,0.22);',
+    extraCssText: `border-radius:12px;box-shadow:0 8px 24px -8px ${TOOLTIP_SHADOW};`,
     ...extra,
   }
 }
@@ -105,7 +105,7 @@ export function zoomSlider() {
     bottom: 4,
     borderColor: GRID,
     backgroundColor: SURFACE,
-    fillerColor: 'rgba(42, 120, 214, 0.12)',
+    fillerColor: 'rgba(42, 120, 214, 0.12)', // couleur fixe : bleu des séries, lisible dans les deux modes
     dataBackground: { lineStyle: { color: AXIS }, areaStyle: { color: GRID } },
     handleSize: 14,
     brushSelect: false,

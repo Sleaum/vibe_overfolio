@@ -6,9 +6,9 @@ import { axisEuroFormatter, euro } from '../format.js'
 import { AXIS, SERIES } from '../palette.js'
 
 const BLUE = SERIES[0]
-const OUTER = 'rgba(42, 120, 214, 0.14)'
-const INNER = 'rgba(42, 120, 214, 0.30)'
-const LEGEND = { [OUTER]: 'rgba(42, 120, 214, 0.3)', [INNER]: 'rgba(42, 120, 214, 0.6)' }
+const OUTER = 'rgba(42, 120, 214, 0.14)' // couleur fixe : bleu des séries
+const INNER = 'rgba(42, 120, 214, 0.30)' // couleur fixe : bleu des séries
+const LEGEND = { [OUTER]: 'rgba(42, 120, 214, 0.3)', [INNER]: 'rgba(42, 120, 214, 0.6)' } // couleur fixe : bleu des séries
 
 /** points : [{ label, values: [p10, p25, p50, p75, p90] }] ; goal : { label, amount } | null. */
 export function fanOption(points, goal) {

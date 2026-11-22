@@ -463,11 +463,13 @@ Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) 
 
 | Où | Quoi |
 |---|---|
-| `frontend/tailwind.config.js` | Noms des couleurs du site (`paper`, `wash`, `ink`, `line`, `accent`, `danger`, `success`), tailles de texte (`text-body`, `text-lead`, `text-h2`, `text-display`), ombres. Changer l'`accent` change les boutons, les liens et les focus du site |
-| `frontend/src/lib/palette.js` | Les 8 couleurs des graphiques. Un type d'actif garde la même couleur dans tous les graphiques |
-| `frontend/src/assets/tailwind.css` | Valeurs des couleurs en mode clair (`:root`) et sombre (`html.dark`). Base : focus clavier visible, animations réduites si le système le demande, largeur du contenu |
-| `frontend/src/composables/useTheme.js` | Mode sombre : suit le réglage du système, le bouton soleil/lune de l'en-tête force clair ou sombre et s'en souvient. `index.html` pose la classe `dark` avant le premier affichage |
-| `frontend/src/lib/chartDark.js` | Passe les graphiques en sombre : remplace les couleurs claires listées dans `DARK` (`palette.js`) |
+| `frontend/src/lib/theme.js` | **Seule source des couleurs du site, en clair et en sombre** (`paper`, `wash`, `ink`, `line`, `accent`, `on-accent`, `danger`, `success`…), ombres des graphiques et clé du choix enregistré. Changer une couleur ici change le site, les graphiques et la barre du navigateur |
+| `frontend/tailwind.config.js` | Crée une classe Tailwind par couleur de `theme.js` et génère les variables CSS `:root` (clair) et `html.dark` (sombre). Tailles de texte (`text-body`, `text-lead`, `text-h2`, `text-display`), ombres |
+| `frontend/vite.config.ts` | Plugin `theme` : injecte la clé et les couleurs de fond de `theme.js` dans `index.html`, et signale au build toute couleur écrite en dur dans `src/lib/` (à faire passer par `palette.js`, ou à commenter « couleur fixe ») |
+| `frontend/src/lib/palette.js` | Les 8 couleurs des graphiques (un type d'actif garde la même couleur partout), et les couleurs de fond, d'encre et de filet des graphiques, lues dans `theme.js` avec leur équivalent sombre (`DARK`) |
+| `frontend/src/assets/tailwind.css` | Base : focus clavier visible, animations réduites si le système le demande, largeur du contenu. Aucune couleur |
+| `frontend/src/composables/useTheme.js` | Mode sombre : suit le réglage du système ; le bouton (`components/ui/ThemeToggle.vue`) force clair ou sombre et s'en souvient. `index.html` pose la classe `dark` avant le premier affichage |
+| `frontend/src/lib/chartDark.js` | Passe les graphiques en sombre dans `BaseChart.vue` : remplace les couleurs claires de `palette.js` par celles de `DARK` |
 | `frontend/src/lib/sample.js` | Données **fictives** de l'aperçu de la page d'accueil. Ce ne sont pas les tiennes |
 
 Accessibilité : lien « Aller au contenu », menu mobile utilisable au clavier (fermeture avec Échap), focus visible, animation de la courbe d'accueil désactivée avec `prefers-reduced-motion`, et chaque graphique a une version tableau.

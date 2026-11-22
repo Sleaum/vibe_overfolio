@@ -4,7 +4,7 @@
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { axisLabelStyle, baseOption, categoryAxis, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
 import { euro, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
-import { AXIS, SERIES } from '../palette.js'
+import { AXIS, HOVER_SHADE, SERIES } from '../palette.js'
 import { monthEnds, monthsSubtitle, signedPercent, skippedNote, totalsByDate } from './flowData.js'
 
 const UP = SERIES[0]
@@ -17,7 +17,7 @@ export function variationOption(changes) {
     grid: { left: 4, right: 8, top: 16, bottom: zoom ? 44 : 8, containLabel: true },
     tooltip: tooltipBox({
       trigger: 'axis',
-      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(31, 35, 40, 0.04)' } },
+      axisPointer: { type: 'shadow', shadowStyle: { color: HOVER_SHADE } },
       formatter: (params) => {
         const change = changes[[].concat(params)[0]?.dataIndex]
         if (!change) return ''

@@ -4,7 +4,7 @@
 import { DataError, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
 import { formatMonthKey, formatMonthKeyTiny } from '../format.js'
-import { SERIES } from '../palette.js'
+import { HOVER_SHADE, SERIES } from '../palette.js'
 import { compactNumber, findCurrencyColumn, money, monthEnds, monthsSubtitle, skippedNote, totalsByDate } from './flowData.js'
 
 // Une couleur par devise, la même partout : l'euro garde la première teinte du site
@@ -22,7 +22,7 @@ export function currencyOption(months, series) {
     legend: legendTop(series.map((serie) => serie.code)),
     tooltip: tooltipBox({
       trigger: 'axis',
-      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(31, 35, 40, 0.04)' } },
+      axisPointer: { type: 'shadow', shadowStyle: { color: HOVER_SHADE } },
       formatter: (params) => {
         const index = [].concat(params)[0]?.dataIndex
         const month = months[index]

@@ -1,10 +1,21 @@
 /** @type {import('tailwindcss').Config} */
 //
 // Jetons de design d'Overfolio : tout le site s'appuie sur ces valeurs.
-// Les 8 couleurs des graphiques sont dans src/lib/palette.js (même famille de bleu que l'accent).
+// Les couleurs (clair et sombre) sont dans src/lib/theme.js, seule source ; ce fichier n'en contient aucune.
 //
-// Couleur lue dans une variable CSS « R G B », pour garder les opacités de Tailwind (bg-paper/95…)
-const v = (name) => `rgb(var(--c-${name}) / <alpha-value>)`
+import plugin from 'tailwindcss/plugin'
+import { COLORS, cssVariables } from './src/lib/theme.js'
+
+// Chaque couleur lit sa variable CSS « R G B », pour garder les opacités de Tailwind (bg-paper/95…)
+const colors = Object.fromEntries(Object.keys(COLORS).map((name) => [name, `rgb(var(--c-${name}) / <alpha-value>)`]))
+
+// Variables CSS des deux modes, générées depuis theme.js : :root = clair, html.dark = sombre
+const themeVariables = plugin(({ addBase }) => {
+  addBase({
+    ':root': { colorScheme: 'light', ...cssVariables('light') },
+    'html.dark': { colorScheme: 'dark', ...cssVariables('dark') },
+  })
+})
 
 export default {
   // Mode sombre : classe « dark » sur <html>, posée par index.html et composables/useTheme.js
@@ -15,36 +26,8 @@ export default {
   ],
   theme: {
     extend: {
-      // Chaque couleur vient d'une variable CSS (src/assets/tailwind.css) : valeurs claires dans :root,
-      // valeurs sombres dans html.dark. Les contrastes indiqués sont ceux du mode clair.
-      colors: {
-        // Fond et surfaces
-        paper: v('paper'),
-        wash: v('wash'),
-        // Encre : gris très foncé (jamais de noir pur), contrastes mesurés sur fond blanc
-        ink: {
-          DEFAULT: v('ink'), // 15,6:1
-          2: v('ink-2'),     //  7,7:1  texte secondaire
-          3: v('ink-3'),     //  6,0:1  texte discret (légendes, aides)
-        },
-        // Filets et bordures fines
-        line: {
-          DEFAULT: v('line'),
-          strong: v('line-strong'),
-        },
-        // Une seule couleur d'accent : le bleu des graphiques, en version foncée pour le texte et les boutons
-        accent: {
-          DEFAULT: v('accent'), // 6,6:1 sur blanc, blanc sur accent : 6,6:1
-          hover: v('accent-hover'),
-          wash: v('accent-wash'),
-          ring: v('accent-ring'), // anneau de focus (identique au bleu des graphiques)
-        },
-        // Texte posé sur un fond d'accent (bouton principal) : blanc en clair, encre foncée en sombre
-        'on-accent': v('on-accent'),
-        // États (toujours accompagnés d'un texte)
-        danger: { DEFAULT: v('danger'), wash: v('danger-wash'), line: v('danger-line') },
-        success: { DEFAULT: v('success'), wash: v('success-wash'), line: v('success-line') },
-      },
+      // Une couleur Tailwind par entrée de COLORS (src/lib/theme.js) : bg-paper, text-ink-2, border-line-strong…
+      colors,
       fontFamily: {
         // Inter si elle est installée, sinon la police système : aucun chargement externe
         sans: [
@@ -78,5 +61,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [themeVariables],
 }
