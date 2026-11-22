@@ -134,7 +134,8 @@ def sync_all(request):
         detail = " ; ".join(f"{t['name']} : {t['message'] or 'erreur'}" for t in tabs)
         return error_response(f"Aucun onglet n'a pu être actualisé ({detail})", "no_tab_saved", 502, tabs=tabs)
 
-    return JsonResponse({"tabs": tabs, "saved": saved, "failed": len(tabs) - saved})
+    # removed : tables d'un autre document retirées (la feuille a changé sur la page GoogleSheet)
+    return JsonResponse({"tabs": tabs, "saved": saved, "failed": len(tabs) - saved, "removed": getattr(results, "removed", [])})
 
 
 @api_view(["GET", "PUT", "DELETE"])

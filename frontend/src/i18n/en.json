@@ -575,9 +575,10 @@
     "optionRows": "{name} ({rows})",
     "notSynced": "{name} (not synced yet)",
     "savedNotice": "{count} tab refreshed in the database. | {count} tabs refreshed in the database.",
-    "failedNotice": "{count} tab not refreshed (previous data kept): {details} | {count} tabs not refreshed (previous data kept): {details}",
+    "failedNotice": "{count} tab not refreshed: {details} | {count} tabs not refreshed: {details}",
     "tabFailure": "{tab}: {message}",
-    "error": "error"
+    "error": "error",
+    "removedNotice": "{count} tab from the previous document removed: {names}. | {count} tabs from the previous document removed: {names}."
   },
   "sheetSettings": {
     "title": "Google Sheets connection",

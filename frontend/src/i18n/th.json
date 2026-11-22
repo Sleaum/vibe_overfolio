@@ -575,9 +575,10 @@
     "optionRows": "{name} ({rows})",
     "notSynced": "{name} (ยังไม่ได้ซิงค์)",
     "savedNotice": "รีเฟรช {count} แท็บในฐานข้อมูลแล้ว | รีเฟรช {count} แท็บในฐานข้อมูลแล้ว",
-    "failedNotice": "{count} แท็บรีเฟรชไม่สำเร็จ (เก็บข้อมูลเดิมไว้): {details} | {count} แท็บรีเฟรชไม่สำเร็จ (เก็บข้อมูลเดิมไว้): {details}",
+    "failedNotice": "{count} แท็บรีเฟรชไม่สำเร็จ: {details} | {count} แท็บรีเฟรชไม่สำเร็จ: {details}",
     "tabFailure": "{tab}: {message}",
-    "error": "ข้อผิดพลาด"
+    "error": "ข้อผิดพลาด",
+    "removedNotice": "ลบ {count} แท็บของเอกสารเดิมแล้ว: {names} | ลบ {count} แท็บของเอกสารเดิมแล้ว: {names}"
   },
   "sheetSettings": {
     "title": "การเชื่อมต่อ Google Sheets",
