@@ -4,7 +4,10 @@
   - Juste en dessous, « Proposer les onglets du document » : lit les onglets du document enregistré
     (GET /api/sheet-config/tabs/). Cocher ou décocher un onglet enregistre aussitôt la liste.
   - Tout passe par PUT /api/sheet-config/tabs/, qui n'enregistre que la liste : le formulaire de connexion n'est pas touché.
-  - Prop `tabs` : liste enregistrée. Événement `saved` avec la configuration renvoyée par le serveur.
+  - Onglets du document lus : la liste ne garde que ceux qui existent dans le document (ceux d'un ancien document
+    sont effacés) ; s'il n'en reste aucun, elle prend tous les onglets du document. Enregistrée aussitôt.
+  - Prop `tabs` : liste enregistrée. Prop `autoload` : lit les onglets du document dès l'affichage (document changé).
+  - Événement `saved` avec la configuration renvoyée par le serveur.
 -->
 <template>
   <section class="rounded-xl border border-line bg-paper p-5 shadow-soft" aria-labelledby="sync-tabs-label">
@@ -56,12 +59,13 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppButton from './ui/AppButton.vue'
 import { getSheetTabs, saveSyncTabs } from '../lib/api.js'
 
 const props = defineProps({
   tabs: { type: Array, required: true }, // liste enregistrée
+  autoload: { type: Boolean, default: false },
 })
 const emit = defineEmits(['saved'])
 
@@ -91,7 +95,7 @@ const notice = ref('')
 let noticeTimer = 0
 onBeforeUnmount(() => clearTimeout(noticeTimer))
 
-async function save(list) {
+async function save(list, message = t('syncTabs.saved')) {
   saving.value = true
   error.value = ''
   notice.value = ''
@@ -99,7 +103,7 @@ async function save(list) {
     const config = await saveSyncTabs(list.join(', '))
     text.value = list.join(', ')
     emit('saved', config)
-    notice.value = t('syncTabs.saved')
+    notice.value = message
     clearTimeout(noticeTimer)
     noticeTimer = setTimeout(() => (notice.value = ''), 4000)
     return true
@@ -129,10 +133,26 @@ async function loadDocTabs() {
   } catch (err) {
     docTabs.value = []
     docError.value = err.message
+    return
   } finally {
     docLoading.value = false
   }
+  await followDocument()
 }
+
+// La liste suit le document : onglets absents effacés, tous les onglets du document si aucun ne reste
+async function followDocument() {
+  if (!docTabs.value.length) return
+  const kept = props.tabs.filter((tab) => docTabs.value.includes(tab))
+  const next = kept.length ? kept : [...docTabs.value]
+  if (next.join(',') === props.tabs.join(',')) return
+  const removed = props.tabs.filter((tab) => !next.includes(tab))
+  await save(next, removed.length ? t('syncTabs.removed', { tabs: removed.join(', ') }, removed.length) : t('syncTabs.saved'))
+}
+
+onMounted(() => {
+  if (props.autoload) loadDocTabs()
+})
 
 // Cocher ou décocher : la liste enregistrée change aussitôt (le dernier onglet ne peut pas être retiré : erreur du serveur)
 async function toggle(name, event) {

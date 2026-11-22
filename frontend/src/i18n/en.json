@@ -792,6 +792,7 @@
     "suggest": "Suggest the document’s tabs",
     "loading": "Reading tabs…",
     "legend": "Document tabs",
-    "instant": "Ticking or unticking a tab saves the list right away."
+    "instant": "Ticking or unticking a tab saves the list right away.",
+    "removed": "List saved. Not in the document, removed: {tabs} | List saved. Not in the document, removed: {tabs}"
   }
 }
