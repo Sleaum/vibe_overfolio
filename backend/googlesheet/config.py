@@ -55,6 +55,9 @@ REQUIRED_CREDENTIALS = ("type", "project_id", "private_key", "client_email")
 
 # Le seul champ secret : il n'est jamais renvoyé au navigateur
 SECRET_FIELDS = {"private_key"}
+# Champs conservés quand l'enregistrement ne les contient pas : la clé privée (jamais renvoyée),
+# et les onglets, réglés sur la page GoogleSheet à part du formulaire de connexion (save_tabs)
+KEPT_WHEN_ABSENT = SECRET_FIELDS | {"sync_tabs"}
 
 FIELDS = list(ENV_VARS)
 
@@ -204,7 +207,7 @@ def save(data: dict) -> SheetConfig:
         data = {**data, **{field: "" for field in ACCOUNT_FIELDS}}
     values = {}
     for field in FIELDS:
-        raw = data.get(field, current[field] if field in SECRET_FIELDS else "")
+        raw = data.get(field, current[field] if field in KEPT_WHEN_ABSENT else "")
         if not isinstance(raw, str):
             raw = "" if raw is None else str(raw)
         values[field] = raw if field == "private_key" else raw.strip()
@@ -259,6 +262,27 @@ def save(data: dict) -> SheetConfig:
         raise ConfigInvalid(errors, codes)
 
     config, _ = SheetConfig.objects.update_or_create(pk=1, defaults=values)
+    return config
+
+
+def save_tabs(raw) -> SheetConfig:
+    """
+    Enregistre seulement la liste des onglets à synchroniser (section Onglet de la page GoogleSheet).
+
+    Sans ligne enregistrée, les valeurs du .env en vigueur sont reprises telles quelles dans la ligne créée,
+    comme le fait le formulaire de connexion : le mode d'accès ne change pas. « Revenir au .env » l'efface.
+    """
+    tabs = parse_tabs(raw if isinstance(raw, str) else "")
+    if not tabs:
+        raise ConfigInvalid({"sync_tabs": "Indique au moins un onglet à synchroniser."}, {"sync_tabs": "sync_tabs_required"})
+    config = saved_config()
+    if config is None:
+        values = current_values()
+        if values["private_key"].strip():
+            values["private_key"] = values["private_key"].strip() + "\n"
+        config = SheetConfig(pk=1, **values)
+    config.sync_tabs = ",".join(tabs)
+    config.save()
     return config
 
 

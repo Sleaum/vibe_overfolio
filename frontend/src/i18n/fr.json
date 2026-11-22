@@ -632,19 +632,12 @@
     },
     "help": {
       "sheet_id": "Colle l’adresse de la feuille (ou seulement la partie entre /d/ et /edit).",
-      "doc_name": "Nom exact du Google Sheet, partagé avec le compte de service. Demande l’API Google Drive, et le premier document de ce nom est pris : le lien est plus sûr.",
-      "sync_tabs": "Noms exacts des onglets, séparés par des virgules."
+      "doc_name": "Nom exact du Google Sheet, partagé avec le compte de service. Demande l’API Google Drive, et le premier document de ce nom est pris : le lien est plus sûr."
     },
     "mode": {
       "service_account": "Lecture par compte de service ({email}).",
       "public_link": "Lecture par lien : la feuille doit être partagée « Tous les utilisateurs disposant du lien ».",
       "none": "Aucun accès configuré : colle le lien de ta feuille."
-    },
-    "tabs": {
-      "suggest": "Proposer les onglets du document",
-      "loading": "Lecture des onglets…",
-      "legend": "Onglets du document",
-      "unsaved": "Liste lue avec les paramètres enregistrés : enregistre d’abord si tu as changé le lien ou le compte."
     },
     "confirmRemove": "Passer au lien public retire le compte de service enregistré. La feuille devra être partagée « Tous les utilisateurs disposant du lien ». Continuer ?",
     "method": {
@@ -789,5 +782,16 @@
     "success": "Connexion réussie !",
     "error": "Erreur de connexion.",
     "googleTodo": "La connexion avec Google n’est pas encore disponible."
+  },
+  "syncTabs": {
+    "label": "Onglets à synchroniser",
+    "help": "Noms exacts des onglets, séparés par des virgules.",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Liste des onglets enregistrée.",
+    "suggest": "Proposer les onglets du document",
+    "loading": "Lecture des onglets…",
+    "legend": "Onglets du document",
+    "instant": "Cocher ou décocher un onglet enregistre la liste aussitôt."
   }
 }

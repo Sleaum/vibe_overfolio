@@ -163,12 +163,25 @@ def sheet_config(request):
     return JsonResponse(config.public_view())
 
 
-@api_view(["GET"])
+@api_view(["GET", "PUT"])
+@authentication_classes([])  # pas de session : évite le rejet CSRF si l'admin est connecté
+@permission_classes([AllowAny])
 def sheet_tabs(request):
     """
-    GET /api/sheet-config/tabs/ : onglets du document, pour les proposer sur la page GoogleSheet.
-    Fonctionne dans les deux modes (compte de service ou lien public) ; même forme d'erreur que le reste de l'API.
+    /api/sheet-config/tabs/ : onglets du document (section Onglet de la page GoogleSheet).
+
+    GET -> onglets lus dans le document, pour les proposer. Fonctionne dans les deux modes (compte de service ou lien public).
+    PUT -> {"sync_tabs": "portfolio, budget"} : enregistre seulement la liste des onglets à synchroniser,
+           renvoie les paramètres comme GET /api/sheet-config/. 400 sync_tabs_required si la liste est vide.
     """
+    if request.method == "PUT":
+        if not isinstance(request.data, dict):
+            return error_response("Corps JSON attendu", "invalid_json", 400)
+        try:
+            config.save_tabs(request.data.get("sync_tabs"))
+        except config.ConfigInvalid as exc:
+            return error_response("Formulaire incomplet", "form_incomplete", 400, fields=exc.errors, field_codes=exc.codes)
+        return JsonResponse(config.public_view())
     try:
         spreadsheet = open_spreadsheet(config.doc_name())
         tabs = worksheet_titles(spreadsheet)
