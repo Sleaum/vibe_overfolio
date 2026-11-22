@@ -541,12 +541,13 @@ La page `/strategie` reprend la page « Strategy » de Looker Studio : sept anne
 | Note S&P | note | instrument | `Note SP Trié`, `Note SP`, `S&P Rating`, `Rating`, `Notation` |
 | Business | modèle d'affaires | instrument | `Business`, `Business Model` |
 | Place de cotation | place | instrument | `Exchange`, `New Field`, `Place`, `Bourse` ; sinon le début du ticker avant `:` (`NYSE:KO` → `NYSE`) |
-| Instruments | instrument (`Instrument`) | enveloppe | `Envelope`, `Enveloppe`, `Account`, `Compte` |
+| Instruments | enveloppe (CTO, PEA…) | instrument (`Instrument`) | `Envelope`, `Enveloppe`, `Account`, `Compte`. Sans colonne d'enveloppe : les instruments seuls, sur un anneau |
 
 - **Quelles lignes ?** Seules les lignes dont `Asset` vaut `public equity` (ou `equity`, `action`, `stock`) et dont `Assets Master Currency` est supérieur à 0. S'il n'y en a aucune, toutes les lignes sont comptées et la page le dit.
 - **Où sont les attributs ?** Chaque attribut est cherché d'abord dans `portfolio`, puis dans la table `stock`, rattachée ligne à ligne par `Ticker` (sinon `Instrument`, sinon `Name`). Un anneau dont la colonne n'existe nulle part n'est pas affiché : la page l'écrit dans « Anneaux non affichés », avec le nom de colonne attendu. Le bloc « Colonnes lues dans la feuille », en bas de la page, montre d’où vient chaque anneau.
 - **Enveloppe.** Le menu « Enveloppe » filtre tous les anneaux à la fois. Il propose « Toutes les enveloppes », « PEA et CTO » (choix par défaut quand les deux existent), puis chaque enveloppe. C'est la lecture des filtres « action / peacto / cto » des graphiques de Looker Studio : si ta feuille les définit autrement, le menu est le seul endroit à adapter (`buildScopes` dans `strategy.js`).
 - **Couleurs.** Les 8 plus grosses catégories prennent les couleurs de la palette dans l'ordre ; le reste est regroupé en « Autres (n) » (gris), « Non renseigné » est toujours en dernier (gris clair). L'anneau extérieur montre au plus 6 détails par catégorie puis « Autres (n) » ; la vue Tableau liste tout. Les notes S&P suivent l'échelle (AAA, AA+, AA…) au lieu de la taille.
+- **Noms sur les anneaux.** Comme sur la page Envelopes, chaque catégorie a son nom au centre, et chaque détail assez large pour être lisible a le sien sur l'anneau extérieur (`withLabels` de `lib/charts/sunburst.js`). Les autres se lisent au survol, dans la légende et dans la vue Tableau.
 - Pour accepter un autre nom de colonne, l'ajouter dans la liste `ATTRIBUTES` de `strategy.js`.
 
 ### La simulation
