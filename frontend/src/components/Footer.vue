@@ -1,5 +1,5 @@
 <template>
-  <footer class="border-t border-line bg-wash print:hidden">
+  <footer class="border-t border-line bg-wash">
     <div class="page-container py-14">
       <div class="grid grid-cols-12 gap-y-10 md:gap-x-8">
         <div class="col-span-12 md:col-span-5">

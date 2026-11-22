@@ -40,8 +40,7 @@
     "envelopes": "Envelopes",
     "volatility": "Volatility",
     "simulation": "Simulation",
-    "notFound": "Page not found",
-    "report": "PDF report"
+    "notFound": "Page not found"
   },
   "apiErrors": {
     "unreachable": "Can’t reach the server. Check that the application is running.",
@@ -843,22 +842,11 @@
     "source": "Country read from the Area column, the same as the “Location” ring. The darker a country and the bigger its bubble, the more you’ve invested there.",
     "a11y": "World map of {count} countries for {total}. Largest: {biggest}, {share}."
   },
-  "report": {
-    "title": "Overfolio: report of {date}",
-    "settings": "Settings: {amounts} amounts, {theme} mode, {language} language.",
-    "amounts": {
-      "gross": "gross",
-      "net": "net"
-    },
-    "theme": {
-      "light": "light",
-      "dark": "dark"
-    },
-    "preparing": "Preparing the PDF: loading every page ({done}/{total})…",
-    "ready": "Ready. In the print window, choose “Save as PDF”.",
-    "timeout": "Some pages took too long to load: the PDF may be incomplete.",
-    "print": "Save as PDF",
-    "back": "Back",
-    "hint": "Each page uses its default filters (Flow year, Strategy envelope…)."
+  "pdf": {
+    "progress": "Creating the PDF: page {done} of {total}…",
+    "hint": "The site is going through every page: don’t touch anything until the download.",
+    "cancel": "Cancel",
+    "error": "The PDF couldn’t be created: {message}",
+    "close": "Close"
   }
 }

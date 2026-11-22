@@ -1,12 +1,12 @@
 <!--
   En-tête fixe : logo-texte à gauche (vers la page de présentation), menu à droite.
-  À droite du menu : bouton PDF (page /rapport : tout le site en un PDF), langue, bouton soleil/lune du mode sombre.
+  À droite du menu : bouton PDF (tout le site en un PDF, lib/pdfExport.js), langue, bouton soleil/lune du mode sombre.
   Mobile : bouton burger accessible (clavier, aria-expanded, libellé qui change, Échap, fermeture au clic extérieur).
 -->
 <template>
   <header
     ref="root"
-    class="fixed inset-x-0 top-0 z-40 border-b border-line bg-paper/95 print:hidden backdrop-blur supports-[backdrop-filter]:bg-paper/85"
+    class="fixed inset-x-0 top-0 z-40 border-b border-line bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/85"
   >
     <div class="page-container flex h-16 items-center justify-between">
       <router-link
@@ -33,19 +33,22 @@
       </nav>
 
       <div class="flex items-center gap-1 md:ml-2">
-        <!-- PDF de tout le site (page /rapport), puis langue, puis mode clair / sombre (mobile et ordinateur) -->
-        <router-link
-          to="/rapport"
-          class="inline-flex h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-ink-2 hover:bg-wash hover:text-ink"
+        <!-- PDF de tout le site (une page web = une page PDF), puis langue, puis mode clair / sombre -->
+        <button
+          type="button"
+          class="inline-flex h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-ink-2 hover:bg-wash hover:text-ink disabled:opacity-50"
           :title="t('nav.pdfTitle')"
           :aria-label="t('nav.pdfTitle')"
+          :disabled="pdfExport.running"
+          :aria-busy="pdfExport.running"
+          @click="startPdf"
         >
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
             <path d="M14 3v5h5M12 18v-6M9 15l3 3 3-3" />
           </svg>
           {{ t('nav.pdf') }}
-        </router-link>
+        </button>
         <LanguageSelect />
         <ThemeToggle />
 
@@ -94,11 +97,12 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MENU_NAMES } from '../i18n/menu.js'
 import LanguageSelect from './ui/LanguageSelect.vue'
 import ThemeToggle from './ui/ThemeToggle.vue'
+import { exportSite, pdfExport } from '../lib/pdfExport.js'
 
 const { t } = useI18n()
 
@@ -123,6 +127,13 @@ const linkClasses =
   'after:absolute after:inset-x-3 after:-bottom-[11px] after:h-0.5 after:rounded-full after:bg-transparent'
 
 const route = useRoute()
+const router = useRouter()
+
+// Bouton PDF : ferme le menu mobile (il serait photographié), puis parcourt tout le site
+function startPdf() {
+  open.value = false
+  exportSite(router)
+}
 const open = ref(false)
 const root = ref(null)
 const burger = ref(null)
