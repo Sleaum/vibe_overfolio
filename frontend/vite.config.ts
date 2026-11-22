@@ -50,8 +50,8 @@ function theme(): Plugin {
   }
 }
 
-// Langues : les fichiers src/i18n/*.json doivent avoir exactement les mêmes clés. Au build, une clé présente
-// dans une langue et absente d'une autre arrête le build (elle s'afficherait en français par défaut).
+// Langues : les fichiers src/i18n/*.json doivent avoir exactement les mêmes clés, et toute clé écrite dans le code
+// (t('…'), tList('…'), keypath="…") doit y exister. Sinon le build s'arrête.
 function languages(): Plugin {
   const dir = path.resolve(__dirname, 'src/i18n')
   const keysOf = (value: unknown, prefix = ''): string[] =>
@@ -66,6 +66,19 @@ function languages(): Plugin {
       const keys = new Map(files.map((f) => [f, new Set(keysOf(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))))]))
       const all = new Set([...keys.values()].flatMap((set) => [...set]))
       const problems = files.flatMap((f) => [...all].filter((key) => !keys.get(f)!.has(key)).map((key) => `${f} : clé manquante « ${key} »`))
+      // Clés écrites en toutes lettres dans le code (t('…'), tList('…'), keypath="…") : elles doivent exister
+      const src = path.resolve(__dirname, 'src')
+      const code = fs
+        .readdirSync(src, { recursive: true, encoding: 'utf8' })
+        .filter((f) => /\.(vue|js|ts)$/.test(f) && !f.startsWith('i18n'))
+      const used = /(?:\bt|tList|keypath=)\(?\s*['"]([a-zA-Z_][\w]*(?:\.[\w]+)+)['"]/g
+      for (const file of code) {
+        for (const match of fs.readFileSync(path.join(src, file), 'utf8').matchAll(used)) {
+          if (!all.has(match[1]) && ![...all].some((key) => key.startsWith(`${match[1]}.`))) {
+            problems.push(`src/${file} : clé « ${match[1]} » absente des fichiers de langue`)
+          }
+        }
+      }
       if (problems.length) this.error(`Traductions incomplètes :\n${problems.join('\n')}`)
     },
   }

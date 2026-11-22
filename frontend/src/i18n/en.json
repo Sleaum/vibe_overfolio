@@ -71,8 +71,14 @@
       "private_key_format": "Private key: it must start with -----BEGIN PRIVATE KEY-----.",
       "email_invalid": "Service account email: invalid address.",
       "sheet_id_or_name": "Enter the document ID or its name.",
-      "sync_tabs_required": "List at least one tab to sync."
-    }
+      "sync_tabs_required": "List at least one tab to sync.",
+      "sheet_link_required": "Paste the Google Sheet link (or fill in a service account)."
+    },
+    "sheet_not_public": "The sheet isn’t shared by link: in Google Sheets, choose “Anyone with the link”, or fill in a service account.",
+    "public_sheet_not_found": "Sheet not found: check the document link.",
+    "public_export_too_big": "The sheet is too large to download.",
+    "public_export_unreadable": "Unreadable exported file: {detail}",
+    "no_access_configured": "No access set up: paste the link of a sheet shared by link, or fill in a service account."
   },
   "data": {
     "unknown": "Not specified",
@@ -586,7 +592,7 @@
     "document": "Document",
     "account": "Google service account",
     "importJson": "Import the JSON file",
-    "accountHelp": "Download the file from Google Cloud: IAM → Service accounts → Keys. Then share the Google Sheet, as Viewer, with the service account’s address.",
+    "accountHelp": "Only if the sheet isn’t shared by link. Download the file from Google Cloud: IAM → Service accounts → Keys; then share the sheet, as Viewer, with the account’s address. If you fill one in, the email, project ID and private key are required.",
     "required": " (required)",
     "keyAlreadySet": "A key is already saved. Leave empty to keep it, or paste a new key.",
     "keyInPlace": "Key in place ({source}). For security, it’s never shown again.",
@@ -608,7 +614,7 @@
     "importFailed": "Import failed: {reason}.",
     "unreadableJson": "unreadable JSON file",
     "fields": {
-      "sheet_id": "Document ID or address",
+      "sheet_id": "Google Sheet link",
       "doc_name": "Document name",
       "sync_tabs": "Tabs to sync",
       "client_email": "Service account email",
@@ -624,10 +630,25 @@
       "client_x509_cert_url": "client_x509_cert_url"
     },
     "help": {
-      "sheet_id": "Paste the Google Sheet’s address, or just the part between /d/ and /edit.",
-      "doc_name": "Only used if the ID is empty (then needs the Google Drive API).",
+      "sheet_id": "Paste the sheet’s address (or just the part between /d/ and /edit). If it’s shared with “Anyone with the link”, the link is enough; otherwise, also fill in a service account below.",
+      "doc_name": "Only with a service account, if the link is empty (then needs the Google Drive API).",
       "sync_tabs": "Exact tab names, separated by commas."
-    }
+    },
+    "mode": {
+      "service_account": "Read with a service account ({email}).",
+      "public_link": "Read by link: the sheet must be shared with “Anyone with the link”.",
+      "none": "No access set up: paste your sheet’s link."
+    },
+    "tabs": {
+      "suggest": "Suggest the document’s tabs",
+      "loading": "Reading tabs…",
+      "legend": "Document tabs",
+      "unsaved": "List read with the saved settings: save first if you changed the link or the account."
+    },
+    "accountOptional": "Google service account (optional)",
+    "removeAccount": "Remove the service account",
+    "confirmRemove": "Remove the service account and read the sheet by its link? It will need to be shared with “Anyone with the link”.",
+    "accountRemoved": "Service account removed: the sheet will be read by its link."
   },
   "simulationPage": {
     "lead": "{runs} possible futures for your net worth, drawn at random from your current amounts and the assumptions below. The range shows what can reasonably happen, not a forecast.",

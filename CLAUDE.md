@@ -18,7 +18,7 @@ Ce fichier est lu au début de chaque session sur ce dépôt. Le README décrit 
 
 ## Langues
 
-- Site en français (défaut et secours), anglais et thaï. **Aucun texte en dur** dans un composant ou un graphique : une clé dans `frontend/src/i18n/fr.json`, `en.json` **et** `th.json` (le build s'arrête s'il en manque une), puis `t('rubrique.cle')`.
+- Site en français (défaut et secours), anglais et thaï. **Aucun texte en dur** dans un composant ou un graphique : une clé dans `frontend/src/i18n/fr.json`, `en.json` **et** `th.json` (le build s'arrête s'il en manque une), puis `t('rubrique.cle')`. Le build vérifie aussi que chaque clé écrite dans le code existe.
 - Nombres et dates : toujours par `frontend/src/lib/format.js` (langue active), jamais `new Intl.…('fr-FR')`.
 - Ne pas traduire les données de la feuille (instruments, types d'actifs, colonnes) ni les adresses des pages.
 - **Noms des menus toujours en anglais**, dans toutes les langues : GoogleSheet, Charts, Simulation, Flow, Snapshot, Envelopes, Strategy, Volatility, Budget. Ils sont dans `frontend/src/i18n/menu.js` (`MENU_NAMES`), jamais dans les fichiers de langue. Tout le reste est traduit, y compris les titres des pages ; une phrase qui renvoie à un menu reprend son nom anglais.

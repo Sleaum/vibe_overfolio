@@ -146,3 +146,105 @@ class SyncAllTests(TestCase):
 
     def test_get_is_refused(self):
         self.assertEqual(self.client.get(self.url).status_code, 405)
+
+
+# ---------- Lecture par lien public (solution 1) ----------
+
+PUBLIC_ENV = {**ENV, "PROJECT_ID": "", "PRIVATE_KEY": "", "CLIENT_EMAIL": "", "GOOGLE_SHEET_ID": "id-public"}
+
+
+def xlsx_bytes():
+    """Fichier Excel comme celui qu'exporte Google : une ligne de synthèse au-dessus de l'en-tête."""
+    import datetime
+    import io
+
+    import openpyxl
+
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.title = "portfolio"
+    sheet.append(["Total", 1234.5, None, None])
+    sheet.append(["Date", "Asset", "Instrument", "Assets Master Currency"])
+    sheet.append([datetime.datetime(2026, 11, 14), "public equity", "MSCI World", 52000.0])
+    sheet.append([datetime.datetime(2026, 11, 14), "fiat", "Livret", 1234.56])
+    book.create_sheet("budget").append(["Source", "Destination", "Valeur"])
+    buffer = io.BytesIO()
+    book.save(buffer)
+    return buffer.getvalue()
+
+
+def fake_download(content, status=200):
+    response = mock.Mock(status_code=status)
+    response.raw.read.return_value = content
+    return mock.patch("googlesheet.services.requests.get", return_value=response)
+
+
+@mock.patch.dict("os.environ", PUBLIC_ENV, clear=False)
+class PublicLinkTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    def test_mode_depends_on_service_account(self):
+        self.assertEqual(config.access_mode(), "public_link")
+        with mock.patch.dict("os.environ", ENV):
+            self.assertEqual(config.access_mode(), "service_account")
+        with mock.patch.dict("os.environ", {"GOOGLE_SHEET_ID": ""}):
+            self.assertEqual(config.access_mode(), "none")
+        self.assertEqual(self.client.get("/api/sheet-config/").json()["mode"], "public_link")
+
+    def test_public_sheet_is_read_like_the_api(self):
+        from .models import SheetTable
+        from .sync import sync_sheets
+
+        with fake_download(xlsx_bytes()) as get:
+            results = sync_sheets(config.doc_name(), tabs=["portfolio", "absent"])
+        self.assertIn("id-public/export?format=xlsx", get.call_args[0][0])
+        self.assertEqual([r.ok for r in results], [True, False])
+        self.assertEqual(results[1].code, "tab_not_found")
+        table = SheetTable.objects.get(name="portfolio")
+        self.assertEqual(table.header_row, 2)  # ligne de synthèse ignorée
+        rows = list(table.rows.order_by("position").values_list("data", flat=True))
+        self.assertEqual(rows[0], {"Date": "2026-11-14", "Asset": "public equity", "Instrument": "MSCI World", "Assets Master Currency": 52000})
+        self.assertEqual(rows[1]["Assets Master Currency"], 1234.56)
+
+    def test_private_sheet_gives_a_clear_error(self):
+        with fake_download(b"<!DOCTYPE html><html>connexion</html>"):
+            response = self.client.post("/api/data/sync/")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["code"], "sheet_not_public")
+
+    def test_tabs_are_listed(self):
+        with fake_download(xlsx_bytes()):
+            body = self.client.get("/api/sheet-config/tabs/").json()
+        self.assertEqual(body["tabs"], ["portfolio", "budget"])
+        self.assertEqual(body["mode"], "public_link")
+
+    def test_link_alone_can_be_saved(self):
+        response = self.client.put(
+            "/api/sheet-config/",
+            json.dumps({"sheet_id": "https://docs.google.com/spreadsheets/d/xyz/edit?usp=sharing", "sync_tabs": "portfolio"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()["mode"], "public_link")
+        self.assertEqual(config.sheet_id(), "xyz")
+
+    def test_link_is_required_without_service_account(self):
+        response = self.client.put("/api/sheet-config/", json.dumps({"sheet_id": "", "doc_name": "overfolio", "sync_tabs": "portfolio"}), content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["field_codes"], {"sheet_id": "sheet_link_required"})
+
+
+@mock.patch.dict("os.environ", ENV, clear=False)
+class ClearCredentialsTests(TestCase):
+    def test_service_account_can_be_removed(self):
+        values = self.client.get("/api/sheet-config/").json()["values"]
+        self.assertEqual(self.client.get("/api/sheet-config/").json()["mode"], "service_account")
+        response = self.client.put("/api/sheet-config/", json.dumps({**values, "clear_credentials": True}), content_type="application/json")
+        self.assertEqual(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertEqual(body["mode"], "public_link")
+        self.assertFalse(body["private_key_set"])
+        self.assertEqual(SheetConfig.objects.get().private_key, "")

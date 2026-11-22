@@ -82,7 +82,7 @@ overfolio/
 
 - Docker et Docker Compose v2 (`docker compose`)
 - Un fichier `.env` à la racine (voir ci-dessous)
-- Un compte de service Google avec accès au Google Sheet (voir « Google Sheets »)
+- Un Google Sheet partagé « Tous les utilisateurs disposant du lien », **ou** un compte de service Google qui a accès à la feuille (voir « Google Sheets »)
 
 ## Configuration : fichier `.env`
 
@@ -99,7 +99,7 @@ POSTGRES_DB=overfoliodb
 POSTGRES_USER=overfoliouser
 POSTGRES_PASSWORD=overfoliopwd
 
-# Google (compte de service)
+# Google (compte de service) : facultatif si la feuille est partagée par lien (seul GOOGLE_SHEET_ID suffit alors)
 TYPE=service_account
 PROJECT_ID=...
 PRIVATE_KEY_ID=...
@@ -208,9 +208,28 @@ docker compose exec backend python manage.py createsuperuser
 
 ## Google Sheets
 
+Deux façons de lire la feuille. Overfolio choisit seul (`access_mode()` dans `backend/googlesheet/config.py`) :
+
+| Mode | Quand | Ce qu'il faut | La feuille |
+|---|---|---|---|
+| **Lien public** (`public_link`) | aucun compte de service renseigné, mais un lien | seulement le **lien** du Google Sheet | partagée « Tous les utilisateurs disposant du lien » : **tout le monde peut la lire avec le lien** |
+| **Compte de service** (`service_account`) | e-mail, ID du projet et clé privée renseignés | le lien (ou le nom) + le compte de service (fichier JSON) | privée possible, partagée seulement avec le compte |
+
+```
+lien seul ─────────────────► export Excel de toute la feuille ──┐
+                              (docs.google.com/…/export?format=xlsx)│
+                                                                   ├─► mêmes lignes ─► base (sync)
+compte de service + lien ──► API Google Sheets (gspread) ─────────┘
+```
+
+**Lien public** : colle le lien sur la page **GoogleSheet**, enregistre, puis Tout actualiser. Google exporte toute la feuille en un fichier Excel (tous les onglets, valeurs calculées) : les nombres arrivent en nombres, les dates en `AAAA-MM-JJ`, comme avec l'API. Si la feuille n'est pas partagée par lien, la synchronisation l'explique (`sheet_not_public`). À n'utiliser que si tu acceptes que quiconque a le lien voie ta feuille.
+
+**Compte de service** :
 1. Dans le projet Google Cloud du compte de service, active l'**API Google Sheets**. L'**API Drive** n'est nécessaire que si l'identifiant du document n'est pas renseigné.
-2. Partage le document avec l'adresse du compte de service (`CLIENT_EMAIL`), en **Lecteur**. Un partage « toute personne disposant du lien » ne suffit pas pour que le compte de service le liste, mais l'ouverture par identifiant fonctionne dès que le compte y a accès.
-3. Renseigne les paramètres sur la page **GoogleSheet** (`/sheet`, bloc « Connexion à Google Sheets »), ou dans `.env`.
+2. Partage le document avec l'adresse du compte de service (`CLIENT_EMAIL`), en **Lecteur**. La feuille peut rester privée.
+3. Renseigne les paramètres sur la page **GoogleSheet** (`/sheet`, bloc « Connexion à Google Sheets », bouton « Importer le fichier JSON »), ou dans `.env`. Le compte de service est facultatif, mais complet dès qu'un de ses champs est rempli. Le bouton « Retirer le compte de service » repasse en lecture par lien.
+
+**Onglets** : dans les deux modes, « Proposer les onglets du document » lit la liste des onglets de la feuille et les présente en cases à cocher, qui remplissent « Onglets à synchroniser ».
 
 ### Paramètres saisis sur la page GoogleSheet
 
@@ -270,7 +289,7 @@ frontend (build, exit 0) ──────────────────�
 | nginx | backend | Proxy `/api/` et `/admin/` | `http://backend:8000` |
 | nginx | backend (statiques) | Sert `/static/` | volume `static_data` monté sur `/staticfiles` |
 | backend | db | Accès PostgreSQL | `db:5432` |
-| backend | Google Sheets | Lecture des onglets | HTTPS, compte de service |
+| backend | Google Sheets | Lecture des onglets | HTTPS : API avec le compte de service, ou export Excel de la feuille partagée par lien |
 
 ### Schéma d'ensemble
 
@@ -322,7 +341,8 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | GET | `/api/data/<onglet>/` | Colonnes (dans l'ordre) et lignes d'une table |
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données ; 502 si aucun n'a pu être enregistré |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
-| GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet (voir « Paramètres saisis sur la page GoogleSheet ») |
+| GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
+| GET | `/api/sheet-config/tabs/` | Onglets du document : `{ mode, tabs, selected }`, dans les deux modes |
 
 Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "code_stable", "params": {…}}` (`backend/googlesheet/errors.py`) : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google). Le site affiche le message dans la langue choisie à partir de `code` et `params` (rubrique `apiErrors` de `frontend/src/i18n/*.json`) ; `error` reste en français pour la ligne de commande. Un formulaire invalide (`400`) ajoute `fields` (messages par champ) et `field_codes` (codes par champ). Le résultat de chaque onglet d'une synchronisation porte aussi `code` et `params`.
 
@@ -561,7 +581,7 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 | `frontend/src/i18n/fr.json`, `en.json`, `th.json` | Les textes, rangés par rubrique (`nav`, `footer`, `chartsMenu`, `pages`…). Un texte avec une valeur : `"legal": "© {year} Overfolio…"`, appelé par `t('footer.legal', { year })` |
 | `frontend/src/lib/format.js` | Montants, pourcentages et dates dans la langue active. Le « 1er » du mois et l'écriture « 12,5 k€ » ne s'appliquent qu'en français |
 | `frontend/src/App.vue` | Au changement de langue, la page est réaffichée (`<router-view :key="locale">`) pour que tout soit refait dans la nouvelle langue |
-| `frontend/vite.config.ts` | Plugin `langues` : le build s'arrête si une clé existe dans une langue et pas dans une autre |
+| `frontend/vite.config.ts` | Plugin `langues` : le build s'arrête si une clé existe dans une langue et pas dans une autre, ou si une clé écrite dans le code (`t('…')`, `tList('…')`, `keypath="…"`) n'existe pas |
 
 **Écrire un texte** : jamais de phrase en dur dans un composant ou un graphique. Ajouter la clé dans les **trois** fichiers, puis `{{ t('rubrique.cle') }}` dans le template (`const { t } = useI18n()`), ou `t()` importé de `i18n/index.js` hors composant. Les données de ta feuille (instruments, types d'actifs, colonnes) ne sont pas traduites.
 
@@ -630,6 +650,7 @@ docker compose exec db psql -U overfoliouser -d overfoliodb
 | `Unknown command: 'sync_sheets'` | `management/commands/` ou un `__init__.py` manquant | Vérifier l'arborescence de `backend/googlesheet/` |
 | `Document non autorisé` | Nom absent de `ALLOWED_SHEET_DOCS` | Corriger `.env`, puis `docker compose up -d --force-recreate backend` |
 | `Feuille introuvable` | Document non partagé avec `CLIENT_EMAIL`, ou mauvais `GOOGLE_SHEET_ID` | Partager en Lecteur, vérifier l'identifiant |
+| « La feuille n'est pas partagée par lien » | Mode lien public, mais la feuille est en accès limité | Dans Google Sheets : Partager → « Tous les utilisateurs disposant du lien », ou renseigner un compte de service |
 | `Onglet 'x' introuvable` | Nom d'onglet différent (casse, espaces) | Utiliser le nom exact |
 | `Google Drive API has not been used...` | API Drive désactivée | L'activer, ou définir `GOOGLE_SHEET_ID` |
 | La page GoogleSheet ou un graphique dit que la table n'est pas dans la base | Onglet jamais synchronisé | Bouton Tout actualiser de la page GoogleSheet, ou `sync_sheets` |
@@ -648,7 +669,7 @@ docker compose exec db psql -U overfoliouser -d overfoliodb
 ## Sécurité
 
 - `.env` ne doit jamais être commité, ni les fichiers `env` ou `backend/overfolio/.env`, ni une clé SSH ou un fichier JSON de compte de service : le `.gitignore` de la racine les exclut. Un fichier déjà suivi par git n'est pas concerné par le `.gitignore` : le retirer avec `git rm --cached <fichier>`. Si une clé privée a été exposée (capture d'écran, commit), la révoquer dans Google Cloud (IAM → Comptes de service → Clés) et en générer une nouvelle.
-- Ne partage pas le Google Sheet par lien public : il contient l'intégralité du patrimoine. Partage-le seulement avec `CLIENT_EMAIL`.
+- Le mode « lien public » exige une feuille lisible par quiconque a son lien : elle contient l'intégralité du patrimoine. Pour une feuille privée, utilise un compte de service et partage-la seulement avec `CLIENT_EMAIL`.
 - Passer à `DEBUG=False` et restreindre `ALLOWED_HOSTS` en production.
 - Les routes `/api/sheet`, `/api/data/` et `/api/sheet-config/` sont publiques : les restreindre avant toute exposition sur Internet.
 

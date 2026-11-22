@@ -1,9 +1,12 @@
+import datetime
 import hashlib
+import io
 import logging
 import re
 from typing import Any, List, Optional, Tuple
 
 import gspread
+import requests
 from requests.exceptions import RequestException
 
 logger = logging.getLogger(__name__)
@@ -181,15 +184,116 @@ def _read_values(worksheet) -> List[List[Any]]:
         return worksheet.get_all_values()
 
 
+# ---------- Lecture par lien public (solution 1 : feuille partagée « Tous les utilisateurs disposant du lien ») ----------
+
+PUBLIC_EXPORT_URL = "https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
+PUBLIC_EXPORT_TIMEOUT = 30  # secondes
+PUBLIC_EXPORT_MAX_BYTES = 30 * 1024 * 1024
+
+
+def _public_cell(value: Any) -> Any:
+    """
+    Cellule du fichier Excel -> même forme que l'API (lecture par compte de service) :
+    nombres en nombres (entiers sans « .0 »), dates en texte « AAAA-MM-JJ », cellule vide -> "".
+    """
+    if value is None:
+        return ""
+    if isinstance(value, datetime.datetime):
+        if value.time() == datetime.time(0, 0):
+            return value.date().isoformat()
+        return value.strftime("%Y-%m-%d %H:%M")
+    if isinstance(value, (datetime.date, datetime.time)):
+        return value.isoformat()
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return value
+
+
+class PublicSpreadsheet:
+    """
+    Document lu sans identifiants : Google exporte toute la feuille partagée par lien en un fichier Excel
+    (tous les onglets, valeurs calculées). Mêmes méthodes utiles que le document gspread : title, worksheet_titles().
+    """
+
+    def __init__(self, sheet_id: str, content: bytes):
+        import openpyxl  # import différé : seulement pour ce mode
+
+        self.sheet_id = sheet_id
+        self._book = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+        self.title = ""
+
+    def worksheet_titles(self) -> List[str]:
+        return list(self._book.sheetnames)
+
+    def values(self, sheet_name: Optional[str] = None) -> List[List[Any]]:
+        names = self._book.sheetnames
+        if not names:
+            raise SheetNotFound("Le document ne contient aucun onglet.", "no_tabs")
+        if sheet_name and sheet_name not in names:
+            raise SheetNotFound(f"Onglet '{sheet_name}' introuvable.", "tab_not_found", tab=sheet_name)
+        sheet = self._book[sheet_name or names[0]]
+        return [[_public_cell(cell) for cell in row] for row in sheet.iter_rows(values_only=True)]
+
+
+def open_public_spreadsheet(sheet_id: str) -> PublicSpreadsheet:
+    """Télécharge la feuille partagée par lien. Erreur claire si elle n'est pas publique."""
+    url = PUBLIC_EXPORT_URL.format(sheet_id=sheet_id)
+    try:
+        response = requests.get(url, timeout=PUBLIC_EXPORT_TIMEOUT, stream=True)
+        content = response.raw.read(PUBLIC_EXPORT_MAX_BYTES + 1, decode_content=True)
+    except RequestException as exc:
+        logger.warning("Google Sheets injoignable : %s", exc)
+        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
+    if len(content) > PUBLIC_EXPORT_MAX_BYTES:
+        raise SheetAPIError("Feuille trop volumineuse pour être téléchargée.", "public_export_too_big")
+    # Un fichier Excel est une archive zip (« PK ») ; sinon Google a renvoyé une page de connexion ou d'erreur
+    if response.status_code == 404:
+        raise SheetNotFound("Feuille introuvable : vérifie le lien du document.", "public_sheet_not_found")
+    if response.status_code != 200 or not content.startswith(b"PK"):
+        raise SheetNotFound(
+            "La feuille n'est pas partagée par lien : dans Google Sheets, choisis « Tous les utilisateurs "
+            "disposant du lien », ou renseigne un compte de service.",
+            "sheet_not_public",
+        )
+    try:
+        return PublicSpreadsheet(sheet_id, content)
+    except Exception as exc:  # fichier illisible
+        logger.exception("Export Excel illisible")
+        raise SheetAPIError(f"Fichier exporté illisible : {exc}", "public_export_unreadable", detail=str(exc))
+
+
+def worksheet_titles(spreadsheet) -> List[str]:
+    """Noms des onglets du document, dans l'ordre (les deux modes)."""
+    if isinstance(spreadsheet, PublicSpreadsheet):
+        return spreadsheet.worksheet_titles()
+    try:
+        return [worksheet.title for worksheet in spreadsheet.worksheets()]
+    except gspread.exceptions.APIError as exc:
+        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}", "google_api_error", detail=str(exc))
+    except RequestException as exc:
+        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
+
+
 def open_spreadsheet(doc_name: str):
     """
-    Ouvre le document Google Sheets.
+    Ouvre le document, selon le mode choisi par config.access_mode() :
 
-    Si un identifiant de document est configuré (page GoogleSheet ou GOOGLE_SHEET_ID), il est ouvert
-    par cet identifiant (partie de l'URL entre /d/ et /edit) : pas de recherche par nom, donc pas
-    besoin de l'API Drive. Sinon il est recherché par son nom (doc_name).
+    - « service_account » (solution 2) : API Google Sheets avec le compte de service. Le document est ouvert
+      par son identifiant (partie de l'URL entre /d/ et /edit) s'il est connu, sinon cherché par son nom
+      (doc_name, ce qui demande l'API Drive).
+    - « public_link » (solution 1) : pas de compte de service, seulement le lien d'une feuille partagée
+      « Tous les utilisateurs disposant du lien » : export Excel de toute la feuille.
     """
     from . import config
+
+    mode = config.access_mode()
+    if mode == "public_link":
+        return open_public_spreadsheet(config.sheet_id())
+    if mode == "none":
+        raise SheetConfigError(
+            "Aucun accès configuré : colle le lien d'une feuille partagée par lien, ou renseigne un compte de service.",
+            "no_access_configured",
+        )
 
     client = get_client()
     sheet_id = config.sheet_id()
@@ -214,6 +318,8 @@ def open_spreadsheet(doc_name: str):
 
 def read_worksheet_values(spreadsheet, sheet_name: Optional[str] = None) -> List[List[Any]]:
     """Grille brute d'un onglet (le premier si sheet_name est vide)."""
+    if isinstance(spreadsheet, PublicSpreadsheet):
+        return spreadsheet.values(sheet_name)
     try:
         worksheet = (
             spreadsheet.worksheet(sheet_name) if sheet_name else spreadsheet.get_worksheet(0)

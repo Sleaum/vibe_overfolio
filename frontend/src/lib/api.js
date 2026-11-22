@@ -7,6 +7,8 @@
 //   GET    /api/sheet-config/       -> paramètres d'accès au Google Sheet (la clé privée n'est jamais renvoyée)
 //   PUT    /api/sheet-config/       -> enregistre les paramètres saisis
 //   DELETE /api/sheet-config/       -> revient aux valeurs du .env
+//   GET    /api/sheet-config/tabs/  -> onglets du document : { mode, tabs[], selected[] }
+//   (mode : 'service_account' = compte de service, 'public_link' = lien seul, 'none' = rien de configuré)
 //   Erreurs : { "error": "message en français", "code": "code_stable", "params": {…}, "fields"?: { champ: message },
 //             "field_codes"?: { champ: code } } avec le code 400, 404, 429 (trop rapproché) ou 502.
 //   Le message affiché est traduit à partir de `code` (i18n, rubrique apiErrors) ; code inconnu : le message du serveur.
@@ -89,3 +91,6 @@ export const saveSheetConfig = (values) =>
   })
 
 export const resetSheetConfig = () => request('/api/sheet-config/', { method: 'DELETE' })
+
+// Onglets du document (lien public ou compte de service) : { mode, tabs: [noms], selected: [noms] }
+export const getSheetTabs = () => request('/api/sheet-config/tabs/')

@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny
 from . import config
 from .models import SheetTable
 from .errors import error_response
-from .services import SheetError
+from .services import SheetError, open_spreadsheet, worksheet_titles
 from .sync import DEFAULT_TABS, configured_tabs, sync_sheets
 
 # Délai minimal entre deux synchronisations de la même table (secondes)
@@ -160,3 +160,17 @@ def sheet_config(request):
     elif request.method == "DELETE":
         config.reset()
     return JsonResponse(config.public_view())
+
+
+@api_view(["GET"])
+def sheet_tabs(request):
+    """
+    GET /api/sheet-config/tabs/ : onglets du document, pour les proposer sur la page GoogleSheet.
+    Fonctionne dans les deux modes (compte de service ou lien public) ; même forme d'erreur que le reste de l'API.
+    """
+    try:
+        spreadsheet = open_spreadsheet(config.doc_name())
+        tabs = worksheet_titles(spreadsheet)
+    except SheetError as exc:
+        return error_response(str(exc), exc.code, exc.status, exc.params)
+    return JsonResponse({"mode": config.access_mode(), "tabs": tabs, "selected": config.sync_tabs()})
