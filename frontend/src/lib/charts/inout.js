@@ -3,7 +3,7 @@
 import { buildInOut, findColumn, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
 import { axisEuroFormatter, euro, formatMonthKey } from '../format.js'
-import { SERIES } from '../palette.js'
+import { HOVER_SHADE, SERIES } from '../palette.js'
 import { dataSubtitle } from './common.js'
 
 export function inoutOption(months, { hasTax }) {
@@ -25,7 +25,7 @@ export function inoutOption(months, { hasTax }) {
     legend: legendTop(hasTax ? ['Entrées', 'Sorties', 'Impôts'] : ['Entrées', 'Sorties']),
     tooltip: tooltipBox({
       trigger: 'axis',
-      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(31, 35, 40, 0.04)' } },
+      axisPointer: { type: 'shadow', shadowStyle: { color: HOVER_SHADE } },
       formatter: (params) => {
         const first = [].concat(params)[0]
         const month = months[first?.dataIndex]
