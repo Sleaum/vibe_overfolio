@@ -1,0 +1,55 @@
+{
+  "common": {
+    "yes": "oui",
+    "no": "non"
+  },
+  "app": {
+    "skipLink": "Aller au contenu",
+    "home": "Overfolio, retour à la page d’accueil"
+  },
+  "nav": {
+    "main": "Navigation principale",
+    "mainMobile": "Navigation principale (mobile)",
+    "sheet": "GoogleSheet",
+    "charts": "Graphiques",
+    "simulation": "Simulation",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu"
+  },
+  "theme": {
+    "toDark": "Passer en mode sombre",
+    "toLight": "Passer en mode clair",
+    "dark": "Mode sombre",
+    "light": "Mode clair"
+  },
+  "language": {
+    "label": "Langue"
+  },
+  "footer": {
+    "tagline": "Ton Google Sheet, mis en graphiques : la répartition et l’évolution de ton patrimoine.",
+    "pages": "Pages",
+    "pagesLabel": "Pages du site",
+    "legal": "© {year} Overfolio. Outil de suivi de patrimoine : il ne donne ni conseil en investissement ni recommandation."
+  },
+  "chartsMenu": {
+    "label": "Graphiques",
+    "flow": "Flow",
+    "snapshot": "Snapshot",
+    "envelopes": "Enveloppes",
+    "strategy": "Strategy",
+    "volatility": "Volatilité",
+    "budget": "Budget"
+  },
+  "pages": {
+    "home": "Ton patrimoine en graphiques",
+    "login": "Connexion",
+    "sheet": "GoogleSheet",
+    "flow": "Portfolio Flow",
+    "snapshot": "Portfolio Snapshot",
+    "strategy": "Stratégie CTO",
+    "envelopes": "Enveloppes",
+    "volatility": "Volatilité",
+    "simulation": "Simulation",
+    "notFound": "Page introuvable"
+  }
+}

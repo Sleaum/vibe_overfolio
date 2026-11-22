@@ -1,19 +1,16 @@
 // Mode clair ou sombre.
 // Par défaut, le site suit le réglage du système ; le bouton de l'en-tête force l'un ou l'autre et s'en souvient
-// (localStorage, clé STORAGE_KEY de lib/theme.js). La classe « dark » est posée sur <html> dès index.html,
+// (préférence « theme » de lib/preferences.js). La classe « dark » est posée sur <html> dès index.html,
 // avant le premier affichage ; ce module prend le relais une fois Vue lancé.
 
 import { ref } from 'vue'
-import { COLORS, STORAGE_KEY as KEY } from '../lib/theme.js'
+import { COLORS } from '../lib/theme.js'
+import { readPreference, writePreference } from '../lib/preferences.js'
 const media = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null
 
 function stored() {
-  try {
-    const value = localStorage.getItem(KEY)
-    return value === 'dark' || value === 'light' ? value : null
-  } catch {
-    return null
-  }
+  const value = readPreference('theme')
+  return value === 'dark' || value === 'light' ? value : null
 }
 
 const isDark = ref(typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
@@ -32,13 +29,8 @@ media?.addEventListener?.('change', (event) => {
 function toggle() {
   const dark = !isDark.value
   apply(dark)
-  try {
-    // Choix identique au système : on l'oublie, pour suivre le système à nouveau s'il change
-    if (media && media.matches === dark) localStorage.removeItem(KEY)
-    else localStorage.setItem(KEY, dark ? 'dark' : 'light')
-  } catch {
-    // Stockage indisponible (navigation privée…) : le choix vaut pour cette visite
-  }
+  // Choix identique au système : on l'oublie, pour suivre le système à nouveau s'il change
+  writePreference('theme', media && media.matches === dark ? null : dark ? 'dark' : 'light')
 }
 
 export function useTheme() {

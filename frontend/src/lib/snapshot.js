@@ -6,7 +6,7 @@
 import { findColumn, latestDate, requireColumns, rowsOf, splitBy, toLabel, toNumber } from './aggregate.js'
 import { assetParts } from './charts/assetDonut.js'
 import { totalsByDate } from './charts/flowData.js'
-import { capitalize, euro, percent } from './format.js'
+import { capitalize, euro, percent, percentPrecise } from './format.js'
 import { ASSET_ORDER, CONTEXT, assignAssetColors } from './palette.js'
 
 /** Découpages proposés pour chaque type d'actif, avec les noms de colonnes acceptés (le premier est celui affiché en cas d'erreur). */
@@ -20,11 +20,9 @@ export const DIMENSIONS = [
 
 const MAX_ITEMS = 6 // au-delà, le reste est regroupé en « Autres »
 
-const twoDigits = new Intl.NumberFormat('fr-FR', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
 /** 0.1489 -> "+14,89 %" ; le signe est toujours écrit pour ne pas dépendre de la couleur. */
 export function signedPercent2(fraction) {
-  const text = twoDigits.format(Math.abs(fraction))
+  const text = percentPrecise(Math.abs(fraction))
   if (fraction > 0) return `+${text}`
   return fraction < 0 ? `-${text}` : text
 }

@@ -6,8 +6,8 @@
   <button
     type="button"
     class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 transition-colors hover:bg-wash hover:text-ink"
-    :aria-label="isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
-    :title="isDark ? 'Mode clair' : 'Mode sombre'"
+    :aria-label="isDark ? t('theme.toLight') : t('theme.toDark')"
+    :title="isDark ? t('theme.light') : t('theme.dark')"
     @click="toggle"
   >
     <!-- Soleil en mode sombre (pour revenir au clair), lune en mode clair -->
@@ -22,7 +22,10 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { useTheme } from '../../composables/useTheme.js'
+
+const { t } = useI18n()
 
 const { isDark, toggle } = useTheme()
 </script>

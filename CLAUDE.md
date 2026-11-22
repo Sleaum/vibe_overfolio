@@ -12,9 +12,20 @@ Ce fichier est lu au début de chaque session sur ce dépôt. Le README décrit 
 
 ## Couleurs et mode clair / sombre
 
-- **`frontend/src/lib/theme.js` est la seule source des couleurs** (clair et sombre) et de la clé du thème. Ne jamais écrire une valeur de couleur ailleurs.
+- **`frontend/src/lib/theme.js` est la seule source des couleurs** (clair et sombre). Ne jamais écrire une valeur de couleur ailleurs.
 - Composants : uniquement les classes de couleur (`bg-paper`, `text-ink`, `border-line`…), jamais `bg-white`, `text-black` ni de code couleur.
 - Graphiques : couleurs prises dans `frontend/src/lib/palette.js`. Une couleur volontairement fixe (texte blanc sur une couleur de série) porte le commentaire `// couleur fixe` sur sa ligne, sinon le build affiche un avertissement.
+
+## Langues
+
+- Site en français (défaut et secours), anglais et thaï. **Aucun texte en dur** dans un composant ou un graphique : une clé dans `frontend/src/i18n/fr.json`, `en.json` **et** `th.json` (le build s'arrête s'il en manque une), puis `t('rubrique.cle')`.
+- Nombres et dates : toujours par `frontend/src/lib/format.js` (langue active), jamais `new Intl.…('fr-FR')`.
+- Ne pas traduire les données de la feuille (instruments, types d'actifs, colonnes) ni les adresses des pages.
+- Traduction en cours, page par page (voir « Langues » dans le README) : traduire entièrement une page à la fois, dans sa propre PR. Signaler que le thaï est à faire relire.
+
+## Préférences
+
+- Toute préférence gardée par le navigateur passe par `frontend/src/lib/preferences.js` (liste `PREFERENCES`) : jamais d'appel direct à `localStorage`. C'est ce qui permettra de les ranger sur le compte plus tard.
 
 ## Fonctions à venir : à prévoir dès maintenant
 
@@ -25,7 +36,7 @@ La page `/newpage` (`frontend/src/views/NewPage.vue`) est la **future page de co
 Quand elle sera branchée : comptes Django, session, et API réservée aux utilisateurs connectés. En attendant, pour toute nouvelle fonction :
 
 - ne pas supposer que l'API restera publique : toute nouvelle route sous `/api/` doit pouvoir être protégée plus tard sans changer son fonctionnement ;
-- les réglages propres à une personne (mode sombre, réglages de la simulation…) restent dans le navigateur (`localStorage`), mais regroupés pour pouvoir passer sur le compte plus tard ;
+- les réglages propres à une personne (mode sombre, langue, réglages de la simulation…) restent dans le navigateur, regroupés dans `lib/preferences.js` pour pouvoir passer sur le compte plus tard ;
 - ne jamais écrire un mot de passe ou une donnée sensible dans la console ou les logs (le `console.log` de `NewPage.vue` est à retirer lors du branchement).
 
 ## Sécurité

@@ -27,7 +27,7 @@ overfolio/
 ├── frontend/
 │   ├── Dockerfile                  # stage "build" (Vite)
 │   ├── index.html                  # page HTML ; pose le mode sombre avant l'affichage
-│   ├── vite.config.ts              # build ; plugin « theme » (index.html, contrôle des couleurs)
+│   ├── vite.config.ts              # build ; plugins « theme » (index.html, contrôle des couleurs) et « langues » (contrôle des traductions)
 │   ├── tailwind.config.js          # classes de couleur et variables CSS générées depuis lib/theme.js, typographie, ombres
 │   └── src/
 │       ├── App.vue                 # en-tête, page affichée, pied de page
@@ -49,14 +49,16 @@ overfolio/
 │       ├── components/
 │       │   ├── Header.vue, Footer.vue
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
-│       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (bouton clair / sombre)
+│       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue)
 │       │   ├── landing/            # sections de la page de présentation
 │       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard
-│       ├── composables/            # useTable (charge une table), useTheme (mode clair / sombre), useReducedMotion
+│       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes)
+│       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
 │       └── lib/
 │           ├── api.js              # appels /api/data/...
 │           ├── aggregate.js, dates.js, format.js   # calculs et formats français
-│           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre) et de la clé du thème
+│           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
+│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
 │           ├── chartDark.js        # passe un graphique en sombre
 │           ├── simulation.js, simulation.worker.js         # calculs de la page Simulation
@@ -194,6 +196,7 @@ Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx
 3. **Lire les graphiques** : rubrique **Graphiques**, menu à gauche (Flow, Snapshot, Enveloppes, Strategy, Volatilité, Budget). Chaque graphique a une vue Tableau et une page d'explication (source des chiffres).
 4. **Projeter** : page **Simulation**, réglages dans la page.
 5. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur.
+6. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Les nombres et les dates suivent la langue. La traduction est en cours : seuls l'en-tête, le menu Graphiques, le pied de page et les formats sont traduits pour l'instant, le reste s'affiche en français (voir « Langues »).
 
 ### Créer un compte administrateur
 
@@ -376,7 +379,7 @@ Sous WSL, le service cron doit être démarré (`sudo service cron start`), et l
 
 ## Interface
 
-Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que la base, par `/api/data/...` : l'API et le backend ne sont pas concernés par l'interface.
+Le front est en Vue 3 (`<script setup>`), Tailwind 3, ECharts et vue-i18n. Il ne lit que la base, par `/api/data/...` : l'API et le backend ne sont pas concernés par l'interface.
 
 ### Pages
 
@@ -520,16 +523,47 @@ Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) 
 
 | Où | Quoi |
 |---|---|
-| `frontend/src/lib/theme.js` | **Seule source des couleurs du site, en clair et en sombre** (`paper`, `wash`, `ink`, `line`, `accent`, `on-accent`, `danger`, `success`…), ombres des graphiques et clé du choix enregistré. Changer une couleur ici change le site, les graphiques et la barre du navigateur |
+| `frontend/src/lib/theme.js` | **Seule source des couleurs du site, en clair et en sombre** (`paper`, `wash`, `ink`, `line`, `accent`, `on-accent`, `danger`, `success`…), ombres des graphiques. Changer une couleur ici change le site, les graphiques et la barre du navigateur |
 | `frontend/tailwind.config.js` | Crée une classe Tailwind par couleur de `theme.js` et génère les variables CSS `:root` (clair) et `html.dark` (sombre). Tailles de texte (`text-body`, `text-lead`, `text-h2`, `text-display`), ombres |
-| `frontend/vite.config.ts` | Plugin `theme` : injecte la clé et les couleurs de fond de `theme.js` dans `index.html`, et signale au build toute couleur écrite en dur dans `src/lib/` (à faire passer par `palette.js`, ou à commenter « couleur fixe ») |
+| `frontend/vite.config.ts` | Plugin `theme` : injecte la clé du thème (`preferences.js`) et les couleurs de fond de `theme.js` dans `index.html`, et signale au build toute couleur écrite en dur dans `src/lib/` (à faire passer par `palette.js`, ou à commenter « couleur fixe ») |
 | `frontend/src/lib/palette.js` | Les 8 couleurs des graphiques (un type d'actif garde la même couleur partout), et les couleurs de fond, d'encre et de filet des graphiques, lues dans `theme.js` avec leur équivalent sombre (`DARK`) |
 | `frontend/src/assets/tailwind.css` | Base : focus clavier visible, animations réduites si le système le demande, largeur du contenu. Aucune couleur |
-| `frontend/src/composables/useTheme.js` | Mode sombre : suit le réglage du système ; le bouton (`components/ui/ThemeToggle.vue`) force clair ou sombre et s'en souvient. `index.html` pose la classe `dark` avant le premier affichage |
+| `frontend/src/composables/useTheme.js` | Mode sombre : suit le réglage du système ; le bouton (`components/ui/ThemeToggle.vue`) force clair ou sombre et s'en souvient (préférence `theme` de `lib/preferences.js`). `index.html` pose la classe `dark` avant le premier affichage |
 | `frontend/src/lib/chartDark.js` | Passe les graphiques en sombre dans `BaseChart.vue` : remplace les couleurs claires de `palette.js` par celles de `DARK` |
 | `frontend/src/lib/sample.js` | Données **fictives** de l'aperçu de la page d'accueil. Ce ne sont pas les tiennes |
 
 Accessibilité : lien « Aller au contenu », menu mobile utilisable au clavier (fermeture avec Échap), focus visible, animation de la courbe d'accueil désactivée avec `prefers-reduced-motion`, et chaque graphique a une version tableau.
+
+### Langues
+
+Le site est proposé en **français** (langue par défaut et de secours), **anglais** et **thaï**. Tous les textes sont dans `frontend/src/i18n/`, un fichier par langue, avec exactement les mêmes clés.
+
+```
+              i18n/index.js                          i18n/fr.json · en.json · th.json
+   (liste des langues, langue de départ)              (mêmes clés, un texte chacune)
+                     └─────────────────┬───────────────────┘
+                                       ▼
+                     vue-i18n : langue active (mémorisée, lib/preferences.js)
+      ┌──────────────────┬─────────────┴──────┬──────────────────────┐
+      ▼                  ▼                    ▼                      ▼
+composants Vue      routeur              lib/format.js          LanguageSelect.vue
+t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-tête)
+                                         dans la langue active
+```
+
+| Où | Quoi |
+|---|---|
+| `frontend/src/i18n/index.js` | `LANGUAGES` : code, nom dans la langue elle-même, réglage des nombres et dates (`intl`). Le thaï impose le calendrier grégorien (sinon 2026 s'écrirait 2569). Langue de départ : choix enregistré, sinon celle du navigateur, sinon le français |
+| `frontend/src/i18n/fr.json`, `en.json`, `th.json` | Les textes, rangés par rubrique (`nav`, `footer`, `chartsMenu`, `pages`…). Un texte avec une valeur : `"legal": "© {year} Overfolio…"`, appelé par `t('footer.legal', { year })` |
+| `frontend/src/lib/format.js` | Montants, pourcentages et dates dans la langue active. Le « 1er » du mois et l'écriture « 12,5 k€ » ne s'appliquent qu'en français |
+| `frontend/src/App.vue` | Au changement de langue, la page est réaffichée (`<router-view :key="locale">`) pour que tout soit refait dans la nouvelle langue |
+| `frontend/vite.config.ts` | Plugin `langues` : le build s'arrête si une clé existe dans une langue et pas dans une autre |
+
+**Écrire un texte** : jamais de phrase en dur dans un composant ou un graphique. Ajouter la clé dans les **trois** fichiers, puis `{{ t('rubrique.cle') }}` dans le template (`const { t } = useI18n()`), ou `t()` importé de `i18n/index.js` hors composant. Les données de ta feuille (instruments, types d'actifs, colonnes) ne sont pas traduites.
+
+**Ajouter une langue** : une entrée dans `LANGUAGES` et un fichier `<code>.json` avec toutes les clés.
+
+**Avancement** : en-tête, menu Graphiques, pied de page, titres des onglets et formats des nombres et dates sont traduits. Les pages (accueil, GoogleSheet, graphiques, simulation, connexion) le seront une par une ; d'ici là, leurs textes restent en français. Les traductions thaïes sont à faire relire par une personne qui parle thaï.
 
 ## Commandes utiles
 

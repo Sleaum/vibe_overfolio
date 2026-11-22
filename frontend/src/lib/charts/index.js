@@ -3,6 +3,7 @@
 // - GROUPS : les pages qui réunissent plusieurs graphiques (Portfolio Flow, Enveloppes, Volatilité), chacun dans une carte.
 // - CHARTS : tous les graphiques qui ont leur propre page /graphiques/<slug> (Flux du budget et ceux des GROUPS).
 // - MENU : les entrées du menu de gauche (GraphiquesLayout.vue), dans l'ordre d'affichage ; /graphiques ouvre la première.
+//   Leur nom est une clé de traduction (titleKey → i18n/*.json, rubrique chartsMenu).
 // Pour ajouter un graphique : créer un fichier de spécification (voir budgetFlow.js), puis l'ajouter à un groupe
 // (il apparaît sur la page du groupe) ou à CHARTS avec une entrée dans MENU.
 
@@ -34,37 +35,37 @@ export const MENU = [
   {
     key: PORTFOLIO_FLOW.key,
     to: PORTFOLIO_FLOW.to,
-    title: 'Flow',
+    titleKey: 'chartsMenu.flow',
     summary: 'L’historique de ton patrimoine mois par mois : devises, répartition, évolution par type d’actif, variation, entrées et sorties, tendance et objectifs.',
   },
   {
     key: 'portfolio-snapshot',
     to: '/portfolio-snapshot',
-    title: 'Snapshot',
+    titleKey: 'chartsMenu.snapshot',
     summary: 'Ton patrimoine aujourd’hui : brut, net, variation de l’année et du mois, détail type d’actif par type d’actif.',
   },
   {
     key: ENVELOPES.key,
     to: ENVELOPES.to,
-    title: ENVELOPES.title,
+    titleKey: 'chartsMenu.envelopes',
     summary: 'Tes enveloppes de placement (CTO, PEA, PER, PEE) : contenu, évolution, sous-types et zones.',
   },
   {
     key: 'strategie',
     to: '/strategie',
-    title: 'Strategy',
+    titleKey: 'chartsMenu.strategy',
     summary: 'Tes actions en anneaux à deux niveaux : secteur, moat, localisation, note S&P, business et place de cotation.',
   },
   {
     key: VOLATILITY.key,
     to: VOLATILITY.to,
-    title: VOLATILITY.title,
+    titleKey: 'chartsMenu.volatility',
     summary: 'De combien le prix de chacun de tes placements a bougé sur 1 mois, 3 mois et 1 an.',
   },
   {
     key: budgetFlow.slug,
     to: { name: 'ChartPage', params: { slug: budgetFlow.slug } },
-    title: 'Budget',
+    titleKey: 'chartsMenu.budget',
     summary: budgetFlow.summary,
   },
 ]

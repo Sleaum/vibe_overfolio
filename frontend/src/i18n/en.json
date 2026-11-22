@@ -1,0 +1,55 @@
+{
+  "common": {
+    "yes": "yes",
+    "no": "no"
+  },
+  "app": {
+    "skipLink": "Skip to content",
+    "home": "Overfolio, back to the home page"
+  },
+  "nav": {
+    "main": "Main navigation",
+    "mainMobile": "Main navigation (mobile)",
+    "sheet": "GoogleSheet",
+    "charts": "Charts",
+    "simulation": "Simulation",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "theme": {
+    "toDark": "Switch to dark mode",
+    "toLight": "Switch to light mode",
+    "dark": "Dark mode",
+    "light": "Light mode"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "footer": {
+    "tagline": "Your Google Sheet, turned into charts: how your wealth is spread and how it grows.",
+    "pages": "Pages",
+    "pagesLabel": "Site pages",
+    "legal": "© {year} Overfolio. A wealth-tracking tool: it gives no investment advice or recommendations."
+  },
+  "chartsMenu": {
+    "label": "Charts",
+    "flow": "Flow",
+    "snapshot": "Snapshot",
+    "envelopes": "Envelopes",
+    "strategy": "Strategy",
+    "volatility": "Volatility",
+    "budget": "Budget"
+  },
+  "pages": {
+    "home": "Your wealth in charts",
+    "login": "Sign in",
+    "sheet": "GoogleSheet",
+    "flow": "Portfolio Flow",
+    "snapshot": "Portfolio Snapshot",
+    "strategy": "Brokerage strategy",
+    "envelopes": "Envelopes",
+    "volatility": "Volatility",
+    "simulation": "Simulation",
+    "notFound": "Page not found"
+  }
+}

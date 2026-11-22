@@ -2,6 +2,7 @@
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "allowJs": true, /* les fichiers .ts importent des modules .js (i18n, lib) ; ils ne sont pas vérifiés */
 
     /* Linting */
     "strict": true,

@@ -192,9 +192,9 @@ import { DataError } from '../lib/aggregate.js'
 import { fanOption } from '../lib/charts/simulationFan.js'
 import { capitalize, euro, formatDateLong, formatMonthYear, percent } from '../lib/format.js'
 import { assumptionFor, averageContribution, monthsBetween, readGoals, readPortfolio } from '../lib/simulation.js'
+import { readPreference, writePreference } from '../lib/preferences.js'
 
 const RUNS = 5000
-const STORAGE_KEY = 'overfolio.simulation.v1'
 const UNITS = [
   { value: 'real', label: 'Euros d’aujourd’hui' },
   { value: 'nominal', label: 'Euros courants' },
@@ -306,7 +306,7 @@ const sumAssets = () => start.value.assets.reduce((sum, asset) => sum + asset.am
 function load() {
   const base = defaults()
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
+    const saved = JSON.parse(readPreference('simulation') ?? 'null')
     if (saved && typeof saved === 'object') {
       for (const key of Object.keys(base)) if (key !== 'assets' && saved[key] !== undefined) base[key] = saved[key]
       for (const name of Object.keys(base.assets)) if (saved.assets?.[name]) Object.assign(base.assets[name], saved.assets[name])
@@ -319,11 +319,7 @@ function load() {
 }
 
 function resetSettings() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // rien à faire
-  }
+  writePreference('simulation', null)
   Object.assign(settings, defaults())
   unit.value = settings.real ? 'real' : 'nominal'
 }
@@ -405,11 +401,7 @@ watch(
   (p) => {
     clearTimeout(timer)
     timer = setTimeout(() => run(p), result.value ? 350 : 0)
-    try {
-      if (settings.goalDate) localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-    } catch {
-      // stockage indisponible : la page marche quand même
-    }
+    if (settings.goalDate) writePreference('simulation', JSON.stringify(settings))
   },
   { deep: true },
 )

@@ -1,16 +1,14 @@
-// Source unique des deux modes, clair et sombre : chaque valeur n'est écrite qu'ici.
+// Source unique des couleurs des deux modes, clair et sombre : chaque valeur n'est écrite qu'ici.
 //
 // Qui lit ce fichier :
 // - tailwind.config.js : crée les couleurs Tailwind (bg-paper, text-ink…) et génère les variables CSS
 //   de :root (clair) et html.dark (sombre) ;
-// - vite.config.ts : injecte la clé et les couleurs de fond dans index.html (script lancé avant l'affichage) ;
+// - vite.config.ts : injecte les couleurs de fond dans index.html (script lancé avant l'affichage) ;
 // - lib/palette.js : couleurs des graphiques et table de conversion vers le sombre ;
-// - composables/useTheme.js : clé de stockage et couleur de la barre du navigateur.
+// - composables/useTheme.js : couleur de la barre du navigateur.
+// La clé du choix enregistré est dans lib/preferences.js, avec les autres préférences.
 //
 // Pas d'import dans ce fichier : il est lu aussi bien par Node (configs) que par le navigateur.
-
-/** Clé du choix enregistré dans le navigateur (localStorage) : 'light', 'dark', ou absente = suivre le système. */
-export const STORAGE_KEY = 'overfolio-theme'
 
 /**
  * Couleurs du site, en hexadécimal. Le nom devient la classe Tailwind (`ink-2` → `text-ink-2`).
