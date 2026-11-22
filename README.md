@@ -53,7 +53,8 @@ overfolio/
 │       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue)
 │       │   ├── landing/            # sections de la page de présentation
 │       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard
-│       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes)
+│       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes),
+│       │                           #   menu.js (noms des menus, toujours en anglais)
 │       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
 │       └── lib/
 │           ├── api.js              # appels /api/data/...
@@ -63,8 +64,8 @@ overfolio/
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
 │           ├── chartDark.js        # passe un graphique en sombre
 │           ├── simulation.js, simulation.worker.js         # calculs de la page Simulation
-│           ├── snapshot.js         # calculs de la page Portfolio Snapshot
-│           ├── strategy.js         # calculs de la page Stratégie CTO
+│           ├── snapshot.js         # calculs de la page Snapshot
+│           ├── strategy.js         # calculs de la page Strategy
 │           ├── sample.js           # données FICTIVES de la page de présentation
 │           └── charts/             # une spécification par graphique, index.js (liste et cartes) ; aides : sunburst, assetDonut, evolution
 ├── nginx/
@@ -184,7 +185,7 @@ docker compose up --build -d
 |---|---|
 | http://localhost | Page de présentation : promesse, aperçu, étapes, questions |
 | http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Tout actualiser). L'ancienne adresse `/source` fonctionne toujours |
-| http://localhost/graphiques | Menu à gauche : Flow, Snapshot, Enveloppes, Strategy, Volatilité et Budget ; la page choisie s'affiche à droite (Portfolio Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
+| http://localhost/graphiques | Rubrique Charts. Menu à gauche : Flow, Snapshot, Envelopes, Strategy, Volatility et Budget ; la page choisie s'affiche à droite (Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
 | http://localhost/simulation | Simulation de Monte-Carlo du patrimoine (page à part, lien « Simulation » de l'en-tête) |
 | http://localhost/admin/ | Admin Django |
 
@@ -194,7 +195,7 @@ Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx
 
 1. **Brancher le Google Sheet** : page GoogleSheet (`/sheet`), bloc « Connexion à Google Sheets » (ou `.env`, voir « Google Sheets »).
 2. **Copier les données en base** : bouton **Tout actualiser** de la même page (ou `./init.sh --sync`). Les graphiques lisent la base, pas le Google Sheet : sans cette étape, ils restent vides. Recommencer après chaque mise à jour de la feuille, ou automatiser (« Synchronisation automatique »).
-3. **Lire les graphiques** : rubrique **Graphiques**, menu à gauche (Flow, Snapshot, Enveloppes, Strategy, Volatilité, Budget). Chaque graphique a une vue Tableau et une page d'explication (source des chiffres).
+3. **Lire les graphiques** : rubrique **Charts**, menu à gauche (Flow, Snapshot, Envelopes, Strategy, Volatility, Budget). Chaque graphique a une vue Tableau et une page d'explication (source des chiffres).
 4. **Projeter** : page **Simulation**, réglages dans la page.
 5. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur.
 6. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Tout le site suit la langue : textes, graphiques, messages d'erreur, nombres et dates (voir « Langues »).
@@ -230,11 +231,11 @@ Onglets utilisés :
 
 | Onglet | Contenu | Utilisé par |
 |---|---|---|
-| `portfolio` | Positions actuelles (en-tête en ligne 2, la ligne 1 est une synthèse) | Portfolio Snapshot, Stratégie CTO |
-| `_history` | Historique des relevés (et tes objectifs : lignes avec seulement une date et un montant) | Portfolio Flow, Enveloppes, Volatilité, variations de Portfolio Snapshot |
-| `inout` | Entrées et sorties d'argent (colonnes date, in, out, tax) | Graphique Entrées, sorties et impôts de Portfolio Flow |
+| `portfolio` | Positions actuelles (en-tête en ligne 2, la ligne 1 est une synthèse) | Snapshot, Strategy |
+| `_history` | Historique des relevés (et tes objectifs : lignes avec seulement une date et un montant) | Flow, Envelopes, Volatility, variations de Snapshot |
+| `inout` | Entrées et sorties d'argent (colonnes date, in, out, tax) | Graphique Entrées, sorties et impôts de Flow |
 | `budget` | Budget : de quelle source vers quelle destination | Flux du budget |
-| `stock` | Valeurs suivies | Stratégie CTO (secteur, moat, note…), page GoogleSheet |
+| `stock` | Valeurs suivies | Strategy (secteur, moat, note…), page GoogleSheet |
 
 La lecture détecte seule la ligne d'en-tête. Les nombres sont lus en valeurs brutes (pas de format régional ni de symbole monétaire).
 
@@ -390,14 +391,14 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3, ECharts et vue-i18n. Il ne
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, questions fréquentes |
 | `/sheet` | `views/SourcePage.vue` | Menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
-| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Flow, Snapshot, Enveloppes, Strategy, Volatilité, Budget), page choisie à droite. `/graphiques` ouvre Portfolio Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
-| `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Portfolio Flow, Enveloppes ou Volatilité (leur fil d'Ariane passe par leur page) |
-| `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les 6 graphiques « Portfolio Flow » sur une seule page, avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
+| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Flow, Snapshot, Envelopes, Strategy, Volatility, Budget), page choisie à droite. `/graphiques` ouvre Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
+| `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Flow, Envelopes ou Volatility (leur fil d'Ariane passe par leur page) |
+| `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les 6 graphiques de Flow sur une seule page, avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone |
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Une bulle par placement : montant détenu et variation du prix unitaire sur 1 mois, 3 mois et 1 an |
 | `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
-| `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `lib/strategy.js` et `lib/charts/sunburst.js` | Stratégie CTO : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
+| `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `lib/strategy.js` et `lib/charts/sunburst.js` | Strategy : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
 | `/newpage` | `views/NewPage.vue` | Connexion, au style du site (carte à filet fin, bleu d'accent, clair ou sombre). La connexion est encore une simulation : rien n'est envoyé au serveur |
 
@@ -444,7 +445,7 @@ La classe `dark` sur `<html>` décide de tout : les composants n'utilisent que d
 
 ### Les graphiques
 
-Quatorze graphiques ont leur propre page `/graphiques/<nom>` : Flux du budget et ceux de Portfolio Flow, Enveloppes et Volatilité. Chacun est un fichier de `frontend/src/lib/charts/`. Les noms de colonnes doivent être ceux de la table ; la casse, les accents et les espaces sont ignorés.
+Quatorze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de Flow, Envelopes et Volatility. Chacun est un fichier de `frontend/src/lib/charts/`. Les noms de colonnes doivent être ceux de la table ; la casse, les accents et les espaces sont ignorés.
 
 | `<nom>` dans l'adresse | Table | Colonnes lues |
 |---|---|---|
@@ -462,13 +463,13 @@ Quatorze graphiques ont leur propre page `/graphiques/<nom>` : Flux du budget et
 
 Les graphiques de `patrimoine-devises` à `patrimoine-tendance` forment la page `/portfolio-flow`. Ils prennent, pour chaque mois, le **dernier relevé** du mois (plusieurs relevés par mois ne s'additionnent pas). Une date isolée, à plus de 6 mois des autres (un objectif en 2039, un vieux relevé), est écartée des graphiques mensuels, et la page le signale ; le graphique `patrimoine-tendance` garde toutes les dates et affiche les objectifs à part.
 
-Les anciens graphiques à part (évolution du patrimoine, répartition par type d'actif, par zone, par compte, plus grosses positions) ont été retirés : Portfolio Snapshot et Stratégie CTO couvrent la répartition. Le fichier `lib/charts/evolution.js` reste, mais seulement comme courbe de l'aperçu de la page d'accueil.
+Les anciens graphiques à part (évolution du patrimoine, répartition par type d'actif, par zone, par compte, plus grosses positions) ont été retirés : Snapshot et Strategy couvrent la répartition. Le fichier `lib/charts/evolution.js` reste, mais seulement comme courbe de l'aperçu de la page d'accueil.
 
 Les totaux utilisent uniquement `Assets Master Currency` (et `Liabilities Master Currency`) : `Currency Price` est la devise de cotation et `Equity` mélange plusieurs devises, donc aucun des deux ne sert à additionner.
 
 Si une colonne manque, la page du graphique le dit en clair et renvoie vers la page GoogleSheet. Si la table n'a jamais été synchronisée, elle propose d'ouvrir l'onglet correspondant pour cliquer sur Tout actualiser.
 
-### Portfolio Snapshot
+### Snapshot
 
 La page `/portfolio-snapshot` lit la table `portfolio` (et `_history` pour deux chiffres). Tous les calculs sont dans `frontend/src/lib/snapshot.js`.
 
@@ -481,9 +482,9 @@ La page `/portfolio-snapshot` lit la table `portfolio` (et `_history` pour deux 
 
 Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en bas les colonnes réellement lues pour chaque découpage, ce qui permet de vérifier d'un coup d'œil. Pour accepter un autre nom de colonne, ajouter ce nom dans la liste `DIMENSIONS` de `snapshot.js`. La carte du monde de Looker Studio est remplacée par une liste de zones : une carte demanderait un fichier de fonds de carte, donc une nouvelle ressource.
 
-### Stratégie CTO
+### Strategy
 
-La page `/strategie` reprend la page « Stratégie CTO » de Looker Studio : sept anneaux à deux niveaux (graphiques « sunburst » d'ECharts, sans bibliothèque en plus). L'anneau intérieur donne les catégories, l'anneau extérieur leur détail, en nuances de la même couleur. Tous les calculs sont dans `frontend/src/lib/strategy.js`.
+La page `/strategie` reprend la page « Strategy » de Looker Studio : sept anneaux à deux niveaux (graphiques « sunburst » d'ECharts, sans bibliothèque en plus). L'anneau intérieur donne les catégories, l'anneau extérieur leur détail, en nuances de la même couleur. Tous les calculs sont dans `frontend/src/lib/strategy.js`.
 
 | Anneau | Intérieur | Extérieur | Colonnes cherchées (la première trouvée est lue) |
 |---|---|---|---|
@@ -566,7 +567,9 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 
 **Ajouter une langue** : une entrée dans `LANGUAGES` et un fichier `<code>.json` avec toutes les clés.
 
-**Couverture** : tout le site est traduit, pages, graphiques (titres, explications, légendes, infobulles, vues tableau, textes pour les lecteurs d'écran), messages d'erreur du serveur, nombres, dates et pourcentages. Restent tels quels : les données de ta feuille, les noms de colonnes et d'onglets, les noms des rubriques choisis en anglais (Flow, Snapshot, Strategy, Budget) et les messages destinés aux développeurs (console, ligne de commande). Les traductions thaïes sont à faire relire par une personne qui parle thaï.
+**Couverture** : tout le site est traduit, pages, graphiques (titres, explications, légendes, infobulles, vues tableau, textes pour les lecteurs d'écran), messages d'erreur du serveur, nombres, dates et pourcentages. Restent tels quels : les données de ta feuille, les noms de colonnes et d'onglets, les noms des menus et les messages destinés aux développeurs (console, ligne de commande). Les traductions thaïes sont à faire relire par une personne qui parle thaï.
+
+**Menus** : leurs noms sont toujours en anglais, dans toutes les langues : en-tête et pied de page (GoogleSheet, Charts, Simulation) et menu de la rubrique Charts (Flow, Snapshot, Envelopes, Strategy, Volatility, Budget). Ils sont dans `frontend/src/i18n/menu.js` (`MENU_NAMES`), pas dans les fichiers de langue. Tout le reste est traduit, titres des pages compris (« Historique du patrimoine » sous le menu Flow, « Patrimoine aujourd’hui » sous Snapshot…). Une phrase qui renvoie à un menu reprend son nom anglais (« la page Charts »).
 
 **Dans le code** : un graphique déclare son titre, son résumé, son explication et sa source par des getters (`get title() { return t('charts.<nom>.title') }`), lus au moment de l'affichage ; les paragraphes sont des listes (`tList()`). Un texte au pluriel s'écrit « un | plusieurs » et s'appelle `t('cle', { count }, count)`. Un paragraphe qui contient un lien utilise `<i18n-t keypath="…">` avec un emplacement par lien, pour que le lien tombe au bon endroit dans chaque langue.
 

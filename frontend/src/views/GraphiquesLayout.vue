@@ -7,8 +7,8 @@
 <template>
   <div class="page-container py-8 lg:flex lg:items-start lg:gap-10 lg:py-12">
     <aside class="lg:sticky lg:top-24 lg:w-56 lg:shrink-0">
-      <nav :aria-label="t('chartsMenu.label')">
-        <p class="hidden px-3 text-xs font-semibold uppercase tracking-wide text-ink-3 lg:block">{{ t('chartsMenu.label') }}</p>
+      <nav :aria-label="MENU_NAMES.charts">
+        <p class="hidden px-3 text-xs font-semibold uppercase tracking-wide text-ink-3 lg:block">{{ MENU_NAMES.charts }}</p>
         <ul ref="list" class="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:-mx-8 sm:px-8 lg:mx-0 lg:mt-3 lg:flex-col lg:gap-1 lg:overflow-visible lg:p-0">
           <li v-for="item in MENU" :key="item.key" class="shrink-0">
             <router-link
@@ -26,7 +26,7 @@
                 :class="item.key === activeKey ? 'bg-accent' : 'bg-transparent'"
                 aria-hidden="true"
               />
-              {{ t(item.titleKey) }}
+              {{ item.title }}
             </router-link>
           </li>
         </ul>
@@ -41,11 +41,10 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { MENU_NAMES } from '../i18n/menu.js'
 import { useRoute } from 'vue-router'
 import { MENU, menuKeyFor } from '../lib/charts/index.js'
 
-const { t } = useI18n()
 const route = useRoute()
 const activeKey = computed(() => menuKeyFor(route))
 
