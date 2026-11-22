@@ -35,7 +35,7 @@ export const VALUE_NAMES = ['Assets Master Currency']
 export const MAX_CATEGORIES = 8 // au-delà, le reste est regroupé en « Autres (n) »
 export const MAX_CHILDREN = 6 // anneau extérieur : par catégorie, les 6 plus gros puis « Autres (n) »
 export const UNKNOWN = 'Non renseigné'
-export const UNKNOWN_COLOR = '#c4c2bc' // gris clair : se distingue du gris « Autres » (CONTEXT)
+export const UNKNOWN_COLOR = '#c4c2bc' // couleur fixe : gris clair : se distingue du gris « Autres » (CONTEXT)
 
 // Échelle des notes S&P, de la meilleure à la moins bonne : l'anneau « Note S&P » suit cet ordre plutôt que la taille
 const RATING_SCALE = ['AAA', 'AA+', 'AA', 'AA-', 'A+', 'A', 'A-', 'BBB+', 'BBB', 'BBB-', 'BB+', 'BB', 'BB-', 'B+', 'B', 'B-', 'CCC+', 'CCC', 'CCC-', 'CC', 'C', 'D']

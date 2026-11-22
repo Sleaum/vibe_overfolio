@@ -4,7 +4,7 @@
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
 import { euro, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
-import { SURFACE } from '../palette.js'
+import { HOVER_SHADE, SURFACE } from '../palette.js'
 import { assetMonthly, monthsSubtitle, skippedNote } from './flowData.js'
 
 export function allocationOption(model) {
@@ -20,7 +20,7 @@ export function allocationOption(model) {
     legend: legendTop(series.map((serie) => serie.label)),
     tooltip: tooltipBox({
       trigger: 'axis',
-      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(31, 35, 40, 0.04)' } },
+      axisPointer: { type: 'shadow', shadowStyle: { color: HOVER_SHADE } },
       formatter: (params) => {
         const m = [].concat(params)[0]?.dataIndex
         if (months[m] === undefined) return ''

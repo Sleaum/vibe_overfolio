@@ -13,7 +13,7 @@ import { axisLabelStyle, baseOption, tooltipBox, tooltipHtml } from '../chartThe
 import { toIsoDate } from '../dates.js'
 import { capitalize, euro, formatDateLong, plural } from '../format.js'
 import { envelopeLabel } from './envelopes.js'
-import { AXIS, GRID, INK_2, assignAssetColors } from '../palette.js'
+import { AXIS, GRID, INK_2, SURFACE, assignAssetColors } from '../palette.js'
 import { compactNumber, monthEnds, signedPercent } from './flowData.js'
 
 const NOT_QUOTED = new Set(['fiat', 'real estate', 'depreciating', 'exotic', 'cash', 'liquidités'])
@@ -156,7 +156,7 @@ export function bubbleOption(lines) {
     series: assets.map((name) => ({
       name: capitalize(name),
       type: 'scatter',
-      itemStyle: { color: colors.get(name)?.color, opacity: 0.85, borderColor: '#fff', borderWidth: 1 },
+      itemStyle: { color: colors.get(name)?.color, opacity: 0.85, borderColor: SURFACE, borderWidth: 1 },
       emphasis: { focus: 'series' },
       data: lines
         .filter((line) => line.asset === name)
