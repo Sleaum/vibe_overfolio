@@ -684,6 +684,9 @@ docker run --rm \
 
 # Accès à la base
 docker compose exec db psql -U overfoliouser -d overfoliodb
+
+# Failles connues dans les paquets Python du backend (versions de backend/requirements.txt)
+pipx run pip-audit -r backend/requirements.txt
 ```
 
 ## Dépannage
@@ -722,6 +725,7 @@ docker compose exec db psql -U overfoliouser -d overfoliodb
 - `.env` ne doit jamais être commité, ni les fichiers `env` ou `backend/overfolio/.env`, ni une clé SSH ou un fichier JSON de compte de service : le `.gitignore` de la racine les exclut. Un fichier déjà suivi par git n'est pas concerné par le `.gitignore` : le retirer avec `git rm --cached <fichier>`. Si une clé privée a été exposée (capture d'écran, commit), la révoquer dans Google Cloud (IAM → Comptes de service → Clés) et en générer une nouvelle.
 - Le mode « lien public » exige une feuille lisible par quiconque a son lien : elle contient l'intégralité du patrimoine. Pour une feuille privée, utilise un compte de service et partage-la seulement avec `CLIENT_EMAIL`.
 - Passer à `DEBUG=False` et restreindre `ALLOWED_HOSTS` en production.
+- Paquets du backend : toutes les versions sont fixées dans `backend/requirements.txt` (Django 5.2, version à support long jusqu'en avril 2028). Vérifier régulièrement les failles connues avec `pip-audit` (voir « Commandes utiles »), puis monter les versions et reconstruire l'image (`./init.sh`).
 - Les routes `/api/sheet`, `/api/data/` et `/api/sheet-config/` sont publiques : les restreindre avant toute exposition sur Internet.
 - Le PDF du bouton PDF est fabriqué dans le navigateur et contient tout ton patrimoine : rien n'est envoyé au serveur, mais le fichier téléchargé est à garder comme une donnée sensible.
 
