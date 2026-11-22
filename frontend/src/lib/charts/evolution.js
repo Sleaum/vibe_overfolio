@@ -4,6 +4,7 @@
 import { baseOption, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider, axisLabelStyle } from '../chartTheme.js'
 import { axisEuroFormatter, euro, formatDateLong, formatDayMonth, formatMonthYear } from '../format.js'
 import { AXIS, CONTEXT, FONT, INK, SERIES, SURFACE } from '../palette.js'
+import { t } from '../../i18n/index.js'
 
 const DAY = 86_400_000
 
@@ -31,15 +32,15 @@ export function evolutionOption(points, { preview = false } = {}) {
     ...extra,
   })
 
-  const net = line('Patrimoine net', SERIES[0], points.map((p) => [p.ts, Math.round(p.net)]), {
+  const net = line(t('chart.netWorth'), SERIES[0], points.map((p) => [p.ts, Math.round(p.net)]), {
     areaStyle: { color: SERIES[0], opacity: 0.1 },
     z: 3,
   })
-  const assets = line('Actifs', CONTEXT, points.map((p) => [p.ts, Math.round(p.assets)]), { z: 2 })
+  const assets = line(t('chart.assets'), CONTEXT, points.map((p) => [p.ts, Math.round(p.assets)]), { z: 2 })
 
   // Dernier point : pastille avec anneau blanc, et sa valeur écrite à droite (sauf dans l'aperçu)
   const endPoint = {
-    name: 'Dernier point',
+    name: t('chart.lastPoint'),
     type: 'scatter',
     data: [[last.ts, Math.round(last.net)]],
     symbolSize: 10,
@@ -68,7 +69,7 @@ export function evolutionOption(points, { preview = false } = {}) {
       bottom: zoom ? 44 : 8,
       containLabel: true,
     },
-    legend: preview ? undefined : legendTop(['Patrimoine net', 'Actifs'], { line: true }),
+    legend: preview ? undefined : legendTop([t('chart.netWorth'), t('chart.assets')], { line: true }),
     tooltip: tooltipBox({
       trigger: 'axis',
       axisPointer: { type: 'line', lineStyle: { color: AXIS, width: 1, type: 'solid' } },
@@ -78,11 +79,11 @@ export function evolutionOption(points, { preview = false } = {}) {
         const ts = lines[0].value[0]
         const point = byTimestamp.get(ts)
         if (!point) return ''
-        const rows = [{ color: SERIES[0], label: 'Patrimoine net', value: euro(point.net), strong: true }]
+        const rows = [{ color: SERIES[0], label: t('chart.netWorth'), value: euro(point.net), strong: true }]
         if (!preview) {
           rows.push(
-            { color: CONTEXT, label: 'Actifs', value: euro(point.assets) },
-            { label: 'Dettes', value: euro(point.liabilities) },
+            { color: CONTEXT, label: t('chart.assets'), value: euro(point.assets) },
+            { label: t('chart.liabilities'), value: euro(point.liabilities) },
           )
         }
         return tooltipHtml(formatDateLong(ts), rows)

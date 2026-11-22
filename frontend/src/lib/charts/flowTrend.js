@@ -9,11 +9,13 @@ import { axisEuroFormatter, euro, formatDateLong, formatDateNumeric, formatMonth
 import { AXIS, SERIES } from '../palette.js'
 import { isoToTimestamp, toIsoDate } from '../dates.js'
 import { findCurrencyColumn, linearTrend } from './flowData.js'
+import { t, tList } from '../../i18n/index.js'
 
 const DAY = 86_400_000
-const BARS = 'Patrimoine en euros'
-const TREND = 'Tendance'
-const GOALS = 'Objectifs'
+// Noms des séries (légende, infobulle), dans la langue active
+const BARS = () => t('charts.trend.bars')
+const TREND = () => t('charts.trend.trend')
+const GOALS = () => t('charts.trend.goals')
 
 /**
  * Sépare les relevés des objectifs. Objectif : une ligne datée, avec un montant, mais sans type d'actif ni instrument
@@ -58,7 +60,7 @@ export function trendOption(points, trend, goals = []) {
   const zoom = points.length > 24 || goals.length > 0
   const max = Math.max(...points.map(([, value]) => value), trend.at(last), ...goals.map(([, value]) => value))
   const byTimestamp = new Map(points)
-  const legend = goals.length ? [BARS, TREND, GOALS] : [BARS, TREND]
+  const legend = goals.length ? [BARS(), TREND(), GOALS()] : [BARS(), TREND()]
 
   return {
     ...baseOption(),
@@ -68,14 +70,14 @@ export function trendOption(points, trend, goals = []) {
       trigger: 'axis',
       axisPointer: { type: 'line', lineStyle: { color: AXIS, width: 1, type: 'solid' } },
       formatter: (params) => {
-        const item = [].concat(params).find((p) => p.seriesName === BARS || p.seriesName === GOALS)
+        const item = [].concat(params).find((p) => p.seriesName === BARS() || p.seriesName === GOALS())
         if (!item) return ''
         const ts = item.value[0]
         const rows = []
-        if (byTimestamp.has(ts)) rows.push({ color: SERIES[0], label: BARS, value: euro(byTimestamp.get(ts)), strong: true })
-        rows.push({ color: SERIES[2], label: TREND, value: euro(trend.at(ts)) })
+        if (byTimestamp.has(ts)) rows.push({ color: SERIES[0], label: BARS(), value: euro(byTimestamp.get(ts)), strong: true })
+        rows.push({ color: SERIES[2], label: TREND(), value: euro(trend.at(ts)) })
         const goal = goals.length ? goalAt(goals, ts) : null
-        if (goal !== null) rows.push({ color: SERIES[1], label: GOALS, value: euro(goal), strong: !byTimestamp.has(ts) })
+        if (goal !== null) rows.push({ color: SERIES[1], label: GOALS(), value: euro(goal), strong: !byTimestamp.has(ts) })
         return tooltipHtml(formatDateLong(ts), rows)
       },
     }),
@@ -90,7 +92,7 @@ export function trendOption(points, trend, goals = []) {
     dataZoom: zoom ? [zoomSlider()] : undefined,
     series: [
       {
-        name: BARS,
+        name: BARS(),
         type: 'bar',
         data: points,
         barMinWidth: 3,
@@ -98,7 +100,7 @@ export function trendOption(points, trend, goals = []) {
         itemStyle: { color: SERIES[0], borderRadius: [2, 2, 0, 0] },
       },
       {
-        name: TREND,
+        name: TREND(),
         type: 'line',
         data: [
           [first, Math.round(trend.at(first))],
@@ -114,7 +116,7 @@ export function trendOption(points, trend, goals = []) {
         ? [
             {
               // Prolongement de la tendance jusqu'au dernier objectif : en pointillés, ce n'est pas une donnée
-              name: TREND,
+              name: TREND(),
               type: 'line',
               data: [
                 [lastPoint, Math.round(trend.at(lastPoint))],
@@ -131,7 +133,7 @@ export function trendOption(points, trend, goals = []) {
       ...(goals.length
         ? [
             {
-              name: GOALS,
+              name: GOALS(),
               type: 'line',
               data: goals,
               symbol: 'diamond',
@@ -148,17 +150,20 @@ export function trendOption(points, trend, goals = []) {
 
 export default {
   slug: 'patrimoine-tendance',
-  title: 'Patrimoine et tendance',
-  summary: 'Ton patrimoine en euros à chaque relevé, avec la droite de tendance.',
+  get title() {
+    return t('charts.trend.title')
+  },
+  get summary() {
+    return t('charts.trend.summary')
+  },
   table: '_history',
   minWidth: 720,
-  explain: [
-    'Chaque barre est le total de tes actifs en euros à la date d’un relevé. La droite est la tendance moyenne de tous les relevés : elle montre le rythme de croissance passé.',
-    'Les losanges orange sont tes objectifs : dans la table _history, ce sont les lignes qui n’ont qu’une date et un montant (ni type d’actif, ni instrument). La tendance est prolongée en pointillés jusqu’au dernier objectif : si elle passe au-dessus d’un losange, ton rythme actuel suffit pour l’atteindre.',
-    'Les objectifs étirent l’axe du temps : le curseur du bas permet de zoomer sur les relevés.',
-  ],
-  source:
-    'Table _history, colonne Date et colonne de montants en euros (EUR, sinon Assets Master Currency), additionnées par date. Les lignes sans Asset ni Instrument sont des objectifs.',
+  get explain() {
+    return tList('charts.trend.explain')
+  },
+  get source() {
+    return t('charts.trend.source')
+  },
 
   build(table) {
     const cols = requireColumns(table, { date: ['Date'] })
@@ -166,8 +171,10 @@ export default {
       findCurrencyColumn(table.columns, 'EUR') ?? findColumn(table.columns, ['Assets Master Currency'])
     if (!valueColumn) {
       throw new DataError(
-        `Colonne de montants en euros introuvable dans la table « ${table?.name ?? '_history'} » : EUR ou Assets Master Currency. ` +
-          `Colonnes disponibles : ${(table?.columns ?? []).join(', ') || 'aucune'}.`,
+        t('charts.trend.noColumn', {
+          table: table?.name ?? '_history',
+          available: (table?.columns ?? []).join(', ') || t('data.none'),
+        }),
       )
     }
 
@@ -177,7 +184,7 @@ export default {
       .filter(([, value]) => value > 0)
       .map(([iso, value]) => [isoToTimestamp(iso), Math.round(value)])
       .sort((a, b) => a[0] - b[0])
-    if (points.length < 2) return { empty: 'Il faut au moins deux relevés dans la table _history pour tracer une tendance.' }
+    if (points.length < 2) return { empty: t('charts.trend.twoRecords') }
 
     const { slope, intercept } = linearTrend(points)
     const trend = { at: (ts) => slope * ts + intercept }
@@ -185,18 +192,23 @@ export default {
     const last = points[points.length - 1]
     const nextGoal = goals.find(([ts]) => ts > last[0]) ?? null
     const goalText = nextGoal
-      ? ` Prochain objectif : ${euro(nextGoal[1])} au ${formatDateLong(nextGoal[0])} ; au rythme de la tendance, tu serais à ${euro(trend.at(nextGoal[0]))}.`
+      ? ` ${t('charts.trend.nextGoal', { goal: euro(nextGoal[1]), date: formatDateLong(nextGoal[0]), projected: euro(trend.at(nextGoal[0])) })}`
       : ''
 
     return {
-      subtitle: `Relevés jusqu’au ${formatDateLong(last[0])}.`,
+      subtitle: t('charts.flow.recordsUntil', { date: formatDateLong(last[0]) }),
       summary:
-        `Patrimoine en euros sur ${points.length} relevés, du ${formatDateLong(points[0][0])} au ${formatDateLong(last[0])}. ` +
-        `Dernier relevé : ${euro(last[1])}. La tendance est de ${euro(perYear)} par an.${goalText}`,
+        t('charts.trend.a11y', {
+          count: points.length,
+          from: formatDateLong(points[0][0]),
+          to: formatDateLong(last[0]),
+          last: euro(last[1]),
+          perYear: euro(perYear),
+        }) + goalText,
       option: trendOption(points, trend, goals),
       height: 380,
       table: {
-        columns: ['Date', 'Patrimoine', 'Tendance', 'Objectif'],
+        columns: [t('chart.date'), t('chart.wealth'), t('charts.trend.trend'), t('charts.trend.goal')],
         numeric: [false, true, true, true],
         rows: [...points.map(([ts, value]) => ({ ts, value, goal: false })), ...goals.map(([ts, value]) => ({ ts, value, goal: true }))]
           .sort((a, b) => b.ts - a.ts)
@@ -208,8 +220,8 @@ export default {
           ]),
       },
       note:
-        `Colonne utilisée : ${valueColumn}. Tendance : ${euro(perYear)} par an en moyenne.` +
-        (goals.length ? ` ${goals.length} objectif${goals.length > 1 ? 's' : ''} (lignes sans Asset ni Instrument).${goalText}` : ''),
+        t('charts.trend.note', { column: valueColumn, perYear: euro(perYear) }) +
+        (goals.length ? ` ${t('charts.trend.goalCount', { count: goals.length }, goals.length)}${goalText}` : ''),
     }
   },
 }

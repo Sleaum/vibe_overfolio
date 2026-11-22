@@ -18,8 +18,16 @@ _NUMBER_RE = re.compile(r"^-?(0|[1-9]\d*)(\.\d+)?$")
 
 
 class SheetError(Exception):
-    """Erreur lisible par l'utilisateur, avec le code HTTP à renvoyer."""
+    """
+    Erreur lisible par l'utilisateur, avec le code HTTP à renvoyer.
+    `code` et `params` permettent au site de l'afficher dans la langue choisie (voir errors.py).
+    """
     status = 500
+
+    def __init__(self, message, code="sheet_error", **params):
+        super().__init__(message)
+        self.code = code
+        self.params = params
 
 
 class SheetConfigError(SheetError):
@@ -60,14 +68,16 @@ def get_client() -> gspread.client.Client:
         raise SheetConfigError(
             "Identifiants Google incomplets, champs manquants : "
             + ", ".join(missing)
-            + ". Complète-les sur la page GoogleSheet."
+            + ". Complète-les sur la page GoogleSheet.",
+            "credentials_incomplete",
+            fields=", ".join(missing),
         )
     try:
         _client = gspread.service_account_from_dict(credentials)
     except Exception as exc:  # clé PEM illisible, etc.
         _client = None
         logger.exception("Initialisation du client Google Sheets impossible")
-        raise SheetConfigError(f"Identifiants Google invalides : {exc}") from exc
+        raise SheetConfigError(f"Identifiants Google invalides : {exc}", "credentials_invalid", detail=str(exc)) from exc
     _client_fingerprint = fingerprint
     return _client
 
@@ -189,14 +199,17 @@ def open_spreadsheet(doc_name: str):
         email = get_credentials().get("client_email") or "le compte de service"
         what = "l'identifiant du document" if sheet_id else f"le nom '{doc_name}'"
         raise SheetNotFound(
-            f"Feuille introuvable (vérifie {what}) ou non partagée avec {email}."
+            f"Feuille introuvable (vérifie {what}) ou non partagée avec {email}.",
+            "sheet_not_found_by_id" if sheet_id else "sheet_not_found_by_name",
+            name=doc_name or "",
+            email=email,
         )
     except gspread.exceptions.APIError as exc:
         logger.warning("Erreur API Google Sheets : %s", exc)
-        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}")
+        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}", "google_api_error", detail=str(exc))
     except RequestException as exc:
         logger.warning("Google Sheets injoignable : %s", exc)
-        raise SheetAPIError(f"Google Sheets est injoignable : {exc}")
+        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
 
 
 def read_worksheet_values(spreadsheet, sheet_name: Optional[str] = None) -> List[List[Any]]:
@@ -206,16 +219,16 @@ def read_worksheet_values(spreadsheet, sheet_name: Optional[str] = None) -> List
             spreadsheet.worksheet(sheet_name) if sheet_name else spreadsheet.get_worksheet(0)
         )
         if worksheet is None:
-            raise SheetNotFound("Le document ne contient aucun onglet.")
+            raise SheetNotFound("Le document ne contient aucun onglet.", "no_tabs")
         return _read_values(worksheet)
     except gspread.exceptions.WorksheetNotFound:
-        raise SheetNotFound(f"Onglet '{sheet_name}' introuvable.")
+        raise SheetNotFound(f"Onglet '{sheet_name}' introuvable.", "tab_not_found", tab=sheet_name)
     except gspread.exceptions.APIError as exc:
         logger.warning("Erreur API Google Sheets : %s", exc)
-        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}")
+        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}", "google_api_error", detail=str(exc))
     except RequestException as exc:
         logger.warning("Google Sheets injoignable : %s", exc)
-        raise SheetAPIError(f"Google Sheets est injoignable : {exc}")
+        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
 
 
 def get_all_rows(

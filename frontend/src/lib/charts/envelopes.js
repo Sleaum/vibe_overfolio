@@ -5,7 +5,7 @@
 // Quatre graphiques : anneau enveloppe → instrument, évolution de chaque enveloppe, répartition par sous-type, par zone.
 
 import { DataError, findColumn, latestDate, requireColumns, rowsOf, toLabel, toNumber } from '../aggregate.js'
-import { capitalize, euro, formatDateLong, formatMonthKey, percent, plural } from '../format.js'
+import { capitalize, euro, formatDateLong, formatMonthKey, percent } from '../format.js'
 import { CONTEXT, SERIES } from '../palette.js'
 import { toIsoDate } from '../dates.js'
 import { tint } from '../strategy.js'
@@ -14,6 +14,7 @@ import { dataSubtitle } from './common.js'
 import { assetsLinesOption } from './flowAssets.js'
 import { monthEnds, monthsSubtitle, skippedNote } from './flowData.js'
 import { sunburstOption } from './sunburst.js'
+import { t, tList } from '../../i18n/index.js'
 
 const ENVELOPE_NAMES = ['Envelope', 'Enveloppe', 'Account', 'Compte', 'Wrapper']
 const ASSET_NAMES = ['Asset']
@@ -69,7 +70,7 @@ export function envelopeBreakdown(rows, cols, detailColumn, labelOf = null) {
     const value = toNumber(row[cols.value])
     if (!keep.has(key) || !(value > 0)) continue
     const group = groups.get(key) ?? { name: envelopeLabel(row[cols.envelope]), total: 0, parts: new Map() }
-    const part = labelOf ? labelOf(row) : detailColumn ? toLabel(row[detailColumn]) : 'Total'
+    const part = labelOf ? labelOf(row) : detailColumn ? toLabel(row[detailColumn]) : t('chart.total')
     group.total += value
     group.parts.set(part, (group.parts.get(part) ?? 0) + value)
     groups.set(key, group)
@@ -78,7 +79,7 @@ export function envelopeBreakdown(rows, cols, detailColumn, labelOf = null) {
 }
 
 const noEnvelope = (table) => ({
-  empty: `Aucune enveloppe de placement dans la table ${table?.name ?? ''} : il faut une colonne Envelope (ou Account) et au moins une ligne d’actions, d’ETF ou de fonds.`,
+  empty: t('charts.envelopes.none', { table: table?.name ?? '' }),
 })
 
 /* ---------- 1. Anneau enveloppe → instrument ---------- */
@@ -122,16 +123,19 @@ function instrumentLabel(row, cols) {
 
 export const envelopeInstruments = {
   slug: 'enveloppes-instruments',
-  title: 'Enveloppes et instruments',
-  summary: 'Le poids de chaque enveloppe de placement, et ce qu’elle contient.',
+  get title() {
+    return t('charts.envelopeInstruments.title')
+  },
+  get summary() {
+    return t('charts.envelopeInstruments.summary')
+  },
   table: 'portfolio',
-  explain: [
-    'L’anneau intérieur montre le poids de chaque enveloppe de placement (CTO, PEA, PER, PEE…). L’anneau extérieur détaille ce qu’elle contient, instrument par instrument, dans des nuances de la même couleur.',
-    'Chaque instrument est nommé par sa colonne Instrument suivie de son ticker (« MSCI world · UETW »). Passe la souris sur une part pour lire son montant, sa part du total et sa part de l’enveloppe ; la vue en tableau les liste tous.',
-    'Les instruments qui pèsent moins de 1 % de leur enveloppe (souvent des liquidités en attente) sont regroupés en « Autres ».',
-  ],
-  source:
-    'Table portfolio, colonnes Envelope (ou Account), Instrument, Ticker et Assets Master Currency, au dernier relevé. Seules les enveloppes qui contiennent des actions, des ETF ou des fonds sont retenues.',
+  get explain() {
+    return tList('charts.envelopeInstruments.explain')
+  },
+  get source() {
+    return t('charts.envelopeInstruments.source')
+  },
 
   build(table) {
     const cols = { ...columnsOf(table, { instrument: ['Instrument', 'Instruments'] }), ticker: findColumn(table.columns, ['Ticker', 'Symbole', 'Symbol']) }
@@ -147,7 +151,7 @@ export const envelopeInstruments = {
       const big = parts.filter(([, value]) => value >= MIN_CHILD_SHARE * group.total)
       const shown = big.slice(0, MAX_CHILDREN)
       const rest = parts.filter((part) => !shown.includes(part))
-      if (rest.length) shown.push([`Autres (${rest.length})`, rest.reduce((sum, [, value]) => sum + value, 0)])
+      if (rest.length) shown.push([t('data.othersCount', { count: rest.length }), rest.reduce((sum, [, value]) => sum + value, 0)])
       return {
         name: group.name,
         value: group.total,
@@ -163,23 +167,24 @@ export const envelopeInstruments = {
     })
 
     return {
-      subtitle: date ? `Relevé du ${formatDateLong(date)}.` : dataSubtitle(table),
-      summary:
-        `${plural(groups.length, 'enveloppe')} de placement pour ${euro(total)} : ` +
-        groups.map((group) => `${group.name} ${percent(group.total / total)}`).join(', ') +
-        '.',
+      subtitle: date ? t('subtitle.recordOf', { date: formatDateLong(date) }) : dataSubtitle(table),
+      summary: t('charts.envelopes.ringA11y', {
+        envelopes: t('charts.envelopes.count', { count: groups.length }, groups.length),
+        total: euro(total),
+        shares: groups.map((group) => `${group.name} ${percent(group.total / total)}`).join(', '),
+      }),
       option: labelRings(sunburstOption(categories, total), total),
       height: 520,
       table: {
-        columns: ['Enveloppe', 'Instrument', 'Montant', 'Part de l’enveloppe'],
+        columns: [t('charts.envelopes.envelope'), t('charts.envelopes.instrument'), t('chart.amount'), t('charts.envelopes.shareOfEnvelope')],
         numeric: [false, false, true, true],
         // Le tableau liste tous les instruments, y compris ceux regroupés en « Autres » dans l'anneau
         rows: groups.flatMap((group, g) => [
-          [group.name, 'Total', euro(group.total), percent(1)],
+          [group.name, t('chart.total'), euro(group.total), percent(1)],
           ...sortedParts[g].map(([name, value]) => ['', name, euro(value), percent(value / group.total)]),
         ]),
       },
-      note: `Total des enveloppes de placement : ${euro(total)}.`,
+      note: t('charts.envelopes.total', { total: euro(total) }),
     }
   },
 }
@@ -188,22 +193,26 @@ export const envelopeInstruments = {
 
 export const envelopeHistory = {
   slug: 'enveloppes-evolution',
-  title: 'Évolution de chaque enveloppe',
-  summary: 'Le montant de chaque enveloppe de placement, mois après mois.',
+  get title() {
+    return t('charts.envelopeHistory.title')
+  },
+  get summary() {
+    return t('charts.envelopeHistory.summary')
+  },
   table: '_history',
   minWidth: 720,
-  explain: [
-    'Une courbe par enveloppe de placement, au dernier relevé de chaque mois. Elle monte quand tu verses ou quand le marché progresse.',
-    'Cliquer sur un nom de la légende masque ou affiche sa courbe ; l’infobulle classe les enveloppes de la plus grosse à la plus petite.',
-  ],
-  source:
-    'Table _history, colonnes Date, Envelope (ou Account), Asset et Assets Master Currency ; dernier relevé de chaque mois. Les enveloppes retenues sont celles qui contiennent des actions, des ETF ou des fonds au dernier relevé.',
+  get explain() {
+    return tList('charts.envelopeHistory.explain')
+  },
+  get source() {
+    return t('charts.envelopeHistory.source')
+  },
 
   build(table) {
     const cols = columnsOf(table, { date: ['Date'] })
     const rows = rowsOf(table)
     const months = monthEnds(rows, cols.date)
-    if (!months.length) return { empty: 'Aucun relevé daté dans la table _history.' }
+    if (!months.length) return { empty: t('charts.envelopes.noRecord') }
 
     const lastRows = rows.filter((row) => toIsoDate(row[cols.date]) === months[months.length - 1].iso)
     const keep = investedEnvelopes(lastRows.length ? lastRows : rows, cols.envelope, cols.asset)
@@ -235,13 +244,15 @@ export const envelopeHistory = {
     const model = { months: shownMonths, series, values, totals }
     return {
       subtitle: monthsSubtitle(shownMonths),
-      summary:
-        `Montant de ${plural(series.length, 'enveloppe')} de placement sur ${plural(shownMonths.length, 'mois', 'mois')}. ` +
-        `Dernier relevé : ${series.map((serie, s) => `${serie.label} ${euro(values[s][shownMonths.length - 1])}`).join(', ')}.`,
+      summary: t('charts.envelopes.historyA11y', {
+        envelopes: t('charts.envelopes.count', { count: series.length }, series.length),
+        months: t('charts.envelopes.months', { count: shownMonths.length }, shownMonths.length),
+        last: series.map((serie, s) => `${serie.label} ${euro(values[s][shownMonths.length - 1])}`).join(', '),
+      }),
       option: assetsLinesOption(model),
       height: 400,
       table: {
-        columns: ['Mois', ...series.map((serie) => serie.label), 'Total'],
+        columns: [t('chart.month'), ...series.map((serie) => serie.label), t('chart.total')],
         numeric: [false, ...series.map(() => true), true],
         rows: [...shownMonths.keys()]
           .reverse()
@@ -254,21 +265,34 @@ export const envelopeHistory = {
 
 /* ---------- 3 et 4. Répartition de chaque enveloppe (par sous-type, par zone) ---------- */
 
-function mixSpec({ slug, title, summary, names, dimension, explain }) {
+// `key` : rubrique des textes dans i18n (title, summary, explain, a11y)
+function mixSpec({ slug, key, names }) {
   return {
     slug,
-    title,
-    summary,
+    get title() {
+      return t(`${key}.title`)
+    },
+    get summary() {
+      return t(`${key}.summary`)
+    },
     table: 'portfolio',
-    explain,
-    source: `Table portfolio, colonnes Envelope (ou Account), ${names[0]} et Assets Master Currency, au dernier relevé.`,
+    get explain() {
+      return tList(`${key}.explain`)
+    },
+    get source() {
+      return t('charts.envelopes.mixSource', { column: names[0] })
+    },
 
     build(table) {
       const cols = columnsOf(table)
       const detail = findColumn(table.columns, names)
       if (!detail) {
         throw new DataError(
-          `Colonne ${names[0]} introuvable dans la table « ${table?.name ?? 'portfolio'} ». Colonnes disponibles : ${(table?.columns ?? []).join(', ')}.`,
+          t('charts.envelopes.missingColumn', {
+            column: names[0],
+            table: table?.name ?? 'portfolio',
+            available: (table?.columns ?? []).join(', ') || t('data.none'),
+          }),
         )
       }
       const { rows, date } = currentRows(table)
@@ -282,26 +306,26 @@ function mixSpec({ slug, title, summary, names, dimension, explain }) {
       const shown = labels.slice(0, SERIES.length - 1)
       const folded = labels.slice(SERIES.length - 1)
       const series = shown.map((name, s) => ({ label: envelopeLabel(name), color: SERIES[s], members: [name] }))
-      if (folded.length) series.push({ label: `Autres (${folded.length})`, color: CONTEXT, members: folded })
+      if (folded.length) series.push({ label: t('data.othersCount', { count: folded.length }), color: CONTEXT, members: folded })
       const values = groups.map((group) =>
         series.map((serie) => serie.members.reduce((sum, member) => sum + (group.parts.get(member) ?? 0), 0)),
       )
 
       return {
-        subtitle: date ? `Relevé du ${formatDateLong(date)}.` : dataSubtitle(table),
-        summary:
-          `Répartition ${dimension} de ${plural(groups.length, 'enveloppe')} de placement. ` +
-          groups
+        subtitle: date ? t('subtitle.recordOf', { date: formatDateLong(date) }) : dataSubtitle(table),
+        summary: t(`${key}.a11y`, {
+          envelopes: t('charts.envelopes.count', { count: groups.length }, groups.length),
+          details: groups
             .map((group, g) => {
               const top = series.map((serie, s) => ({ serie, value: values[g][s] })).sort((a, b) => b.value - a.value)[0]
               return `${group.name} : ${top.serie.label} ${percent(top.value / group.total)}`
             })
-            .join(' ; ') +
-          '.',
+            .join(' ; '),
+        }),
         option: stackedOption(groups, series, values),
         height: Math.max(220, groups.length * 56 + 70),
         table: {
-          columns: ['Enveloppe', ...series.map((serie) => serie.label), 'Total'],
+          columns: [t('charts.envelopes.envelope'), ...series.map((serie) => serie.label), t('chart.total')],
           numeric: [false, ...series.map(() => true), true],
           rows: groups.map((group, g) => [
             group.name,
@@ -316,26 +340,14 @@ function mixSpec({ slug, title, summary, names, dimension, explain }) {
 
 export const envelopeTypes = mixSpec({
   slug: 'enveloppes-types',
-  title: 'ETF, actions et liquidités par enveloppe',
-  summary: 'Ce que contient chaque enveloppe : ETF, actions, liquidités…',
+  key: 'charts.envelopeTypes',
   names: ['Sub Asset', 'Sub-Asset', 'SubAsset', 'Sous-type', 'Sous type'],
-  dimension: 'par sous-type',
-  explain: [
-    'Une barre par enveloppe de placement, découpée par sous-type (ETF, action, liquidités en attente d’investissement…). Le total est écrit au bout de la barre.',
-    'C’est le pendant des graphiques « etf_pea/cto » et « action_pea/cto » de l’ancien rapport Data Studio.',
-  ],
 })
 
 export const envelopeAreas = mixSpec({
   slug: 'enveloppes-zones',
-  title: 'Zones géographiques par enveloppe',
-  summary: 'Le pays ou la zone de ce que contient chaque enveloppe.',
+  key: 'charts.envelopeAreas',
   names: ['Area', 'Zone', 'Region', 'Région', 'Pays', 'Country'],
-  dimension: 'par zone',
-  explain: [
-    'Une barre par enveloppe de placement, découpée par pays ou zone (colonne Area de ta feuille). Un ETF monde est rangé dans la zone que tu lui as donnée.',
-    'C’est le pendant des graphiques « pee/per » et « pea/cto » par pays de l’ancien rapport Data Studio.',
-  ],
 })
 
 export const ENVELOPE_CHARTS = [envelopeInstruments, envelopeHistory, envelopeTypes, envelopeAreas]

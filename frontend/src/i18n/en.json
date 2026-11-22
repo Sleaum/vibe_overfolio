@@ -51,5 +51,705 @@
     "volatility": "Volatility",
     "simulation": "Simulation",
     "notFound": "Page not found"
+  },
+  "apiErrors": {
+    "unreachable": "Can’t reach the server. Check that the application is running.",
+    "http": "HTTP error {status}",
+    "notJson": "Unexpected server response (not JSON).",
+    "table_not_found": "Table “{name}” not found in the database. Run a sync (Refresh all button on the GoogleSheet page).",
+    "tab_not_syncable": "Tab “{name}” can’t be synced.",
+    "sync_too_soon": "A sync just ran. Try again in {seconds} seconds.",
+    "sync_failed": "Sync failed.",
+    "no_tab_saved": "No tab could be refreshed.",
+    "invalid_json": "JSON body expected.",
+    "form_incomplete": "The form is incomplete.",
+    "header_row_invalid": "header_row must be a whole number of at least 1.",
+    "doc_name_missing": "Missing required parameter: doc_name.",
+    "doc_not_allowed": "Document not allowed.",
+    "internal_error": "Internal error while reading the sheet.",
+    "credentials_incomplete": "Google credentials are incomplete, missing fields: {fields}. Fill them in on the GoogleSheet page.",
+    "credentials_invalid": "Invalid Google credentials: {detail}",
+    "sheet_not_found_by_id": "Sheet not found (check the document ID) or not shared with {email}.",
+    "sheet_not_found_by_name": "Sheet not found (check the name “{name}”) or not shared with {email}.",
+    "google_api_error": "Google Sheets API error: {detail}",
+    "google_unreachable": "Google Sheets can’t be reached: {detail}",
+    "no_tabs": "The document has no tabs.",
+    "tab_not_found": "Tab “{tab}” not found.",
+    "empty_kept": "No rows read: existing data kept.",
+    "dry_run": "Dry run: nothing was written.",
+    "database_error": "Database error: {detail}",
+    "fields": {
+      "required": "{label}: required field.",
+      "private_key_format": "Private key: it must start with -----BEGIN PRIVATE KEY-----.",
+      "email_invalid": "Service account email: invalid address.",
+      "sheet_id_or_name": "Enter the document ID or its name.",
+      "sync_tabs_required": "List at least one tab to sync."
+    }
+  },
+  "data": {
+    "unknown": "Not specified",
+    "others": "Others",
+    "othersCount": "Others ({count})",
+    "none": "none"
+  },
+  "errors": {
+    "missingColumns": "Column(s) not found in the “{table}” table: {missing}. Available columns: {available}.",
+    "noDates": "No usable date in the {table} table.",
+    "noPositive": "No amount above 0 in the {table} table.",
+    "twoMonths": "At least two months of records are needed in the {table} table."
+  },
+  "subtitle": {
+    "dataAsOf": "Data as of {date}.",
+    "syncedAt": "Synced on {date}.",
+    "movesUntil": "Movements up to {date}.",
+    "recordOf": "Record of {date}."
+  },
+  "chart": {
+    "amount": "Amount",
+    "total": "Total",
+    "month": "Month",
+    "wealth": "Wealth",
+    "date": "Date",
+    "shareOfTotal": "Share of total",
+    "shareOf": "Share of {parent}",
+    "totalAssets": "Total assets",
+    "netWorth": "Net worth",
+    "assets": "Assets",
+    "liabilities": "Debts",
+    "lastPoint": "Latest point"
+  },
+  "charts": {
+    "budget": {
+      "title": "Budget flows",
+      "summary": "Where the money comes from and where it goes.",
+      "explain": [
+        "Each band links a source to a destination. Its thickness is the amount. The blocks are the sources, the intermediate steps and the destinations.",
+        "Hover over a block or a band to highlight the flows that go through it and read their amount."
+      ],
+      "source": "budget table, columns Source, Destination and Valeur (rows above 0, duplicates added together).",
+      "flowTotal": "Total flows",
+      "empty": "No flow above 0 in the budget table.",
+      "a11y": "Flow diagram: {links} flows between {nodes} blocks, {amount} at the start.",
+      "dropped": "{count} flow was ignored: it closed a loop (A to B, then B to A), which a flow diagram can’t draw. | {count} flows were ignored: they closed a loop (A to B, then B to A), which a flow diagram can’t draw.",
+      "columns": [
+        "Source",
+        "Destination",
+        "Amount"
+      ]
+    },
+    "flow": {
+      "skipped": "{count} month far from the other records isn’t shown (a gap of more than 6 months breaks the series). | {count} months far from the other records aren’t shown (a gap of more than 6 months breaks the series).",
+      "recordsUntil": "Records up to {date}.",
+      "othersNote": "Asset types beyond the site’s 8 colours are grouped under “{others}”."
+    },
+    "currency": {
+      "title": "Wealth by currency",
+      "summary": "The value of your wealth in CHF, euros and dollars, month by month.",
+      "source": "_history table, Date column and one amount column per currency (CHF, EUR, USD), added up by date.",
+      "explain": [
+        "For each month, three bars give the total value of your wealth expressed in each currency. This isn’t a breakdown: it’s the same wealth, converted three times.",
+        "So the bars move together; the gap between them only changes with exchange rates. A month’s amount is that of the last record of the month."
+      ],
+      "noColumn": "No amount column in CHF, EUR or USD in the “{table}” table. Available columns: {available}.",
+      "a11y": "Wealth in {codes} from {from} to {to}: {amounts} in the last month.",
+      "columnsFound": "Columns found: {columns}."
+    },
+    "allocation": {
+      "a11y": "Breakdown by asset type from {from} to {to}. In the last month, {asset} makes up {share}.",
+      "title": "Breakdown by asset type, month by month",
+      "summary": "The share of each asset type in your wealth, each month.",
+      "source": "_history table, columns Date, Asset and Assets Master Currency (amounts above 0), last record of each month.",
+      "explain": [
+        "Each bar is 100% of your wealth at the end of a month, split by asset type. The colours are those of the asset type ring.",
+        "Only assets count (debts are excluded). Hover over a bar to read the share and amount of each type."
+      ]
+    },
+    "assets": {
+      "a11y": "Lines for {count} asset types from {from} to {to}. Total in the last month: {total}.",
+      "title": "Change by asset type",
+      "summary": "The amount of each asset type, month after month.",
+      "source": "_history table, columns Date, Asset and Assets Master Currency (amounts above 0), last record of each month.",
+      "explain": [
+        "Each line follows one asset type, in the same colour as in the other charts. It rises when you invest or the market goes up, and falls when the market goes down or you withdraw.",
+        "Hover over a month: the tooltip ranks asset types from largest to smallest. Clicking a name in the legend hides or shows its line."
+      ]
+    },
+    "variation": {
+      "change": "Change",
+      "gap": "Difference",
+      "a11y": "Monthly change in wealth from {from} to {to}. Last month: {last}.",
+      "average": "Monthly average: {value}.",
+      "title": "Monthly change",
+      "summary": "How much your wealth goes up or down, in %, from one month to the next.",
+      "source": "_history table, columns Date and Assets Master Currency, added up by date; last record of each month.",
+      "explain": [
+        "Each bar compares the total of your assets at the end of a month with the previous month. Blue bars above zero are rises; orange bars below are falls.",
+        "This change mixes two causes: what you put in or took out, and what the market did. Separating them needs the inout tab, which isn’t used here yet."
+      ]
+    },
+    "inout": {
+      "in": "Inflows",
+      "out": "Outflows",
+      "tax": "Taxes",
+      "monthBalance": "Net for the month",
+      "balance": "Net",
+      "a11y": "Monthly bars from {from} to {to}: {in} in and {out} out in total.",
+      "a11yTax": "Monthly bars from {from} to {to}: {in} in, {out} out and {tax} in taxes in total.",
+      "title": "Inflows, outflows and taxes",
+      "summary": "The money you put in, take out and pay in taxes, month by month.",
+      "source": "inout table, columns date, in, out and tax. Outflows and taxes entered as negative numbers are counted as absolute values.",
+      "explain": [
+        "For each month, the blue bar totals the money put into your investments (in), the orange bar the money taken out (out) and the yellow bar the taxes (tax). Months without movement show as zero.",
+        "The month’s net (inflows minus outflows and taxes) is shown in the tooltip and in the table view. It explains the part of the monthly change that doesn’t come from the market."
+      ]
+    },
+    "trend": {
+      "bars": "Wealth in euros",
+      "trend": "Trend",
+      "goals": "Goals",
+      "goal": "Goal",
+      "noColumn": "Euro amount column not found in the “{table}” table: EUR or Assets Master Currency. Available columns: {available}.",
+      "twoRecords": "At least two records are needed in the _history table to draw a trend.",
+      "nextGoal": "Next goal: {goal} by {date}; at the trend’s pace, you would be at {projected}.",
+      "a11y": "Wealth in euros over {count} records, from {from} to {to}. Last record: {last}. The trend is {perYear} a year.",
+      "note": "Column used: {column}. Trend: {perYear} a year on average.",
+      "goalCount": "{count} goal (row without Asset or Instrument). | {count} goals (rows without Asset or Instrument).",
+      "title": "Wealth and trend",
+      "summary": "Your wealth in euros at each record, with the trend line.",
+      "source": "_history table, Date column and euro amount column (EUR, otherwise Assets Master Currency), added up by date. Rows without Asset or Instrument are goals.",
+      "explain": [
+        "Each bar is the total of your assets in euros on a record date. The line is the average trend of all records: it shows your past growth rate.",
+        "The orange diamonds are your goals: in the _history table, they are the rows that have only a date and an amount (no asset type, no instrument). The trend is extended as a dotted line to the last goal: if it passes above a diamond, your current pace is enough to reach it.",
+        "Goals stretch the time axis: the slider at the bottom lets you zoom in on the records."
+      ]
+    },
+    "envelopes": {
+      "none": "No investment envelope in the {table} table: it needs an Envelope (or Account) column and at least one row of shares, ETFs or funds.",
+      "envelope": "Envelope",
+      "instrument": "Instrument",
+      "shareOfEnvelope": "Share of envelope",
+      "count": "{count} investment envelope | {count} investment envelopes",
+      "months": "{count} month | {count} months",
+      "ringA11y": "{envelopes} totalling {total}: {shares}.",
+      "total": "Total of investment envelopes: {total}.",
+      "noRecord": "No dated record in the _history table.",
+      "historyA11y": "Amount of {envelopes} over {months}. Last record: {last}.",
+      "missingColumn": "Column {column} not found in the “{table}” table. Available columns: {available}.",
+      "mixSource": "portfolio table, columns Envelope (or Account), {column} and Assets Master Currency, at the last record."
+    },
+    "envelopeTypes": {
+      "a11y": "Breakdown by sub-type of {envelopes}. {details}.",
+      "title": "ETFs, shares and cash by envelope",
+      "summary": "What each envelope holds: ETFs, shares, cash…",
+      "explain": [
+        "One bar per investment envelope, split by sub-type (ETF, share, cash waiting to be invested…). The total is written at the end of the bar.",
+        "It matches the “etf_pea/cto” and “action_pea/cto” charts of the old Data Studio report."
+      ]
+    },
+    "envelopeAreas": {
+      "a11y": "Breakdown by area of {envelopes}. {details}.",
+      "title": "Geographic areas by envelope",
+      "summary": "The country or area of what each envelope holds.",
+      "explain": [
+        "One bar per investment envelope, split by country or area (Area column of your sheet). A world ETF goes in the area you gave it.",
+        "It matches the “pee/per” and “pea/cto” by-country charts of the old Data Studio report."
+      ]
+    },
+    "envelopeInstruments": {
+      "title": "Envelopes and instruments",
+      "summary": "The weight of each investment envelope, and what it holds.",
+      "source": "portfolio table, columns Envelope (or Account), Instrument, Ticker and Assets Master Currency, at the last record. Only envelopes that hold shares, ETFs or funds are kept.",
+      "explain": [
+        "The inner ring shows the weight of each investment envelope (brokerage account, PEA, PER, PEE…). The outer ring details what it holds, instrument by instrument, in shades of the same colour.",
+        "Each instrument is named by its Instrument column followed by its ticker (“MSCI world · UETW”). Hover over a slice to read its amount, its share of the total and its share of the envelope; the table view lists them all.",
+        "Instruments that weigh less than 1% of their envelope (often cash waiting to be invested) are grouped under “Others”."
+      ]
+    },
+    "envelopeHistory": {
+      "title": "Change in each envelope",
+      "summary": "The amount in each investment envelope, month after month.",
+      "source": "_history table, columns Date, Envelope (or Account), Asset and Assets Master Currency; last record of each month. The envelopes kept are those holding shares, ETFs or funds at the last record.",
+      "explain": [
+        "One line per investment envelope, at the last record of each month. It rises when you invest or the market goes up.",
+        "Clicking a name in the legend hides or shows its line; the tooltip ranks envelopes from largest to smallest."
+      ]
+    },
+    "volatility": {
+      "period": {
+        "1": "1 month",
+        "3": "3 months",
+        "12": "1 year"
+      },
+      "title": {
+        "1": "Over 1 month",
+        "3": "Over 3 months",
+        "12": "Over 1 year"
+      },
+      "summary": "How much the price of each of your investments moved over {period}.",
+      "explain1": "One bubble per investment. Horizontally, the amount you hold (log scale: each tick multiplies by 10); vertically, the change in its unit price over {period}. The bigger the bubble, the more the investment weighs in your wealth.",
+      "explain2": "The unit price is calculated in euros (amount ÷ quantity): it accounts for exchange rates, but not for your purchases or sales. A big bubble far below the zero line is the investment that lost you the most.",
+      "explain3": "Cash, real estate and assets without a market price aren’t shown.",
+      "source": "_history table, columns Date, Instrument, Quantity, Assets Master Currency (and Asset, Envelope, Broker if present): last record compared with the record from {period} earlier.",
+      "notYet": "The history doesn’t yet go back {period} before the last record ({date}).",
+      "noCommon": "No investment present on both {from} and {to} with a quantity and an amount filled in.",
+      "range": "From {from} to {to}.",
+      "count": "{count} investment compared | {count} investments compared",
+      "a11y": "{investments} between {from} and {to}. Amount-weighted average change: {weighted}. Lowest change: {worst} ({worstPct}); highest: {best} ({bestPct}).",
+      "note": "Amount-weighted average change: {weighted} across {total} of investments.",
+      "priceChange": "Price change",
+      "held": "Amount held",
+      "heldLog": "Amount held (log scale)",
+      "priceBefore": "Unit price before",
+      "priceNow": "Unit price now",
+      "investment": "Investment",
+      "type": "Type"
+    }
+  },
+  "simulation": {
+    "median": "Median",
+    "range50": "25–75% range",
+    "range80": "10–90% range",
+    "goal": "Goal",
+    "p90": "Good scenario (90%)",
+    "p75": "Fairly good (75%)",
+    "p25": "Fairly poor (25%)",
+    "p10": "Poor scenario (10%)"
+  },
+  "strategy": {
+    "rings": {
+      "sector": "Sector",
+      "moat": "Moat",
+      "area": "Location",
+      "rating": "S&P rating",
+      "business": "Business",
+      "exchange": "Exchange",
+      "instruments": "Instruments"
+    },
+    "instrument": "Instrument",
+    "envelope": "Envelope",
+    "all": "All",
+    "used": {
+      "column": "{title}: {column}",
+      "stock": "{title}: {column} (stock table, linked by {join})",
+      "ticker": "{title}: start of the ticker, before “:” ({column})"
+    },
+    "scopes": {
+      "all": "All envelopes",
+      "peacto": "PEA and brokerage account"
+    },
+    "notes": {
+      "equityOnly": "Only “public equity” assets (Asset column) are counted.",
+      "noEquity": "No “public equity” row in the Asset column: all rows are counted.",
+      "joined": "stock table linked by the {column} column: {matched} of {total} portfolio rows matched.",
+      "notJoined": "The stock table couldn’t be linked to portfolio (no common value in Ticker, Instrument or Name)."
+    },
+    "empty": {
+      "noRows": "No share rows with an amount above 0 in the portfolio table.",
+      "noScope": "No rows in this envelope."
+    },
+    "errors": {
+      "noAttribute": "No attribute found for the rings (sector, moat, location, rating, business, exchange, instrument). portfolio columns: {portfolio}. stock columns: {stock}.",
+      "noTable": "table missing"
+    },
+    "categories": "{count} category | {count} categories",
+    "parts": "{count} slice | {count} slices",
+    "detail": "detail: {detail}",
+    "a11yDouble": "Two-level ring: {title}. {parts} totalling {total}. The largest: {biggest}, {share}.",
+    "a11ySingle": "Single ring: {title}. {parts} totalling {total}. The largest: {biggest}, {share}.",
+    "positionsAt": "Positions as of {date}.",
+    "subtitleDefault": "The shares in your portfolio, grouped in several ways."
+  },
+  "snapshot": {
+    "dims": {
+      "sub": "Sub-type",
+      "instrument": "Instrument",
+      "envelope": "Envelope",
+      "broker": "Broker",
+      "area": "Area"
+    },
+    "usedColumn": "{label}: {column}"
+  },
+  "home": {
+    "title": "Allocation before selection",
+    "lead": "Overfolio turns your Google Sheet into clear charts, so you can see how your wealth is growing and how it’s spread before you rebalance.",
+    "start": "Get started",
+    "seeCharts": "See the charts",
+    "ownership": "Your sheet stays yours: Overfolio reads it and never changes it.",
+    "preview": {
+      "label": "Net worth",
+      "sample": "Sample data",
+      "since": "+{amount} since {date}",
+      "a11y": "Sample net worth curve, from {from} to {to}, with made-up data.",
+      "caption": "Example with made-up data: the rows of your sheet become the curve."
+    },
+    "benefits": {
+      "title": "You keep your sheet, Overfolio makes it readable",
+      "source": {
+        "title": "Your sheet stays the source",
+        "text": "You keep tracking everything in Google Sheets. Overfolio reads your tabs, nothing more: it never writes to your sheet."
+      },
+      "split": {
+        "title": "Your allocation at a glance",
+        "text": "Asset types, envelopes, sectors, regions: see where your wealth sits without building another pivot table."
+      },
+      "check": {
+        "title": "Numbers you can check",
+        "text": "Every chart says which table and columns it comes from, and can also be shown as a table."
+      }
+    },
+    "steps": {
+      "title": "How it works",
+      "connect": {
+        "title": "Connect your sheet",
+        "text": "Share your Google Sheet, read-only, with Overfolio’s address. The portfolio, inout, stock, budget and _history tabs are found by name."
+      },
+      "sync": {
+        "title": "Sync",
+        "text": "On the GoogleSheet page, one click on Refresh all rereads all your tabs and updates the database. The date of the last sync stays on screen."
+      },
+      "follow": {
+        "title": "Follow your wealth",
+        "text": "Open the charts: your month-by-month history, your wealth today, your share strategy and your budget flows."
+      }
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "sheet": {
+        "q": "What should my Google Sheet contain?",
+        "a": "Overfolio looks for five tabs by name: portfolio, inout, stock, budget and _history. Each page lists the columns it needs. If one is missing, the page tells you which, and the other pages keep working."
+      },
+      "access": {
+        "q": "Can Overfolio change my sheet or see my bank accounts?",
+        "a": "No. Overfolio connects to no bank: it only reads the sheet you share with it, without writing anything. The rows it reads are copied into its database so the pages load fast. If you stop sharing in Google Sheets, Overfolio can no longer read it."
+      },
+      "update": {
+        "q": "How are the numbers updated?",
+        "a": "On demand. On the GoogleSheet page, the Refresh all button rereads all your tabs. The date and time of the last sync stay visible, and every chart shows the date of its data."
+      },
+      "advice": {
+        "q": "Does Overfolio tell me what to buy or sell?",
+        "a": "No. Overfolio shows what’s in your sheet: it recommends no investment. The Simulation page projects scenarios from your own assumptions, without predicting anything. Its charts help you see the big picture before you make your own decisions."
+      }
+    },
+    "product": {
+      "title": "Your data on one side, your charts on the other",
+      "lead": "The GoogleSheet page shows what Overfolio has read, row by row. The Charts pages turn it into the curve and the breakdowns.",
+      "refreshAll": "Refresh all",
+      "sheetLink": "GoogleSheet page",
+      "sheetCaption": ": your five tabs as tables, with search, pagination and a Refresh all button to reread your sheet.",
+      "donutTitle": "Breakdown by asset type",
+      "chartsLink": "Charts pages",
+      "chartsCaption": ": six pages, each with its explanation and where the numbers come from.",
+      "samples": "Examples with made-up data.",
+      "donutA11y": "Sample ring: {total} spread across {count} asset types, with made-up data."
+    },
+    "sample": {
+      "worldEtf": "World equity ETF",
+      "savings": "Savings account"
+    }
+  },
+  "chartUi": {
+    "display": "View",
+    "displayOf": "View: {title}",
+    "chart": "Chart",
+    "table": "Table",
+    "loading": "Loading the chart…",
+    "loadingData": "Loading data…",
+    "missingTableTitle": "This table isn’t in the database yet",
+    "loadErrorTitle": "Couldn’t load the data",
+    "missingTableText": "The “{table}” table hasn’t been synced from Google Sheets yet.",
+    "openSheet": "Open the GoogleSheet page",
+    "retry": "Try again",
+    "problemTitle": "The data doesn’t match this chart",
+    "problemHint": "Compare with the column names on the GoogleSheet page.",
+    "emptyTitle": "No data to show",
+    "tableVersion": "{title}, table view",
+    "amountsByPart": "Amounts by slice",
+    "howToRead": "How to read this chart",
+    "whereFrom": "Where the numbers come from",
+    "refreshHint": "To update the data from Google Sheets, use the Refresh all button on the {sheet} page.",
+    "buildFailed": "The chart couldn’t be built ({message}).",
+    "unknownError": "unknown error",
+    "tableSynced": "{table} table synced on {date}.",
+    "explainLink": "Explanation and source of the numbers",
+    "horizontalScroll": "{label} (scrolls horizontally)",
+    "chartDefault": "Chart",
+    "tableDefault": "Chart data",
+    "partsOf": "Slices: {title}",
+    "ringsHint": "Inner ring: {inner}. Outer ring: {outer}, in shades of its category’s colour. Hover over a slice to see its amount."
+  },
+  "chartPage": {
+    "breadcrumb": "Breadcrumb",
+    "notFoundTitle": "This chart doesn’t exist",
+    "notFoundText": "The address “{slug}” doesn’t match any chart. The Charts page lists them all.",
+    "allCharts": "See all charts",
+    "otherCharts": "Other charts",
+    "previous": "Previous chart",
+    "next": "Next chart",
+    "notFoundDocTitle": "Chart not found"
+  },
+  "flowPage": {
+    "lead": "Your wealth’s history, month by month: currencies, breakdown, change by asset type, monthly change, inflows and outflows, trend and goals. Each card has a table view and an explanation page.",
+    "period": "Period",
+    "allYears": "All years",
+    "yearNote": "Only {year} records and movements are shown: January’s change isn’t calculated, since there’s no December record in the period, and the trend covers that year only.",
+    "footer": "The charts read the database. To update it from your sheet, use the Refresh all button on the {sheet} page. For your wealth today, open {snapshot}."
+  },
+  "envelopesPage": {
+    "lead": "Your investment envelopes: what each one holds, how they change, and how they split between ETFs, shares and cash, then by area. Accounts holding no shares, ETFs or funds aren’t included.",
+    "footer": "For details of your shares by sector, moat or rating, open {strategy}."
+  },
+  "volatilityPage": {
+    "lead": "How much the price of each of your investments has moved. One bubble per investment: what you hold most is on the right, what fell most is at the bottom. Prices are in euros, exchange rates included, excluding your purchases and sales.",
+    "footer": "The changes compare two records from the _history table: the more records you make, the more precise they are. The old report also offered “1 week”, which needs weekly records."
+  },
+  "notFound": {
+    "text": "The address you opened doesn’t exist, or no longer does. You can start again from the home page.",
+    "home": "Back to home"
+  },
+  "page": {
+    "problemTitle": "The data doesn’t match this page",
+    "buildFailed": "The page couldn’t be built ({message}).",
+    "notSyncedYet": "It hasn’t been synced from Google Sheets yet.",
+    "tableMissing": "The {table} table isn’t in the database yet"
+  },
+  "snapshotPage": {
+    "loading": "Loading your wealth…",
+    "yourAssets": "Your assets",
+    "amountsByType": "Amounts by asset type",
+    "detailTitle": "Detail by asset type",
+    "detailLead": "For each type: what it holds, from largest to smallest. Shares are of the type, not of your whole wealth.",
+    "ofWealth": "{share} of wealth",
+    "dimOf": "{dim}: {type}",
+    "noDetail": "No detail column (sub-type, instrument, envelope…) in the portfolio table.",
+    "noData": "No data: {types}.",
+    "columnsRead": "Columns read for the detail: {columns}.",
+    "noColumnFor": "No column for: {dims}.",
+    "footer": "The year and month changes compare gross assets with the records in the _history table; they include your contributions and withdrawals. To update the data, use the Refresh all button on the {sheet} page.",
+    "defaultSubtitle": "Your wealth today, asset type by asset type.",
+    "donutA11y": "Ring of {count} asset types totalling {total}. The largest: {biggest}, {share}.",
+    "since": "Since {date}",
+    "notEnough": "Not enough records in _history",
+    "loadingShort": "Loading…",
+    "noHistory": "History unavailable",
+    "gross": "Gross assets",
+    "afterDebts": "After {amount} of debts",
+    "noDebtColumn": "No debt column",
+    "thisYear": "This year",
+    "thisMonth": "This month"
+  },
+  "strategyPage": {
+    "loading": "Loading your shares…",
+    "envelope": "Envelope",
+    "skippedTitle": "Rings not shown",
+    "skippedText": "No column found, in portfolio or stock, for: {list}. As soon as a column with that name exists in the sheet and you’ve clicked Refresh all, the ring appears.",
+    "skippedItem": "{title} (“{tried}”)",
+    "footer": "Each ring adds up the “Assets Master Currency” amount of rows above 0. To update the data, use the Refresh all button on the {sheet} page.",
+    "footerScope": "Each ring adds up the “Assets Master Currency” amount of rows above 0 (envelope: {scope}). To update the data, use the Refresh all button on the {sheet} page.",
+    "columnsRead": "Columns read from the sheet",
+    "defaultSubtitle": "Your shares grouped in several ways, on two levels."
+  },
+  "sheetPage": {
+    "lead": "Your sheet’s tabs, as Overfolio read them.",
+    "loadingTabs": "Loading tabs…",
+    "listError": "Couldn’t load the list of tabs",
+    "tab": "Tab",
+    "refreshTitle": "Rereads every tab in Google Sheets and updates the database",
+    "refreshing": "Refreshing…",
+    "refreshAll": "Refresh all",
+    "search": "Search in the tab",
+    "syncedOn": "Synced on {date}",
+    "syncIncomplete": "Refresh incomplete",
+    "loadingTab": "Loading the tab…",
+    "unsyncedTitle": "This tab hasn’t been synced yet",
+    "unsyncedText": "Click Refresh all to read the tabs in Google Sheets and save them.",
+    "tabError": "Couldn’t load the “{tab}” tab",
+    "emptyTitle": "This tab is empty",
+    "emptyText": "No rows were read. Add data to your sheet, then click Refresh all.",
+    "noMatchTitle": "No matching rows",
+    "noMatchText": "No results for “{query}” in this tab.",
+    "clearSearch": "Clear search",
+    "tableOf": "Table of the {tab} tab",
+    "caption": "{tab} tab: {rows}",
+    "pagination": "Pagination",
+    "rowsRange": "Rows {from} to {to} of {total}",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {count}",
+    "rows": "{count} row | {count} rows",
+    "filtered": "{shown} of {all}",
+    "optionRows": "{name} ({rows})",
+    "notSynced": "{name} (not synced yet)",
+    "savedNotice": "{count} tab refreshed in the database. | {count} tabs refreshed in the database.",
+    "failedNotice": "{count} tab not refreshed (previous data kept): {details} | {count} tabs not refreshed (previous data kept): {details}",
+    "tabFailure": "{tab}: {message}",
+    "error": "error"
+  },
+  "sheetSettings": {
+    "title": "Google Sheets connection",
+    "loading": "Loading settings…",
+    "unavailable": "Settings unavailable",
+    "savedHere": "Values saved on this page.",
+    "savedHereOn": "Values saved on this page on {date}.",
+    "fromEnv": "Default values, read from the .env file.",
+    "readBy": "Document read by {email}.",
+    "hide": "Hide",
+    "edit": "Edit",
+    "document": "Document",
+    "account": "Google service account",
+    "importJson": "Import the JSON file",
+    "accountHelp": "Download the file from Google Cloud: IAM → Service accounts → Keys. Then share the Google Sheet, as Viewer, with the service account’s address.",
+    "required": " (required)",
+    "keyAlreadySet": "A key is already saved. Leave empty to keep it, or paste a new key.",
+    "keyInPlace": "Key in place ({source}). For security, it’s never shown again.",
+    "keySourcePage": "saved on this page",
+    "keySourceEnv": "read from .env",
+    "noKey": "No key is set, here or in .env.",
+    "advanced": "Advanced fields (rarely changed)",
+    "saveFailed": "Saving failed",
+    "saving": "Saving…",
+    "save": "Save",
+    "cancel": "Discard changes",
+    "backToEnv": "Back to the .env values",
+    "savedNotice": "Settings saved. Click Refresh all to reread the tabs.",
+    "fixFields": "Fix the highlighted fields.",
+    "confirmEnv": "Clear the values entered here and go back to those in the .env file?",
+    "envRestored": ".env values restored.",
+    "notServiceAccount": "this isn’t a Google service account file",
+    "imported": "File “{file}” imported. Check it, then click Save.",
+    "importFailed": "Import failed: {reason}.",
+    "unreadableJson": "unreadable JSON file",
+    "fields": {
+      "sheet_id": "Document ID or address",
+      "doc_name": "Document name",
+      "sync_tabs": "Tabs to sync",
+      "client_email": "Service account email",
+      "project_id": "Project ID",
+      "private_key_id": "Private key ID",
+      "private_key": "Private key",
+      "client_id": "Client ID",
+      "type": "Type",
+      "universe_domain": "Domain (universe_domain)",
+      "auth_uri": "auth_uri",
+      "token_uri": "token_uri",
+      "auth_provider_x509_cert_url": "auth_provider_x509_cert_url",
+      "client_x509_cert_url": "client_x509_cert_url"
+    },
+    "help": {
+      "sheet_id": "Paste the Google Sheet’s address, or just the part between /d/ and /edit.",
+      "doc_name": "Only used if the ID is empty (then needs the Google Drive API).",
+      "sync_tabs": "Exact tab names, separated by commas."
+    }
+  },
+  "simulationPage": {
+    "lead": "{runs} possible futures for your net worth, drawn at random from your current amounts and the assumptions below. The range shows what can reasonably happen, not a forecast.",
+    "prepareError": "Couldn’t prepare the simulation",
+    "results": "Results",
+    "fanTitle": "Simulated net worth",
+    "realNote": "In today’s euros (inflation removed).",
+    "nominalNote": "In nominal euros.",
+    "computing": "Calculating…",
+    "unit": "Unit",
+    "computingRuns": "Calculating {runs} paths…",
+    "tableCaption": "Simulated net worth, table view",
+    "fanHelp": "The blue line is the median: one path in two ends above it. The dark band holds half the paths (25 to 75%), the light band 8 in 10 (10 to 90%).",
+    "assumptions": "Assumptions",
+    "startPoint": "Starting point: your record of {date}. Changes are remembered by this browser.",
+    "reset": "Back to default values",
+    "contribution": "Net monthly contribution",
+    "contributionGrowth": "Contribution increase",
+    "contributionGrowthHint": "For example, follows your salary.",
+    "debtPayment": "Loan principal repaid",
+    "goalAmount": "Net worth goal",
+    "goalDate": "Goal date",
+    "goalDateHint": "The simulation runs up to this date.",
+    "fees": "Annual fees",
+    "feesHint": "ETFs, brokers, management: on financial assets.",
+    "inflation": "Inflation",
+    "inflationHint": "Used for amounts in today’s euros.",
+    "perYear": "% a year",
+    "perMonth": "€ / month",
+    "fatTails": "Crashes more frequent than a normal distribution",
+    "fatTailsHint": "Student’s t-distribution with 5 degrees of freedom: more realistic for shares and crypto. Unchecked, the simulation is more optimistic in bad years.",
+    "byType": "By asset type",
+    "byTypeHelp": "Return: expected annual average. Volatility: size of a year’s swings (about 2 years in 3 stay within ± this value). Link with shares: 1 = moves exactly with the stock market, 0 = unrelated, negative = tends to rise when it falls. Contributions are split between the ticked types, in proportion to their amounts.",
+    "cols": {
+      "type": "Asset type",
+      "amount": "Current amount",
+      "return": "Return (%/yr)",
+      "volatility": "Volatility (%)",
+      "link": "Link with shares",
+      "invest": "Gets contributions"
+    },
+    "a11y": {
+      "return": "Return of {asset}, in % a year",
+      "volatility": "Volatility of {asset}, in %",
+      "link": "Link of {asset} with shares, from -1 to 1",
+      "invest": "{asset} gets contributions"
+    },
+    "limitsTitle": "What the simulation doesn’t do",
+    "limits": [
+      "No tax on withdrawal (PEA, brokerage account and PER are taxed differently): amounts are before tax.",
+      "No rebalancing: the allocation drifts over the draws, as if you never sold.",
+      "Default returns are long-term orders of magnitude, not promises: change them.",
+      "Your sheet’s recent past (about two years) is too short to derive returns from: it isn’t used for the assumptions."
+    ],
+    "notAdvice": "This is a projection tool, not investment advice.",
+    "units": {
+      "real": "Today’s euros",
+      "nominal": "Nominal euros"
+    },
+    "noPositive": "The portfolio table has no positive amount in Assets Master Currency.",
+    "readFailed": "Couldn’t read the data ({message}).",
+    "realUnitText": "in today’s euros",
+    "nominalUnitText": "in nominal euros",
+    "kpi": {
+      "chance": "Chance of reaching the goal",
+      "chooseGoal": "Choose a goal and a future date.",
+      "goalAt": "{amount} by {date}",
+      "medianIn": "Median in {date}",
+      "medianHint": "One path in two does better, {unit}.",
+      "poor": "Poor scenario",
+      "poorHint": "1 path in 10 does worse.",
+      "good": "Good scenario",
+      "goodHint": "1 path in 10 does better."
+    },
+    "summaryDefault": "Net worth simulation",
+    "summary": "Fan of {runs} net worth paths up to {date}. Final median {median}, between {p10} and {p90} in 8 cases out of 10.",
+    "summaryChance": "Chance of reaching {amount}: {chance}.",
+    "table": {
+      "poor": "Poor (10%)",
+      "p25": "25%",
+      "p75": "75%",
+      "good": "Good (90%)"
+    },
+    "hint": {
+      "contributionDefault": "Amount put into your investments each month (negative for a withdrawal).",
+      "contributionAverage": "Average of the last 12 months of the inout tab: {amount}.",
+      "debt": "Current debt: {amount}. Enter the principal part of your monthly payments.",
+      "noDebt": "No debt in the portfolio table.",
+      "goalFromHistory": "Read from _history (row without an asset type). {unit}",
+      "real": "Counted in today’s euros.",
+      "nominal": "Counted in nominal euros."
+    }
+  },
+  "login": {
+    "lead": "Access your personal space",
+    "email": "Email address",
+    "password": "Password",
+    "hidePassword": "Hide password",
+    "showPassword": "Show password",
+    "remember": "Remember me",
+    "forgot": "Forgot your password?",
+    "signingIn": "Signing in…",
+    "signIn": "Sign in",
+    "or": "or",
+    "google": "Continue with Google",
+    "noAccount": "No account yet?",
+    "signUp": "Sign up",
+    "fillAll": "Fill in all the fields.",
+    "success": "Signed in!",
+    "error": "Sign-in error.",
+    "googleTodo": "Sign-in with Google isn’t available yet."
   }
 }

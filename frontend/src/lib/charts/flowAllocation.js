@@ -3,9 +3,10 @@
 
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
-import { euro, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
+import { axisPercent, euro, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
 import { HOVER_SHADE, SURFACE } from '../palette.js'
 import { assetMonthly, monthsSubtitle, skippedNote } from './flowData.js'
+import { t, tList } from '../../i18n/index.js'
 
 export function allocationOption(model) {
   const { months, series, values, totals } = model
@@ -33,12 +34,12 @@ export function allocationOption(model) {
             label: item.serie.label,
             value: `${percent(item.value / totals[m])} · ${euro(item.value)}`,
           }))
-        rows.push({ label: 'Total', value: euro(totals[m]), strong: true })
+        rows.push({ label: t('chart.total'), value: euro(totals[m]), strong: true })
         return tooltipHtml(formatMonthKey(months[m].key), rows)
       },
     }),
     xAxis: categoryAxis(months.map((month) => formatMonthKeyTiny(month.key))),
-    yAxis: valueAxis((value) => `${value} %`, { min: 0, max: 100, interval: 20 }),
+    yAxis: valueAxis(axisPercent, { min: 0, max: 100, interval: 20 }),
     dataZoom: zoom ? [zoomSlider()] : undefined,
     series: series.map((serie, s) => ({
       name: serie.label,
@@ -59,20 +60,25 @@ export function allocationOption(model) {
 
 export default {
   slug: 'repartition-mensuelle',
-  title: 'Répartition par type d’actif, mois par mois',
-  summary: 'La part de chaque type d’actif dans ton patrimoine, à chaque mois.',
+  get title() {
+    return t('charts.allocation.title')
+  },
+  get summary() {
+    return t('charts.allocation.summary')
+  },
   table: '_history',
   minWidth: 720,
-  explain: [
-    'Chaque barre représente 100 % de ton patrimoine à la fin d’un mois, découpé par type d’actif. Les couleurs sont celles de l’anneau des types d’actifs.',
-    'Seuls les actifs comptent (les dettes sont exclues). Passe la souris sur une barre pour lire la part et le montant de chaque type.',
-  ],
-  source: 'Table _history, colonnes Date, Asset et Assets Master Currency (montants supérieurs à 0), dernier relevé de chaque mois.',
+  get explain() {
+    return tList('charts.allocation.explain')
+  },
+  get source() {
+    return t('charts.allocation.source')
+  },
 
   build(table) {
     const cols = requireColumns(table, { date: ['Date'], asset: ['Asset'], value: ['Assets Master Currency'] })
     const model = assetMonthly(rowsOf(table), cols.date, cols.asset, cols.value)
-    if (!model.months.length) return { empty: 'Aucun montant supérieur à 0 dans la table _history.' }
+    if (!model.months.length) return { empty: t('errors.noPositive', { table: '_history' }) }
 
     const last = model.months.length - 1
     const biggest = model.series
@@ -82,12 +88,16 @@ export default {
     return {
       subtitle: monthsSubtitle(model.months),
       summary:
-        `Répartition par type d’actif entre ${formatMonthKey(model.months[0].key)} et ${formatMonthKey(model.months[last].key)}. ` +
-        `Au dernier mois, ${biggest.serie.label} pèse ${percent(biggest.value / model.totals[last])}.`,
+        t('charts.allocation.a11y', {
+          from: formatMonthKey(model.months[0].key),
+          to: formatMonthKey(model.months[last].key),
+          asset: biggest.serie.label,
+          share: percent(biggest.value / model.totals[last]),
+        }),
       option: allocationOption(model),
       height: 400,
       table: {
-        columns: ['Mois', ...model.series.map((serie) => serie.label), 'Total'],
+        columns: [t('chart.month'), ...model.series.map((serie) => serie.label), t('chart.total')],
         numeric: [false, ...model.series.map(() => true), true],
         rows: model.months
           .map((month, m) => [
@@ -98,8 +108,8 @@ export default {
           .reverse(),
       },
       note: [
-        model.series.some((serie) => serie.label === 'Autres')
-          ? 'Les types d’actifs au-delà des 8 couleurs du site sont regroupés dans « Autres ».'
+        model.series.some((serie) => serie.label === t('data.others'))
+          ? t('charts.flow.othersNote', { others: t('data.others') })
           : '',
         skippedNote(model.skipped),
       ]

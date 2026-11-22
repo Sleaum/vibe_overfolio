@@ -7,7 +7,7 @@
 <template>
   <div>
     <header class="max-w-3xl">
-      <h1 class="text-h2 text-ink">Stratégie CTO</h1>
+      <h1 class="text-h2 text-ink">{{ t('pages.strategy') }}</h1>
       <p class="mt-3 text-lead text-ink-2" aria-live="polite">{{ subtitle }}</p>
     </header>
 
@@ -16,42 +16,42 @@
       role="status"
       class="mt-10 flex h-80 items-center justify-center rounded-xl bg-wash text-ink-2 motion-safe:animate-pulse"
     >
-      Chargement de tes actions…
+      {{ t('strategyPage.loading') }}
     </div>
 
     <div v-else-if="status === 'error'" role="alert" class="mt-10 rounded-xl border border-danger-line bg-danger-wash p-6">
       <p class="font-semibold text-danger">
-        {{ missingTable ? 'La table portfolio n’est pas encore dans la base' : 'Impossible de charger les données' }}
+        {{ missingTable ? t('page.tableMissing', { table: 'portfolio' }) : t('chartUi.loadErrorTitle') }}
       </p>
       <p class="mt-1 text-ink">
-        {{ missingTable ? 'Elle n’a pas encore été synchronisée depuis Google Sheets.' : portfolio.error.value.message }}
+        {{ missingTable ? t('page.notSyncedYet') : portfolio.error.value.message }}
       </p>
       <div class="mt-4 flex flex-wrap gap-3">
         <AppButton v-if="missingTable" :to="{ path: '/sheet', query: { onglet: 'portfolio' } }" variant="secondary" size="sm">
-          Ouvrir la page GoogleSheet
+          {{ t('chartUi.openSheet') }}
         </AppButton>
-        <AppButton variant="secondary" size="sm" @click="portfolio.reload">Réessayer</AppButton>
+        <AppButton variant="secondary" size="sm" @click="portfolio.reload">{{ t('chartUi.retry') }}</AppButton>
       </div>
     </div>
 
     <div v-else-if="status === 'problem'" role="alert" class="mt-10 rounded-xl border border-danger-line bg-danger-wash p-6">
-      <p class="font-semibold text-danger">Les données ne correspondent pas à cette page</p>
+      <p class="font-semibold text-danger">{{ t('page.problemTitle') }}</p>
       <p class="mt-1 text-ink">{{ model.problem }}</p>
-      <p class="mt-3 text-sm text-ink-2">Compare avec les noms de colonnes de la page GoogleSheet.</p>
+      <p class="mt-3 text-sm text-ink-2">{{ t('chartUi.problemHint') }}</p>
     </div>
 
     <div
       v-else-if="status === 'empty'"
       class="mt-10 flex h-56 flex-col items-center justify-center rounded-xl border border-dashed border-line-strong bg-wash px-6 text-center"
     >
-      <p class="font-semibold text-ink">Pas de données à afficher</p>
+      <p class="font-semibold text-ink">{{ t('chartUi.emptyTitle') }}</p>
       <p class="mt-1 max-w-md text-ink-2">{{ model.empty }}</p>
     </div>
 
     <template v-else>
       <!-- Choix de l'enveloppe : filtre tous les anneaux -->
       <div v-if="model.scopes.length" class="mt-10 max-w-sm">
-        <label for="enveloppe" class="block text-sm font-medium text-ink">Enveloppe</label>
+        <label for="enveloppe" class="block text-sm font-medium text-ink">{{ t('strategyPage.envelope') }}</label>
         <div class="relative mt-1.5">
           <select
             id="enveloppe"
@@ -82,26 +82,26 @@
       </ul>
 
       <section v-if="model.skipped.length" class="mt-8 rounded-xl border border-line bg-wash p-5 sm:p-6" aria-labelledby="titre-absents">
-        <h2 id="titre-absents" class="text-h3 text-ink">Anneaux non affichés</h2>
+        <h2 id="titre-absents" class="text-h3 text-ink">{{ t('strategyPage.skippedTitle') }}</h2>
         <p class="mt-2 text-ink-2">
-          Pas de colonne trouvée, ni dans portfolio ni dans stock, pour :
-          {{ model.skipped.map((item) => `${item.title} (« ${item.tried} »)`).join(', ') }}.
-          Dès qu’une colonne de ce nom existe dans la feuille et que tu as cliqué sur Tout actualiser, l’anneau apparaît.
+          {{
+            t('strategyPage.skippedText', {
+              list: model.skipped.map((item) => t('strategyPage.skippedItem', { title: item.title, tried: item.tried })).join(', '),
+            })
+          }}
         </p>
       </section>
 
       <div class="mt-12 max-w-3xl border-t border-line pt-6 text-sm text-ink-2">
-        <p>
-          Chaque anneau additionne le montant « Assets Master Currency » des lignes supérieures à 0{{
-            model.scopeLabel ? ` (enveloppe : ${model.scopeLabel})` : ''
-          }}. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page
-          <router-link to="/sheet" class="font-semibold text-accent underline underline-offset-4 hover:text-accent-hover">
-            GoogleSheet</router-link
-          >.
-        </p>
+        <i18n-t :keypath="model.scopeLabel ? 'strategyPage.footerScope' : 'strategyPage.footer'" tag="p" scope="global">
+          <template #scope>{{ model.scopeLabel }}</template>
+          <template #sheet>
+            <router-link to="/sheet" class="font-semibold text-accent underline underline-offset-4 hover:text-accent-hover">GoogleSheet</router-link>
+          </template>
+        </i18n-t>
         <p v-for="note in model.notes" :key="note" class="mt-2">{{ note }}</p>
         <details class="mt-3">
-          <summary class="cursor-pointer font-medium text-ink">Colonnes lues dans la feuille</summary>
+          <summary class="cursor-pointer font-medium text-ink">{{ t('strategyPage.columnsRead') }}</summary>
           <ul class="mt-2 list-disc space-y-1 pl-5">
             <li v-for="column in model.usedColumns" :key="column">{{ column }}</li>
           </ul>
@@ -112,12 +112,15 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { computed, ref } from 'vue'
 import AppButton from '../components/ui/AppButton.vue'
 import StrategyCard from '../components/charts/StrategyCard.vue'
 import { useTable } from '../composables/useTable.js'
 import { DataError } from '../lib/aggregate.js'
 import { buildStrategy } from '../lib/strategy.js'
+
+const { t } = useI18n()
 
 const portfolio = useTable('portfolio')
 const stock = useTable('stock') // facultative : une erreur (table absente) n'empêche pas la page de s'afficher
@@ -135,7 +138,7 @@ const model = computed(() => {
   } catch (err) {
     if (err instanceof DataError) return { problem: err.message }
     console.error(err)
-    return { problem: `La page n’a pas pu être construite (${err?.message ?? 'erreur inconnue'}).` }
+    return { problem: t('page.buildFailed', { message: err?.message ?? t('chartUi.unknownError') }) }
   }
 })
 
@@ -150,7 +153,7 @@ const status = computed(() => {
 const missingTable = computed(() => portfolio.error.value?.status === 404)
 
 const subtitle = computed(
-  () => (status.value === 'ready' && model.value.subtitle) || 'Tes actions regroupées de plusieurs façons, sur deux niveaux.',
+  () => (status.value === 'ready' && model.value.subtitle) || t('strategyPage.defaultSubtitle'),
 )
 
 // Le sélecteur lit le choix effectif (celui par défaut tant qu'on n'a rien choisi)

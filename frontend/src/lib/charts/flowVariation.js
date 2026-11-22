@@ -3,9 +3,10 @@
 
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { axisLabelStyle, baseOption, categoryAxis, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
-import { euro, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
+import { axisPercent, euro, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
 import { AXIS, HOVER_SHADE, SERIES } from '../palette.js'
 import { monthEnds, monthsSubtitle, signedPercent, skippedNote, totalsByDate } from './flowData.js'
+import { t, tList } from '../../i18n/index.js'
 
 const UP = SERIES[0]
 const DOWN = SERIES[1]
@@ -22,9 +23,9 @@ export function variationOption(changes) {
         const change = changes[[].concat(params)[0]?.dataIndex]
         if (!change) return ''
         return tooltipHtml(formatMonthKey(change.key), [
-          { color: change.pct >= 0 ? UP : DOWN, label: 'Variation', value: signedPercent(change.pct), strong: true },
-          { label: 'Écart', value: `${change.delta > 0 ? '+' : change.delta < 0 ? '-' : ''}${euro(Math.abs(change.delta))}` },
-          { label: 'Patrimoine', value: euro(change.total) },
+          { color: change.pct >= 0 ? UP : DOWN, label: t('charts.variation.change'), value: signedPercent(change.pct), strong: true },
+          { label: t('charts.variation.gap'), value: `${change.delta > 0 ? '+' : change.delta < 0 ? '-' : ''}${euro(Math.abs(change.delta))}` },
+          { label: t('chart.wealth'), value: euro(change.total) },
         ])
       },
     }),
@@ -33,7 +34,7 @@ export function variationOption(changes) {
       axisLine: { onZero: false, lineStyle: { color: AXIS } },
       axisLabel: { ...axisLabelStyle, hideOverlap: true },
     }),
-    yAxis: valueAxis((value) => `${value} %`),
+    yAxis: valueAxis(axisPercent),
     dataZoom: zoom ? [zoomSlider()] : undefined,
     series: [
       {
@@ -64,15 +65,20 @@ export function variationOption(changes) {
 
 export default {
   slug: 'variation-mensuelle',
-  title: 'Variation mensuelle',
-  summary: 'De combien ton patrimoine monte ou baisse, en %, d’un mois à l’autre.',
+  get title() {
+    return t('charts.variation.title')
+  },
+  get summary() {
+    return t('charts.variation.summary')
+  },
   table: '_history',
   minWidth: 720,
-  explain: [
-    'Chaque barre compare le total de tes actifs à la fin d’un mois avec celui du mois précédent. Les barres bleues au-dessus du zéro sont des hausses, les barres orange en dessous sont des baisses.',
-    'Cette variation mélange deux causes : ce que tu as versé ou retiré, et ce que le marché a fait. Pour les séparer, il faut l’onglet inout, qui n’est pas encore utilisé ici.',
-  ],
-  source: 'Table _history, colonnes Date et Assets Master Currency, additionnées par date ; dernier relevé de chaque mois.',
+  get explain() {
+    return tList('charts.variation.explain')
+  },
+  get source() {
+    return t('charts.variation.source')
+  },
 
   build(table) {
     const cols = requireColumns(table, { date: ['Date'], value: ['Assets Master Currency'] })
@@ -88,18 +94,21 @@ export default {
       const delta = months[i].total - previous
       changes.push({ key: months[i].key, total: months[i].total, delta, pct: (delta / previous) * 100 })
     }
-    if (!changes.length) return { empty: 'Il faut au moins deux mois de relevés dans la table _history.' }
+    if (!changes.length) return { empty: t('errors.twoMonths', { table: '_history' }) }
 
     const last = changes[changes.length - 1]
     return {
       subtitle: monthsSubtitle(ends),
       summary:
-        `Variation mensuelle du patrimoine entre ${formatMonthKey(changes[0].key)} et ${formatMonthKey(last.key)}. ` +
-        `Dernier mois : ${signedPercent(last.pct)}.`,
+        t('charts.variation.a11y', {
+          from: formatMonthKey(changes[0].key),
+          to: formatMonthKey(last.key),
+          last: signedPercent(last.pct),
+        }),
       option: variationOption(changes),
       height: 320,
       table: {
-        columns: ['Mois', 'Variation', 'Écart', 'Patrimoine'],
+        columns: [t('chart.month'), t('charts.variation.change'), t('charts.variation.gap'), t('chart.wealth')],
         numeric: [false, true, true, true],
         rows: [...changes]
           .reverse()
@@ -111,7 +120,9 @@ export default {
           ]),
       },
       note: [
-        `Moyenne mensuelle : ${signedPercent(changes.reduce((sum, change) => sum + change.pct, 0) / changes.length)}.`,
+        t('charts.variation.average', {
+          value: signedPercent(changes.reduce((sum, change) => sum + change.pct, 0) / changes.length),
+        }),
         skippedNote(ends.skipped),
       ].join(' '),
     }

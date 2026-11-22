@@ -30,6 +30,8 @@ class TabResult:
     columns: List[str] = field(default_factory=list)
     rows: int = 0
     message: str = ""
+    code: str = ""  # même erreur que message, pour le site (voir errors.py)
+    params: dict = field(default_factory=dict)
 
 
 @transaction.atomic
@@ -80,18 +82,20 @@ def sync_sheets(
             values = read_worksheet_values(spreadsheet, tab)
             header_row, columns, rows = parse_values(values, header_rows.get(tab))
         except SheetError as exc:
-            result.message = str(exc)
+            result.message, result.code, result.params = str(exc), exc.code, exc.params
             continue
 
         result.header_row, result.columns, result.rows = header_row, columns, len(rows)
 
         if not rows and not allow_empty and SheetTable.objects.filter(name=tab, row_count__gt=0).exists():
             result.message = "aucune ligne lue : données existantes conservées (--allow-empty pour forcer)"
+            result.code = "empty_kept"
             continue
 
         if dry_run:
             result.ok = True
             result.message = "simulation : rien n'a été écrit"
+            result.code = "dry_run"
             continue
 
         try:
@@ -99,6 +103,7 @@ def sync_sheets(
         except Exception as exc:
             logger.exception("Écriture en base impossible pour l'onglet %s", tab)
             result.message = f"erreur base de données : {exc}"
+            result.code, result.params = "database_error", {"detail": str(exc)}
             continue
 
         result.ok = True

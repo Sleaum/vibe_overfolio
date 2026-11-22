@@ -5,6 +5,7 @@
 import { baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { capitalize, euro, percent } from '../format.js'
 import { CONTEXT, FONT, INK, INK_2, SURFACE, assignAssetColors } from '../palette.js'
+import { t } from '../../i18n/index.js'
 
 /** Regroupe les types sans couleur libre en « Autres » et prépare les parts. */
 export function assetParts(entries, total) {
@@ -25,7 +26,7 @@ export function assetParts(entries, total) {
     .filter((entry) => folded.has(entry.name))
     .reduce((sum, entry) => sum + entry.value, 0)
   if (othersValue > 0) {
-    parts.push({ name: 'Autres', value: othersValue, share: othersValue / total, color: CONTEXT, slot: 99 })
+    parts.push({ name: t('data.others'), value: othersValue, share: othersValue / total, color: CONTEXT, slot: 99 })
   }
   return parts
 }
@@ -38,13 +39,13 @@ export function donutOption(parts, total) {
       trigger: 'item',
       formatter: (p) =>
         tooltipHtml(p.name, [
-          { color: p.color, label: 'Montant', value: euro(p.value), strong: true },
-          { label: 'Part du total', value: percent(p.value / total) },
+          { color: p.color, label: t('chart.amount'), value: euro(p.value), strong: true },
+          { label: t('chart.shareOfTotal'), value: percent(p.value / total) },
         ]),
     }),
     title: {
       text: euro(total),
-      subtext: 'Total des actifs',
+      subtext: t('chart.totalAssets'),
       left: 'center',
       top: 'center',
       itemGap: 4,

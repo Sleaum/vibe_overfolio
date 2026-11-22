@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 
 from . import config
 from .models import SheetTable
+from .errors import error_response
 from .services import SheetError
 from .sync import DEFAULT_TABS, configured_tabs, sync_sheets
 
@@ -46,12 +47,11 @@ def table_detail(request, name):
     try:
         table = SheetTable.objects.get(name=name)
     except SheetTable.DoesNotExist:
-        return JsonResponse(
-            {
-                "error": f"Table '{name}' introuvable en base. "
-                "Lance la synchronisation : python manage.py sync_sheets"
-            },
-            status=404,
+        return error_response(
+            f"Table '{name}' introuvable en base. Lance la synchronisation : python manage.py sync_sheets",
+            "table_not_found",
+            404,
+            {"name": name},
         )
 
     rows = list(table.rows.order_by("position").values_list("data", flat=True))
@@ -76,24 +76,26 @@ def table_sync(request, name):
     Seuls les onglets de la liste de synchronisation sont acceptés.
     """
     if name not in configured_tabs():
-        return JsonResponse({"error": f"Onglet '{name}' non synchronisable"}, status=404)
+        return error_response(f"Onglet '{name}' non synchronisable", "tab_not_syncable", 404, {"name": name})
 
     lock_key = f"sheet-sync-lock:{name}"
     if not cache.add(lock_key, 1, SYNC_COOLDOWN):
-        return JsonResponse(
-            {"error": f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes."},
-            status=429,
+        return error_response(
+            f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes.",
+            "sync_too_soon",
+            429,
+            {"seconds": SYNC_COOLDOWN},
         )
 
     try:
         result = sync_sheets(config.doc_name(), tabs=[name])[0]
     except SheetError as exc:
         cache.delete(lock_key)
-        return JsonResponse({"error": str(exc)}, status=exc.status)
+        return error_response(str(exc), exc.code, exc.status, exc.params)
 
     if not result.ok:
         cache.delete(lock_key)
-        return JsonResponse({"error": result.message or "Synchronisation impossible"}, status=502)
+        return error_response(result.message or "Synchronisation impossible", result.code or "sync_failed", 502, result.params)
 
     return JsonResponse({"name": name, "row_count": result.rows, "columns": result.columns})
 
@@ -109,26 +111,28 @@ def sync_all(request):
     """
     lock_key = "sheet-sync-lock:__all__"
     if not cache.add(lock_key, 1, SYNC_COOLDOWN):
-        return JsonResponse(
-            {"error": f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes."},
-            status=429,
+        return error_response(
+            f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes.",
+            "sync_too_soon",
+            429,
+            {"seconds": SYNC_COOLDOWN},
         )
 
     try:
         results = sync_sheets(config.doc_name())
     except SheetError as exc:
         cache.delete(lock_key)
-        return JsonResponse({"error": str(exc)}, status=exc.status)
+        return error_response(str(exc), exc.code, exc.status, exc.params)
 
     tabs = [
-        {"name": r.tab, "ok": r.ok, "row_count": r.rows, "message": r.message}
+        {"name": r.tab, "ok": r.ok, "row_count": r.rows, "message": r.message, "code": r.code, "params": r.params}
         for r in results
     ]
     saved = sum(1 for r in results if r.ok)
     if not saved:
         cache.delete(lock_key)
         detail = " ; ".join(f"{t['name']} : {t['message'] or 'erreur'}" for t in tabs)
-        return JsonResponse({"error": f"Aucun onglet n'a pu être actualisé ({detail})", "tabs": tabs}, status=502)
+        return error_response(f"Aucun onglet n'a pu être actualisé ({detail})", "no_tab_saved", 502, tabs=tabs)
 
     return JsonResponse({"tabs": tabs, "saved": saved, "failed": len(tabs) - saved})
 
@@ -143,16 +147,16 @@ def sheet_config(request):
     GET    -> valeurs en vigueur (enregistrées, sinon celles du .env) et valeurs du .env.
               La clé privée n'est jamais renvoyée : seulement private_key_set (true/false).
     PUT    -> enregistre les valeurs saisies. Clé privée vide = clé en vigueur conservée.
-              400 avec {"error", "fields": {champ: message}} si la saisie est incomplète.
+              400 avec {"error", "code", "fields": {champ: message}, "field_codes": {champ: code}} si la saisie est incomplète.
     DELETE -> efface les valeurs saisies : le .env s'applique de nouveau.
     """
     if request.method == "PUT":
         if not isinstance(request.data, dict):
-            return JsonResponse({"error": "Corps JSON attendu"}, status=400)
+            return error_response("Corps JSON attendu", "invalid_json", 400)
         try:
             config.save(request.data)
         except config.ConfigInvalid as exc:
-            return JsonResponse({"error": "Formulaire incomplet", "fields": exc.errors}, status=400)
+            return error_response("Formulaire incomplet", "form_incomplete", 400, fields=exc.errors, field_codes=exc.codes)
     elif request.method == "DELETE":
         config.reset()
     return JsonResponse(config.public_view())

@@ -7,15 +7,15 @@
     <div class="mx-auto w-full max-w-md">
       <div class="rounded-xl border border-line bg-paper p-6 shadow-soft sm:p-8">
         <header class="text-center">
-          <h1 class="text-h2 text-ink">Connexion</h1>
-          <p class="mt-2 text-ink-2">Accédez à votre espace personnel</p>
+          <h1 class="text-h2 text-ink">{{ t('pages.login') }}</h1>
+          <p class="mt-2 text-ink-2">{{ t('login.lead') }}</p>
         </header>
 
         <!-- Formulaire -->
         <div class="mt-8 space-y-5">
           <!-- Champ Email -->
           <div>
-            <label for="connexion-email" class="block text-sm font-medium text-ink">Adresse email</label>
+            <label for="connexion-email" class="block text-sm font-medium text-ink">{{ t('login.email') }}</label>
             <div class="relative mt-1.5">
               <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <svg class="h-5 w-5 text-ink-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -35,7 +35,7 @@
 
           <!-- Champ Mot de passe -->
           <div>
-            <label for="connexion-mot-de-passe" class="block text-sm font-medium text-ink">Mot de passe</label>
+            <label for="connexion-mot-de-passe" class="block text-sm font-medium text-ink">{{ t('login.password') }}</label>
             <div class="relative mt-1.5">
               <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <svg class="h-5 w-5 text-ink-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -53,7 +53,7 @@
               <button
                 type="button"
                 @click="togglePasswordVisibility"
-                :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+                :aria-label="showPassword ? t('login.hidePassword') : t('login.showPassword')"
                 :aria-pressed="showPassword"
                 class="absolute inset-y-0 right-0 flex items-center rounded-r-lg pr-3 text-ink-3 transition-colors hover:text-ink"
               >
@@ -72,10 +72,10 @@
           <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <label class="flex cursor-pointer items-center gap-2 text-sm text-ink-2">
               <input v-model="rememberMe" type="checkbox" class="h-4 w-4 rounded accent-accent" />
-              Se souvenir de moi
+              {{ t('login.remember') }}
             </label>
             <a href="#" class="text-sm font-medium text-accent underline underline-offset-4 hover:text-accent-hover">
-              Mot de passe oublié ?
+              {{ t('login.forgot') }}
             </a>
           </div>
 
@@ -83,9 +83,9 @@
           <AppButton block :disabled="isLoading" @click="handleLogin">
             <template v-if="isLoading">
               <span class="h-4 w-4 rounded-full border-2 border-on-accent border-t-transparent motion-safe:animate-spin" aria-hidden="true"></span>
-              Connexion en cours…
+              {{ t('login.signingIn') }}
             </template>
-            <template v-else>Se connecter</template>
+            <template v-else>{{ t('login.signIn') }}</template>
           </AppButton>
         </div>
 
@@ -95,7 +95,7 @@
             <div class="w-full border-t border-line"></div>
           </div>
           <div class="relative flex justify-center text-sm">
-            <span class="bg-paper px-4 text-ink-3">ou</span>
+            <span class="bg-paper px-4 text-ink-3">{{ t('login.or') }}</span>
           </div>
         </div>
 
@@ -107,13 +107,13 @@
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          Continuer avec Google
+          {{ t('login.google') }}
         </AppButton>
 
         <!-- Inscription -->
         <p class="mt-6 text-center text-sm text-ink-2">
-          Pas encore de compte ?
-          <a href="#" class="ml-1 font-medium text-accent underline underline-offset-4 hover:text-accent-hover">S’inscrire</a>
+          {{ t('login.noAccount') }}
+          <a href="#" class="ml-1 font-medium text-accent underline underline-offset-4 hover:text-accent-hover">{{ t('login.signUp') }}</a>
         </p>
       </div>
     </div>
@@ -121,8 +121,11 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref } from 'vue'
 import AppButton from '../components/ui/AppButton.vue'
+
+const { t } = useI18n()
 
 const email = ref('')
 const password = ref('')
@@ -137,7 +140,7 @@ const togglePasswordVisibility = () => {
 // Simulation d'une connexion : rien n'est envoyé au serveur
 const handleLogin = async () => {
   if (!email.value || !password.value) {
-    alert('Veuillez remplir tous les champs')
+    alert(t('login.fillAll'))
     return
   }
 
@@ -149,10 +152,10 @@ const handleLogin = async () => {
       password: password.value,
       rememberMe: rememberMe.value,
     })
-    alert('Connexion réussie !')
+    alert(t('login.success'))
   } catch (error) {
     console.error('Erreur de connexion:', error)
-    alert('Erreur de connexion')
+    alert(t('login.error'))
   } finally {
     isLoading.value = false
   }
@@ -160,7 +163,7 @@ const handleLogin = async () => {
 
 const handleGoogleLogin = () => {
   console.log('Connexion avec Google')
-  alert('Connexion Google - Intégrez ici votre logique OAuth')
+  alert(t('login.googleTodo'))
   // Ici vous intégreriez l'API Google OAuth
 }
 </script>

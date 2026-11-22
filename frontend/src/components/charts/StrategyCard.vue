@@ -10,7 +10,7 @@
         <h2 :id="titleId" class="text-h3 text-ink">{{ chart.title }}</h2>
         <p class="mt-1 text-sm text-ink-2">{{ chart.subtitle }}</p>
       </div>
-      <SegmentedControl v-model="view" :options="VIEWS" :label="`Affichage : ${chart.title}`" />
+      <SegmentedControl v-model="view" :options="VIEWS" :label="t('chartUi.displayOf', { title: chart.title })" />
     </header>
 
     <div class="p-4 sm:p-6">
@@ -19,11 +19,11 @@
         :columns="chart.table.columns"
         :rows="chart.table.rows"
         :numeric="chart.table.numeric"
-        :caption="`${chart.title}, version tableau`"
+        :caption="t('chartUi.tableVersion', { title: chart.title })"
       />
       <template v-else>
         <BaseChart :option="option" :height="300" :label="chart.summary" />
-        <ul class="mt-5 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2" :aria-label="`Parts : ${chart.title}`">
+        <ul class="mt-5 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2" :aria-label="t('chartUi.partsOf', { title: chart.title })">
           <li v-for="item in chart.legend" :key="item.name" class="flex items-start gap-2.5 py-1.5">
             <span class="mt-1.5 h-3 w-3 shrink-0 rounded-[3px]" :style="{ backgroundColor: item.color }" aria-hidden="true"></span>
             <span class="min-w-0">
@@ -35,8 +35,7 @@
           </li>
         </ul>
         <p v-if="chart.detailTitle" class="mt-4 text-sm text-ink-3">
-          Anneau intérieur : {{ chart.title }}. Anneau extérieur : {{ chart.detailTitle }}, en nuances de la couleur de
-          sa catégorie. Survole une part pour voir son montant.
+          {{ t('chartUi.ringsHint', { inner: chart.title, outer: chart.detailTitle }) }}
         </p>
       </template>
     </div>
@@ -44,19 +43,22 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { computed, ref } from 'vue'
 import { sunburstOption } from '../../lib/charts/sunburst.js'
 import SegmentedControl from '../ui/SegmentedControl.vue'
 import BaseChart from './BaseChart.vue'
 import DataTableView from './DataTableView.vue'
 
+const { t } = useI18n()
+
 const props = defineProps({
   chart: { type: Object, required: true }, // un élément de `charts` renvoyé par buildStrategy
 })
 
 const VIEWS = [
-  { value: 'chart', label: 'Graphique' },
-  { value: 'table', label: 'Tableau' },
+  { value: 'chart', label: t('chartUi.chart') },
+  { value: 'table', label: t('chartUi.table') },
 ]
 
 const view = ref('chart')

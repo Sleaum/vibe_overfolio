@@ -8,14 +8,15 @@ import { assetParts } from './charts/assetDonut.js'
 import { totalsByDate } from './charts/flowData.js'
 import { capitalize, euro, percent, percentPrecise } from './format.js'
 import { ASSET_ORDER, CONTEXT, assignAssetColors } from './palette.js'
+import { t } from '../i18n/index.js'
 
 /** Découpages proposés pour chaque type d'actif, avec les noms de colonnes acceptés (le premier est celui affiché en cas d'erreur). */
 export const DIMENSIONS = [
-  { key: 'sub', label: 'Sous-type', names: ['Sub Asset', 'Sub-Asset', 'SubAsset', 'Sous-type', 'Sous type'] },
-  { key: 'instrument', label: 'Instrument', names: ['Instrument'] },
-  { key: 'envelope', label: 'Enveloppe', names: ['Envelope', 'Enveloppe', 'Account', 'Compte', 'Wrapper'] },
-  { key: 'broker', label: 'Courtier', names: ['Broker', 'Courtier'] },
-  { key: 'area', label: 'Zone', names: ['Area', 'Zone', 'Region', 'Région'] },
+  { key: 'sub', get label() { return t('snapshot.dims.sub') }, names: ['Sub Asset', 'Sub-Asset', 'SubAsset', 'Sous-type', 'Sous type'] },
+  { key: 'instrument', get label() { return t('snapshot.dims.instrument') }, names: ['Instrument'] },
+  { key: 'envelope', get label() { return t('snapshot.dims.envelope') }, names: ['Envelope', 'Enveloppe', 'Account', 'Compte', 'Wrapper'] },
+  { key: 'broker', get label() { return t('snapshot.dims.broker') }, names: ['Broker', 'Courtier'] },
+  { key: 'area', get label() { return t('snapshot.dims.area') }, names: ['Area', 'Zone', 'Region', 'Région'] },
 ]
 
 const MAX_ITEMS = 6 // au-delà, le reste est regroupé en « Autres »
@@ -67,7 +68,7 @@ function topItems(rows, column, valueColumn, total) {
   const items = shown.map((entry) => ({ name: entry.name, value: entry.value, share: entry.value / total }))
   if (rest.length) {
     const value = rest.reduce((sum, entry) => sum + entry.value, 0)
-    items.push({ name: `Autres (${rest.length})`, value, share: value / total })
+    items.push({ name: t('data.othersCount', { count: rest.length }), value, share: value / total })
   }
   return items
 }
@@ -83,7 +84,7 @@ export function buildSnapshot(portfolio, history = null, today = new Date().toIS
   const rows = rowsOf(portfolio)
 
   const { entries, total: gross } = splitBy(rows, cols.asset, cols.value)
-  if (!entries.length) return { empty: 'Aucun montant supérieur à 0 dans la table portfolio.' }
+  if (!entries.length) return { empty: t('errors.noPositive', { table: 'portfolio' }) }
 
   // Dettes : colonne facultative, montants négatifs (patrimoine net = actifs + dettes)
   const liabilitiesColumn = findColumn(portfolio.columns, ['Liabilities Master Currency'])
@@ -143,7 +144,7 @@ export function buildSnapshot(portfolio, history = null, today = new Date().toIS
     changes: history ? periodChanges(history, asOf) : { year: null, month: null },
     types,
     missing,
-    usedColumns: dimensions.map((dim) => `${dim.label} : ${dim.column}`),
+    usedColumns: dimensions.map((dim) => t('snapshot.usedColumn', { label: dim.label, column: dim.column })),
     missingDimensions: DIMENSIONS.filter((dim) => !dimensions.some((d) => d.key === dim.key)).map((dim) => dim.label),
   }
 }

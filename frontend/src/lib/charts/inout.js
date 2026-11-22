@@ -5,6 +5,7 @@ import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis
 import { axisEuroFormatter, euro, formatMonthKey } from '../format.js'
 import { HOVER_SHADE, SERIES } from '../palette.js'
 import { dataSubtitle } from './common.js'
+import { t, tList } from '../../i18n/index.js'
 
 export function inoutOption(months, { hasTax }) {
   const max = Math.max(...months.map((month) => Math.max(month.inflow, month.outflow, hasTax ? month.tax : 0)))
@@ -22,7 +23,7 @@ export function inoutOption(months, { hasTax }) {
   return {
     ...baseOption(),
     grid: { left: 4, right: 8, top: 40, bottom: zoom ? 44 : 8, containLabel: true },
-    legend: legendTop(hasTax ? ['Entrées', 'Sorties', 'Impôts'] : ['Entrées', 'Sorties']),
+    legend: legendTop(hasTax ? [t('charts.inout.in'), t('charts.inout.out'), t('charts.inout.tax')] : [t('charts.inout.in'), t('charts.inout.out')]),
     tooltip: tooltipBox({
       trigger: 'axis',
       axisPointer: { type: 'shadow', shadowStyle: { color: HOVER_SHADE } },
@@ -31,11 +32,11 @@ export function inoutOption(months, { hasTax }) {
         const month = months[first?.dataIndex]
         if (!month) return ''
         const rows = [
-          { color: SERIES[0], label: 'Entrées', value: euro(month.inflow) },
-          { color: SERIES[1], label: 'Sorties', value: euro(month.outflow) },
+          { color: SERIES[0], label: t('charts.inout.in'), value: euro(month.inflow) },
+          { color: SERIES[1], label: t('charts.inout.out'), value: euro(month.outflow) },
         ]
-        if (hasTax) rows.push({ color: SERIES[3], label: 'Impôts', value: euro(month.tax) })
-        rows.push({ label: 'Solde du mois', value: euro(month.inflow - month.outflow - month.tax), strong: true })
+        if (hasTax) rows.push({ color: SERIES[3], label: t('charts.inout.tax'), value: euro(month.tax) })
+        rows.push({ label: t('charts.inout.monthBalance'), value: euro(month.inflow - month.outflow - month.tax), strong: true })
         return tooltipHtml(formatMonthKey(month.key), rows)
       },
     }),
@@ -43,24 +44,29 @@ export function inoutOption(months, { hasTax }) {
     yAxis: valueAxis(axisEuroFormatter(max)),
     dataZoom: zoom ? [zoomSlider()] : undefined,
     series: [
-      bar('Entrées', SERIES[0], months.map((month) => Math.round(month.inflow))),
-      bar('Sorties', SERIES[1], months.map((month) => Math.round(month.outflow))),
-      ...(hasTax ? [bar('Impôts', SERIES[3], months.map((month) => Math.round(month.tax)))] : []),
+      bar(t('charts.inout.in'), SERIES[0], months.map((month) => Math.round(month.inflow))),
+      bar(t('charts.inout.out'), SERIES[1], months.map((month) => Math.round(month.outflow))),
+      ...(hasTax ? [bar(t('charts.inout.tax'), SERIES[3], months.map((month) => Math.round(month.tax)))] : []),
     ],
   }
 }
 
 export default {
   slug: 'entrees-sorties',
-  title: 'Entrées, sorties et impôts',
-  summary: 'L’argent que tu verses, que tu retires et les impôts payés, mois par mois.',
+  get title() {
+    return t('charts.inout.title')
+  },
+  get summary() {
+    return t('charts.inout.summary')
+  },
   table: 'inout',
   minWidth: 720,
-  explain: [
-    'Pour chaque mois, la barre bleue totalise l’argent versé sur tes placements (in), la barre orange l’argent retiré (out) et la barre jaune les impôts (tax). Les mois sans mouvement apparaissent à zéro.',
-    'Le solde du mois (entrées moins sorties et impôts) se lit dans l’infobulle et dans la vue en tableau. Il explique la part de la variation mensuelle qui ne vient pas du marché.',
-  ],
-  source: 'Table inout, colonnes date, in, out et tax. Les sorties et les impôts saisis en négatif sont comptés en valeur absolue.',
+  get explain() {
+    return tList('charts.inout.explain')
+  },
+  get source() {
+    return t('charts.inout.source')
+  },
 
   build(table) {
     const cols = requireColumns(table, {
@@ -71,7 +77,7 @@ export default {
     const tax = findColumn(table.columns, ['tax', 'taxe', 'taxes', 'impot', 'impots'])
     const months = buildInOut(rowsOf(table), { ...cols, tax })
     if (!months.length) {
-      return { empty: 'Aucune date exploitable dans la table inout.' }
+      return { empty: t('errors.noDates', { table: 'inout' }) }
     }
 
     const totalIn = months.reduce((sum, month) => sum + month.inflow, 0)
@@ -79,14 +85,24 @@ export default {
     const totalTax = months.reduce((sum, month) => sum + month.tax, 0)
 
     return {
-      subtitle: dataSubtitle(table, 'Mouvements jusqu’au'),
-      summary:
-        `Barres par mois entre ${formatMonthKey(months[0].key)} et ${formatMonthKey(months[months.length - 1].key)} : ` +
-        `${euro(totalIn)} d’entrées, ${euro(totalOut)} de sorties${tax ? ` et ${euro(totalTax)} d’impôts` : ''} au total.`,
+      subtitle: dataSubtitle(table, 'subtitle.movesUntil'),
+      summary: t(tax ? 'charts.inout.a11yTax' : 'charts.inout.a11y', {
+        from: formatMonthKey(months[0].key),
+        to: formatMonthKey(months[months.length - 1].key),
+        in: euro(totalIn),
+        out: euro(totalOut),
+        tax: euro(totalTax),
+      }),
       option: inoutOption(months, { hasTax: Boolean(tax) }),
       height: 400,
       table: {
-        columns: ['Mois', 'Entrées', 'Sorties', ...(tax ? ['Impôts'] : []), 'Solde'],
+        columns: [
+          t('chart.month'),
+          t('charts.inout.in'),
+          t('charts.inout.out'),
+          ...(tax ? [t('charts.inout.tax')] : []),
+          t('charts.inout.balance'),
+        ],
         numeric: [false, true, true, ...(tax ? [true] : []), true],
         rows: [
           ...[...months]
@@ -98,7 +114,7 @@ export default {
               ...(tax ? [euro(m.tax)] : []),
               euro(m.inflow - m.outflow - m.tax),
             ]),
-          ['Total', euro(totalIn), euro(totalOut), ...(tax ? [euro(totalTax)] : []), euro(totalIn - totalOut - totalTax)],
+          [t('chart.total'), euro(totalIn), euro(totalOut), ...(tax ? [euro(totalTax)] : []), euro(totalIn - totalOut - totalTax)],
         ],
       },
     }

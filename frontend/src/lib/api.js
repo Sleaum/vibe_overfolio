@@ -7,18 +7,39 @@
 //   GET    /api/sheet-config/       -> paramètres d'accès au Google Sheet (la clé privée n'est jamais renvoyée)
 //   PUT    /api/sheet-config/       -> enregistre les paramètres saisis
 //   DELETE /api/sheet-config/       -> revient aux valeurs du .env
-//   Erreurs : { "error": "...", "fields"?: { champ: message } } avec le code 400, 404, 429 (trop rapproché) ou 502.
+//   Erreurs : { "error": "message en français", "code": "code_stable", "params": {…}, "fields"?: { champ: message },
+//             "field_codes"?: { champ: code } } avec le code 400, 404, 429 (trop rapproché) ou 502.
+//   Le message affiché est traduit à partir de `code` (i18n, rubrique apiErrors) ; code inconnu : le message du serveur.
+
+import { i18n, t } from '../i18n/index.js'
+
+/** Message d'une erreur du serveur dans la langue active : traduit d'après son code, sinon le texte reçu. */
+export function apiMessage(code, params = {}, fallback = '') {
+  return code && i18n.global.te(`apiErrors.${code}`) ? t(`apiErrors.${code}`, params ?? {}) : fallback
+}
+
+/** Erreurs par champ d'un formulaire, traduites : { champ: message }. `labelOf(champ)` donne le nom du champ. */
+function fieldMessages(fields = {}, codes = {}, labelOf = (field) => field) {
+  return Object.fromEntries(
+    Object.entries(fields).map(([field, message]) => {
+      const code = codes?.[field]
+      return [field, code ? apiMessage(`fields.${code}`, { label: labelOf(field) }, message) : message]
+    }),
+  )
+}
 
 export class ApiError extends Error {
-  constructor(message, status = 0, fields = {}) {
+  constructor(message, status = 0, fields = {}, code = '') {
     super(message)
     this.name = 'ApiError'
     this.status = status
-    this.fields = fields // erreurs par champ d'un formulaire (code 400)
+    this.code = code
+    this.fields = fields // erreurs par champ d'un formulaire (code 400), déjà traduites
   }
 }
 
-async function request(url, options = {}) {
+// `fieldLabel(champ)` : nom affiché d'un champ de formulaire, pour traduire les erreurs par champ
+async function request(url, { fieldLabel, ...options } = {}) {
   let response
   try {
     response = await fetch(url, {
@@ -26,7 +47,7 @@ async function request(url, options = {}) {
       headers: { Accept: 'application/json', ...(options.headers || {}) },
     })
   } catch {
-    throw new ApiError("Impossible de joindre le serveur. Vérifie que l'application est démarrée.", 0)
+    throw new ApiError(t('apiErrors.unreachable'), 0)
   }
 
   let body = null
@@ -37,10 +58,16 @@ async function request(url, options = {}) {
   }
 
   if (!response.ok) {
-    throw new ApiError(body?.error || `Erreur HTTP ${response.status}`, response.status, body?.fields || {})
+    const fallback = body?.error || t('apiErrors.http', { status: response.status })
+    throw new ApiError(
+      apiMessage(body?.code, body?.params, fallback),
+      response.status,
+      fieldMessages(body?.fields, body?.field_codes, fieldLabel),
+      body?.code ?? '',
+    )
   }
   if (body === null) {
-    throw new ApiError("Réponse inattendue du serveur (ce n'est pas du JSON).", response.status)
+    throw new ApiError(t('apiErrors.notJson'), response.status)
   }
   return body
 }
@@ -55,6 +82,7 @@ export const getSheetConfig = () => request('/api/sheet-config/')
 
 export const saveSheetConfig = (values) =>
   request('/api/sheet-config/', {
+    fieldLabel: (field) => t(`sheetSettings.fields.${field}`),
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(values),

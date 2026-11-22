@@ -40,11 +40,16 @@ function startingLocale() {
   return DEFAULT_LOCALE
 }
 
+// Pluriel « un | plusieurs » : t('cle', { count }, count). En français 0 et 1 sont au singulier ;
+// en anglais seul 1 l'est ; le thaï n'a qu'une forme (même texte des deux côtés du « | »).
+const twoForms = (singular) => (choice, length) => (length < 2 ? 0 : singular(Math.abs(choice)) ? 0 : 1)
+
 export const i18n = createI18n({
   legacy: false,
   locale: startingLocale(),
   fallbackLocale: DEFAULT_LOCALE,
   messages: { fr, en, th },
+  pluralRules: { fr: twoForms((n) => n <= 1), en: twoForms((n) => n === 1), th: twoForms(() => false) },
 })
 
 /** Langue active (ref réactive : un calcul qui la lit est refait quand elle change). */
@@ -52,6 +57,12 @@ export const locale = i18n.global.locale
 
 /** Traduction hors composant. */
 export const t = (...args) => i18n.global.t(...args)
+
+/** Liste de textes (paragraphes d'une explication…) : tableau JSON → tableau de chaînes traduites. */
+export function tList(key) {
+  const list = i18n.global.tm(key)
+  return Array.isArray(list) ? list.map((item) => i18n.global.rt(item)) : []
+}
 
 /** Réglage Intl de la langue active ('fr-FR', 'en-GB'…). Lu dans un computed, il le refait au changement de langue. */
 export function intlLocale() {

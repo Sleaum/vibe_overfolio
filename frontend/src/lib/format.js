@@ -70,6 +70,12 @@ export function percent(fraction) {
   return Number.isFinite(n) ? percentFormat().format(n) : '–'
 }
 
+/** Graduation d'axe déjà en points de pourcentage : 20 -> "20 %" (français), "20%" (anglais)… */
+export function axisPercent(points) {
+  const n = Number(points)
+  return Number.isFinite(n) ? number('axisPercent', { style: 'percent', maximumFractionDigits: 1 }).format(n / 100) : ''
+}
+
 /** Fraction -> "23,45 %" (deux décimales). */
 export function percentPrecise(fraction) {
   const n = Number(fraction)
@@ -139,11 +145,6 @@ export function formatMonthKeyTiny(key) {
 export function formatDateTime(isoDateTime) {
   const date = new Date(isoDateTime)
   return Number.isNaN(date.getTime()) ? '' : premier(dateAndTime().format(date))
-}
-
-/** 1 -> "1 ligne", 995 -> "995 lignes". */
-export function plural(count, one, many = `${one}s`) {
-  return `${integer().format(count)}${NBSP}${count > 1 ? many : one}`
 }
 
 /** "public equity" -> "Public equity". */

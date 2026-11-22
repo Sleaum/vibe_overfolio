@@ -18,6 +18,7 @@ overfolio/
 │   │   ├── data_views.py           # /api/data/ (lecture et synchronisation de la base)
 │   │   ├── data_urls.py
 │   │   ├── middleware.py           # DisableCSPMiddleware
+│   │   ├── errors.py               # forme commune des erreurs de l'API (message, code, params)
 │   │   ├── models.py               # SheetTable, SheetRow, SheetConfig
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
 │   │   ├── sync.py                 # copie des onglets vers la base
@@ -196,7 +197,7 @@ Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx
 3. **Lire les graphiques** : rubrique **Graphiques**, menu à gauche (Flow, Snapshot, Enveloppes, Strategy, Volatilité, Budget). Chaque graphique a une vue Tableau et une page d'explication (source des chiffres).
 4. **Projeter** : page **Simulation**, réglages dans la page.
 5. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur.
-6. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Les nombres et les dates suivent la langue. La traduction est en cours : seuls l'en-tête, le menu Graphiques, le pied de page et les formats sont traduits pour l'instant, le reste s'affiche en français (voir « Langues »).
+6. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Tout le site suit la langue : textes, graphiques, messages d'erreur, nombres et dates (voir « Langues »).
 
 ### Créer un compte administrateur
 
@@ -322,7 +323,9 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet (voir « Paramètres saisis sur la page GoogleSheet ») |
 
-Les erreurs sont renvoyées en JSON `{"error": "..."}` : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google).
+Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "code_stable", "params": {…}}` (`backend/googlesheet/errors.py`) : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google). Le site affiche le message dans la langue choisie à partir de `code` et `params` (rubrique `apiErrors` de `frontend/src/i18n/*.json`) ; `error` reste en français pour la ligne de commande. Un formulaire invalide (`400`) ajoute `fields` (messages par champ) et `field_codes` (codes par champ). Le résultat de chaque onglet d'une synchronisation porte aussi `code` et `params`.
+
+**Ajouter une erreur** : choisir un code, le passer à `error_response` (ou à `SheetError(message, code, **params)`), puis ajouter `apiErrors.<code>` dans les trois fichiers de langue.
 
 > Ces routes n'ont pas d'authentification. Avant d'exposer le site sur Internet, restreins l'API aux utilisateurs connectés.
 
@@ -563,7 +566,27 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 
 **Ajouter une langue** : une entrée dans `LANGUAGES` et un fichier `<code>.json` avec toutes les clés.
 
-**Avancement** : en-tête, menu Graphiques, pied de page, titres des onglets et formats des nombres et dates sont traduits. Les pages (accueil, GoogleSheet, graphiques, simulation, connexion) le seront une par une ; d'ici là, leurs textes restent en français. Les traductions thaïes sont à faire relire par une personne qui parle thaï.
+**Couverture** : tout le site est traduit, pages, graphiques (titres, explications, légendes, infobulles, vues tableau, textes pour les lecteurs d'écran), messages d'erreur du serveur, nombres, dates et pourcentages. Restent tels quels : les données de ta feuille, les noms de colonnes et d'onglets, les noms des rubriques choisis en anglais (Flow, Snapshot, Strategy, Budget) et les messages destinés aux développeurs (console, ligne de commande). Les traductions thaïes sont à faire relire par une personne qui parle thaï.
+
+**Dans le code** : un graphique déclare son titre, son résumé, son explication et sa source par des getters (`get title() { return t('charts.<nom>.title') }`), lus au moment de l'affichage ; les paragraphes sont des listes (`tList()`). Un texte au pluriel s'écrit « un | plusieurs » et s'appelle `t('cle', { count }, count)`. Un paragraphe qui contient un lien utilise `<i18n-t keypath="…">` avec un emplacement par lien, pour que le lien tombe au bon endroit dans chaque langue.
+
+**Glossaire** : les mêmes mots partout, dans chaque langue.
+
+| Français | Anglais | Thaï |
+|---|---|---|
+| patrimoine / patrimoine net / patrimoine brut | wealth / net worth / gross assets | ทรัพย์สิน / ทรัพย์สินสุทธิ / ทรัพย์สินรวม |
+| actifs / dettes | assets / debts | สินทรัพย์ / หนี้สิน |
+| type d'actif | asset type | ประเภทสินทรัพย์ |
+| enveloppe (de placement) | (investment) envelope | บัญชีลงทุน |
+| instrument / placement | instrument / investment | ตราสาร / การลงทุน |
+| relevé | record | บันทึก |
+| onglet / table | tab / table | แท็บ / ตาราง |
+| Tout actualiser / synchroniser | Refresh all / sync | รีเฟรชทั้งหมด / ซิงค์ |
+| entrées / sorties / impôts | inflows / outflows / taxes | เงินเข้า / เงินออก / ภาษี |
+| versement | contribution | เงินลงทุน |
+| objectif / tendance | goal / trend | เป้าหมาย / แนวโน้ม |
+| médiane / trajectoire | median / path | ค่ามัธยฐาน / เส้นทาง |
+| Autres / Non renseigné | Others / Not specified | อื่น ๆ / ไม่ระบุ |
 
 ## Commandes utiles
 

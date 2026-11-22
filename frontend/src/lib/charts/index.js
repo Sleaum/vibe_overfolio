@@ -16,14 +16,15 @@ import flowTrend from './flowTrend.js'
 import flowVariation from './flowVariation.js'
 import inout from './inout.js'
 import { VOLATILITY_CHARTS } from './volatility.js'
+import { t } from '../../i18n/index.js'
 
 // Les graphiques « Portfolio Flow » sont regroupés sur la page /portfolio-flow
 export const FLOW_CHARTS = [flowCurrency, flowAllocation, flowAssets, flowVariation, inout, flowTrend]
 export { ENVELOPE_CHARTS, VOLATILITY_CHARTS }
 
-const PORTFOLIO_FLOW = { key: 'portfolio-flow', title: 'Portfolio Flow', to: '/portfolio-flow', charts: FLOW_CHARTS }
-const ENVELOPES = { key: 'enveloppes', title: 'Enveloppes', to: '/enveloppes', charts: ENVELOPE_CHARTS }
-const VOLATILITY = { key: 'volatilite', title: 'Volatilité', to: '/volatilite', charts: VOLATILITY_CHARTS }
+const PORTFOLIO_FLOW = { key: 'portfolio-flow', titleKey: 'pages.flow', to: '/portfolio-flow', charts: FLOW_CHARTS }
+const ENVELOPES = { key: 'enveloppes', titleKey: 'pages.envelopes', to: '/enveloppes', charts: ENVELOPE_CHARTS }
+const VOLATILITY = { key: 'volatilite', titleKey: 'pages.volatility', to: '/volatilite', charts: VOLATILITY_CHARTS }
 export const GROUPS = [PORTFOLIO_FLOW, ENVELOPES, VOLATILITY]
 
 export const CHARTS = [budgetFlow, ...GROUPS.flatMap((group) => group.charts)]
@@ -36,37 +37,31 @@ export const MENU = [
     key: PORTFOLIO_FLOW.key,
     to: PORTFOLIO_FLOW.to,
     titleKey: 'chartsMenu.flow',
-    summary: 'L’historique de ton patrimoine mois par mois : devises, répartition, évolution par type d’actif, variation, entrées et sorties, tendance et objectifs.',
   },
   {
     key: 'portfolio-snapshot',
     to: '/portfolio-snapshot',
     titleKey: 'chartsMenu.snapshot',
-    summary: 'Ton patrimoine aujourd’hui : brut, net, variation de l’année et du mois, détail type d’actif par type d’actif.',
   },
   {
     key: ENVELOPES.key,
     to: ENVELOPES.to,
     titleKey: 'chartsMenu.envelopes',
-    summary: 'Tes enveloppes de placement (CTO, PEA, PER, PEE) : contenu, évolution, sous-types et zones.',
   },
   {
     key: 'strategie',
     to: '/strategie',
     titleKey: 'chartsMenu.strategy',
-    summary: 'Tes actions en anneaux à deux niveaux : secteur, moat, localisation, note S&P, business et place de cotation.',
   },
   {
     key: VOLATILITY.key,
     to: VOLATILITY.to,
     titleKey: 'chartsMenu.volatility',
-    summary: 'De combien le prix de chacun de tes placements a bougé sur 1 mois, 3 mois et 1 an.',
   },
   {
     key: budgetFlow.slug,
     to: { name: 'ChartPage', params: { slug: budgetFlow.slug } },
     titleKey: 'chartsMenu.budget',
-    summary: budgetFlow.summary,
   },
 ]
 
@@ -102,5 +97,5 @@ export function neighbours(slug) {
 /** Page qui regroupe ce graphique (pour le fil d'Ariane), ou null s'il n'appartient à aucune. */
 export const parentPage = (slug) => {
   const group = groupOf(slug)
-  return group ? { title: group.title, to: group.to } : null
+  return group ? { title: t(group.titleKey), to: group.to } : null
 }

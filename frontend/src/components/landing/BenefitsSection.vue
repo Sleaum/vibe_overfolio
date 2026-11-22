@@ -2,11 +2,11 @@
   <section aria-labelledby="titre-avantages" class="section-y">
     <div class="page-container">
       <h2 id="titre-avantages" class="max-w-2xl text-h2 text-ink">
-        Tu gardes ta feuille, Overfolio la rend lisible
+        {{ t('home.benefits.title') }}
       </h2>
 
       <ul class="mt-14 grid grid-cols-1 gap-x-10 gap-y-12 md:grid-cols-3">
-        <li v-for="benefit in BENEFITS" :key="benefit.title">
+        <li v-for="benefit in BENEFITS" :key="benefit.key">
           <!-- Pictogramme : trois traits d'encre et l'accent, sans pastille autour -->
           <svg viewBox="0 0 32 32" class="h-8 w-8 text-accent" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <template v-if="benefit.icon === 'sheet'">
@@ -24,8 +24,8 @@
               <path d="M10 22.5l3 3 6-6.5" />
             </template>
           </svg>
-          <h3 class="mt-5 text-h3 text-ink">{{ benefit.title }}</h3>
-          <p class="mt-2 text-ink-2">{{ benefit.text }}</p>
+          <h3 class="mt-5 text-h3 text-ink">{{ t(`home.benefits.${benefit.key}.title`) }}</h3>
+          <p class="mt-2 text-ink-2">{{ t(`home.benefits.${benefit.key}.text`) }}</p>
         </li>
       </ul>
     </div>
@@ -33,21 +33,13 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+
+// Textes : rubrique home.benefits de i18n/*.json
 const BENEFITS = [
-  {
-    icon: 'sheet',
-    title: 'Ta feuille reste la source',
-    text: 'Tu continues à tenir ton suivi dans Google Sheets. Overfolio lit tes onglets, rien de plus : il n’écrit pas dans ta feuille.',
-  },
-  {
-    icon: 'split',
-    title: 'Ta répartition en un coup d’œil',
-    text: 'Types d’actifs, enveloppes, secteurs, zones géographiques : vois où se trouve ton patrimoine sans refaire un tableau croisé.',
-  },
-  {
-    icon: 'check',
-    title: 'Des chiffres que tu peux vérifier',
-    text: 'Chaque graphique indique la table et les colonnes dont il vient, et s’affiche aussi sous forme de tableau.',
-  },
+  { icon: 'sheet', key: 'source' },
+  { icon: 'split', key: 'split' },
+  { icon: 'check', key: 'check' },
 ]
 </script>

@@ -6,6 +6,7 @@ from django.core.cache import cache
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 
+from .errors import error_response
 from .services import SheetError, get_all_rows
 
 logger = logging.getLogger(__name__)
@@ -35,17 +36,15 @@ def googlesheet(request):
     raw_header_row = (request.GET.get("header_row") or "").strip()
     if raw_header_row:
         if not raw_header_row.isdigit() or int(raw_header_row) < 1:
-            return JsonResponse(
-                {"error": "header_row doit être un entier supérieur ou égal à 1"}, status=400
-            )
+            return error_response("header_row doit être un entier supérieur ou égal à 1", "header_row_invalid", 400)
         header_row = int(raw_header_row)
 
     if not doc_name:
-        return JsonResponse({"error": "Paramètre obligatoire manquant : doc_name"}, status=400)
+        return error_response("Paramètre obligatoire manquant : doc_name", "doc_name_missing", 400)
 
     allowed = _allowed_docs()
     if allowed and doc_name not in allowed:
-        return JsonResponse({"error": "Document non autorisé"}, status=403)
+        return error_response("Document non autorisé", "doc_not_allowed", 403)
 
     raw_key = f"{doc_name}\x00{sheet_name or ''}\x00{header_row or ''}"
     cache_key = "googlesheet:" + hashlib.sha1(raw_key.encode("utf-8")).hexdigest()
@@ -58,12 +57,10 @@ def googlesheet(request):
     try:
         data = get_all_rows(doc_name, sheet_name, header_row)
     except SheetError as exc:
-        return JsonResponse({"error": str(exc)}, status=exc.status)
+        return error_response(str(exc), exc.code, exc.status, exc.params)
     except Exception:
         logger.exception("Erreur inattendue pendant la lecture de la feuille")
-        return JsonResponse(
-            {"error": "Erreur interne pendant la lecture de la feuille"}, status=500
-        )
+        return error_response("Erreur interne pendant la lecture de la feuille", "internal_error", 500)
 
     cache.set(cache_key, data, CACHE_SECONDS)
     return JsonResponse(data, safe=False)

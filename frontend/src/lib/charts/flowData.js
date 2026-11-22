@@ -3,6 +3,7 @@
 
 import { findColumn, rowsOf, toLabel, toNumber } from '../aggregate.js'
 import { monthKey, toIsoDate } from '../dates.js'
+import { t } from '../../i18n/index.js'
 import { capitalize, formatDateLong, percent } from '../format.js'
 import { CONTEXT, assignAssetColors } from '../palette.js'
 
@@ -55,7 +56,7 @@ export function totalsByDate(rows, dateColumn, valueColumn) {
  * Montants > 0 par date puis par libellé : { days: Map(iso -> Map(nom -> montant)), names: [noms] }.
  * Deux écritures qui ne diffèrent que par la casse sont un seul libellé.
  */
-export function groupsByDate(rows, dateColumn, groupColumn, valueColumn, emptyLabel = 'Non renseigné') {
+export function groupsByDate(rows, dateColumn, groupColumn, valueColumn, emptyLabel = t('data.unknown')) {
   const days = new Map()
   const names = new Map() // clé en minuscules -> premier libellé rencontré
   for (const row of rows) {
@@ -132,7 +133,7 @@ export function assetMonthly(rows, dateColumn, assetColumn, valueColumn) {
       members: [name],
     }))
     .sort((a, b) => a.slot - b.slot)
-  if (overflow.length) series.push({ label: 'Autres', color: CONTEXT, slot: 99, members: overflow })
+  if (overflow.length) series.push({ label: t('data.others'), color: CONTEXT, slot: 99, members: overflow })
 
   const allMonths = monthEnds(rows, dateColumn)
   const amount = (serie, month) =>
@@ -147,16 +148,13 @@ export function assetMonthly(rows, dateColumn, assetColumn, valueColumn) {
 /** Phrase à afficher sous un graphique quand des mois isolés ont été écartés (sinon chaîne vide). */
 export function skippedNote(count) {
   if (!count) return ''
-  return (
-    `${count > 1 ? `${count} mois très éloignés des autres relevés ne sont pas affichés` : '1 mois très éloigné des autres relevés n’est pas affiché'}` +
-    ' (une pause de plus de 6 mois coupe la série).'
-  )
+  return t('charts.flow.skipped', { count }, count)
 }
 
 /** Sous-titre des graphiques mensuels : date du dernier relevé affiché. */
 export function monthsSubtitle(months) {
   const last = months[months.length - 1]
-  return last ? `Relevés jusqu’au ${formatDateLong(last.iso)}.` : ''
+  return last ? t('charts.flow.recordsUntil', { date: formatDateLong(last.iso) }) : ''
 }
 
 const DATE_NAMES = ['Date', 'Mois', 'Month']

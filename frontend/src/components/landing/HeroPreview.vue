@@ -8,12 +8,12 @@
     <div class="rounded-xl border border-line bg-paper p-5 pb-16 shadow-lift sm:p-6 sm:pb-20">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <p class="text-sm text-ink-2">Patrimoine net</p>
+          <p class="text-sm text-ink-2">{{ t('home.preview.label') }}</p>
           <p class="mt-1 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">{{ headline }}</p>
           <p class="mt-1 text-sm text-ink-2">{{ evolution }}</p>
         </div>
         <span class="shrink-0 rounded-full border border-line bg-wash px-3 py-1 text-xs font-medium text-ink-2">
-          Exemple fictif
+          {{ t('home.preview.sample') }}
         </span>
       </div>
 
@@ -57,17 +57,20 @@
     </div>
 
     <figcaption class="mt-5 text-sm text-ink-3">
-      Exemple avec des données fictives : les lignes de ta feuille deviennent la courbe.
+      {{ t('home.preview.caption') }}
     </figcaption>
   </figure>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { buildEvolution } from '../../lib/aggregate.js'
 import { evolutionOption } from '../../lib/charts/evolution.js'
 import { euro, formatCell, formatDateNumeric, formatDateShort } from '../../lib/format.js'
 import { sampleHistory } from '../../lib/sample.js'
 import BaseChart from '../charts/BaseChart.vue'
+
+const { t } = useI18n()
 
 const points = buildEvolution(
   sampleHistory().rows,
@@ -80,12 +83,12 @@ const last = points[points.length - 1]
 
 const option = evolutionOption(points, { preview: true })
 const headline = euro(last.net)
-const evolution = `+${euro(last.net - first.net)} depuis le ${formatDateShort(first.date)}`
-const chartLabel = `Exemple de courbe de patrimoine net, de ${euro(first.net)} à ${euro(last.net)}, avec des données fictives.`
+const evolution = t('home.preview.since', { amount: euro(last.net - first.net), date: formatDateShort(first.date) })
+const chartLabel = t('home.preview.a11y', { from: euro(first.net), to: euro(last.net) })
 
 // Tête de feuille puis les deux derniers relevés (le dernier est sélectionné)
 const sheetRows = [
-  { cells: ['Date', 'Actifs', 'Dettes'] },
+  { cells: [t('chart.date'), t('chart.assets'), t('chart.liabilities')] },
   ...points.slice(-2).map((point, index, list) => ({
     cells: [formatDateNumeric(point.date), formatCell(Math.round(point.assets)), formatCell(Math.round(point.liabilities))],
     selected: index === list.length - 1,
