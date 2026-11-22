@@ -7,10 +7,10 @@
     class="max-h-96 overflow-auto rounded-lg border border-line"
     tabindex="0"
     role="region"
-    :aria-label="caption"
+    :aria-label="title"
   >
     <table class="min-w-full border-collapse text-sm">
-      <caption class="sr-only">{{ caption }}</caption>
+      <caption class="sr-only">{{ title }}</caption>
       <thead>
         <tr>
           <th
@@ -50,10 +50,15 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+const title = computed(() => props.caption || t('chartUi.tableDefault'))
+
+const props = defineProps({
   columns: { type: Array, required: true },
   rows: { type: Array, required: true }, // lignes de texte déjà formatées
   numeric: { type: Array, default: () => [] }, // un booléen par colonne : aligner à droite
-  caption: { type: String, default: 'Données du graphique' },
+  caption: { type: String, default: '' }, // vide : « Données du graphique » dans la langue active
 })
 </script>

@@ -18,6 +18,7 @@ overfolio/
 │   │   ├── data_views.py           # /api/data/ (lecture et synchronisation de la base)
 │   │   ├── data_urls.py
 │   │   ├── middleware.py           # DisableCSPMiddleware
+│   │   ├── errors.py               # forme commune des erreurs de l'API (message, code, params)
 │   │   ├── models.py               # SheetTable, SheetRow, SheetConfig
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
 │   │   ├── sync.py                 # copie des onglets vers la base
@@ -27,7 +28,7 @@ overfolio/
 ├── frontend/
 │   ├── Dockerfile                  # stage "build" (Vite)
 │   ├── index.html                  # page HTML ; pose le mode sombre avant l'affichage
-│   ├── vite.config.ts              # build ; plugin « theme » (index.html, contrôle des couleurs)
+│   ├── vite.config.ts              # build ; plugins « theme » (index.html, contrôle des couleurs) et « langues » (contrôle des traductions)
 │   ├── tailwind.config.js          # classes de couleur et variables CSS générées depuis lib/theme.js, typographie, ombres
 │   └── src/
 │       ├── App.vue                 # en-tête, page affichée, pied de page
@@ -49,14 +50,16 @@ overfolio/
 │       ├── components/
 │       │   ├── Header.vue, Footer.vue
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
-│       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (bouton clair / sombre)
+│       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue)
 │       │   ├── landing/            # sections de la page de présentation
 │       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard
-│       ├── composables/            # useTable (charge une table), useTheme (mode clair / sombre), useReducedMotion
+│       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes)
+│       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
 │       └── lib/
 │           ├── api.js              # appels /api/data/...
 │           ├── aggregate.js, dates.js, format.js   # calculs et formats français
-│           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre) et de la clé du thème
+│           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
+│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
 │           ├── chartDark.js        # passe un graphique en sombre
 │           ├── simulation.js, simulation.worker.js         # calculs de la page Simulation
@@ -194,6 +197,7 @@ Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx
 3. **Lire les graphiques** : rubrique **Graphiques**, menu à gauche (Flow, Snapshot, Enveloppes, Strategy, Volatilité, Budget). Chaque graphique a une vue Tableau et une page d'explication (source des chiffres).
 4. **Projeter** : page **Simulation**, réglages dans la page.
 5. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur.
+6. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Tout le site suit la langue : textes, graphiques, messages d'erreur, nombres et dates (voir « Langues »).
 
 ### Créer un compte administrateur
 
@@ -319,7 +323,9 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet (voir « Paramètres saisis sur la page GoogleSheet ») |
 
-Les erreurs sont renvoyées en JSON `{"error": "..."}` : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google).
+Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "code_stable", "params": {…}}` (`backend/googlesheet/errors.py`) : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google). Le site affiche le message dans la langue choisie à partir de `code` et `params` (rubrique `apiErrors` de `frontend/src/i18n/*.json`) ; `error` reste en français pour la ligne de commande. Un formulaire invalide (`400`) ajoute `fields` (messages par champ) et `field_codes` (codes par champ). Le résultat de chaque onglet d'une synchronisation porte aussi `code` et `params`.
+
+**Ajouter une erreur** : choisir un code, le passer à `error_response` (ou à `SheetError(message, code, **params)`), puis ajouter `apiErrors.<code>` dans les trois fichiers de langue.
 
 > Ces routes n'ont pas d'authentification. Avant d'exposer le site sur Internet, restreins l'API aux utilisateurs connectés.
 
@@ -376,7 +382,7 @@ Sous WSL, le service cron doit être démarré (`sudo service cron start`), et l
 
 ## Interface
 
-Le front est en Vue 3 (`<script setup>`), Tailwind 3 et ECharts. Il ne lit que la base, par `/api/data/...` : l'API et le backend ne sont pas concernés par l'interface.
+Le front est en Vue 3 (`<script setup>`), Tailwind 3, ECharts et vue-i18n. Il ne lit que la base, par `/api/data/...` : l'API et le backend ne sont pas concernés par l'interface.
 
 ### Pages
 
@@ -520,16 +526,67 @@ Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) 
 
 | Où | Quoi |
 |---|---|
-| `frontend/src/lib/theme.js` | **Seule source des couleurs du site, en clair et en sombre** (`paper`, `wash`, `ink`, `line`, `accent`, `on-accent`, `danger`, `success`…), ombres des graphiques et clé du choix enregistré. Changer une couleur ici change le site, les graphiques et la barre du navigateur |
+| `frontend/src/lib/theme.js` | **Seule source des couleurs du site, en clair et en sombre** (`paper`, `wash`, `ink`, `line`, `accent`, `on-accent`, `danger`, `success`…), ombres des graphiques. Changer une couleur ici change le site, les graphiques et la barre du navigateur |
 | `frontend/tailwind.config.js` | Crée une classe Tailwind par couleur de `theme.js` et génère les variables CSS `:root` (clair) et `html.dark` (sombre). Tailles de texte (`text-body`, `text-lead`, `text-h2`, `text-display`), ombres |
-| `frontend/vite.config.ts` | Plugin `theme` : injecte la clé et les couleurs de fond de `theme.js` dans `index.html`, et signale au build toute couleur écrite en dur dans `src/lib/` (à faire passer par `palette.js`, ou à commenter « couleur fixe ») |
+| `frontend/vite.config.ts` | Plugin `theme` : injecte la clé du thème (`preferences.js`) et les couleurs de fond de `theme.js` dans `index.html`, et signale au build toute couleur écrite en dur dans `src/lib/` (à faire passer par `palette.js`, ou à commenter « couleur fixe ») |
 | `frontend/src/lib/palette.js` | Les 8 couleurs des graphiques (un type d'actif garde la même couleur partout), et les couleurs de fond, d'encre et de filet des graphiques, lues dans `theme.js` avec leur équivalent sombre (`DARK`) |
 | `frontend/src/assets/tailwind.css` | Base : focus clavier visible, animations réduites si le système le demande, largeur du contenu. Aucune couleur |
-| `frontend/src/composables/useTheme.js` | Mode sombre : suit le réglage du système ; le bouton (`components/ui/ThemeToggle.vue`) force clair ou sombre et s'en souvient. `index.html` pose la classe `dark` avant le premier affichage |
+| `frontend/src/composables/useTheme.js` | Mode sombre : suit le réglage du système ; le bouton (`components/ui/ThemeToggle.vue`) force clair ou sombre et s'en souvient (préférence `theme` de `lib/preferences.js`). `index.html` pose la classe `dark` avant le premier affichage |
 | `frontend/src/lib/chartDark.js` | Passe les graphiques en sombre dans `BaseChart.vue` : remplace les couleurs claires de `palette.js` par celles de `DARK` |
 | `frontend/src/lib/sample.js` | Données **fictives** de l'aperçu de la page d'accueil. Ce ne sont pas les tiennes |
 
 Accessibilité : lien « Aller au contenu », menu mobile utilisable au clavier (fermeture avec Échap), focus visible, animation de la courbe d'accueil désactivée avec `prefers-reduced-motion`, et chaque graphique a une version tableau.
+
+### Langues
+
+Le site est proposé en **français** (langue par défaut et de secours), **anglais** et **thaï**. Tous les textes sont dans `frontend/src/i18n/`, un fichier par langue, avec exactement les mêmes clés.
+
+```
+              i18n/index.js                          i18n/fr.json · en.json · th.json
+   (liste des langues, langue de départ)              (mêmes clés, un texte chacune)
+                     └─────────────────┬───────────────────┘
+                                       ▼
+                     vue-i18n : langue active (mémorisée, lib/preferences.js)
+      ┌──────────────────┬─────────────┴──────┬──────────────────────┐
+      ▼                  ▼                    ▼                      ▼
+composants Vue      routeur              lib/format.js          LanguageSelect.vue
+t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-tête)
+                                         dans la langue active
+```
+
+| Où | Quoi |
+|---|---|
+| `frontend/src/i18n/index.js` | `LANGUAGES` : code, nom dans la langue elle-même, réglage des nombres et dates (`intl`). Le thaï impose le calendrier grégorien (sinon 2026 s'écrirait 2569). Langue de départ : choix enregistré, sinon celle du navigateur, sinon le français |
+| `frontend/src/i18n/fr.json`, `en.json`, `th.json` | Les textes, rangés par rubrique (`nav`, `footer`, `chartsMenu`, `pages`…). Un texte avec une valeur : `"legal": "© {year} Overfolio…"`, appelé par `t('footer.legal', { year })` |
+| `frontend/src/lib/format.js` | Montants, pourcentages et dates dans la langue active. Le « 1er » du mois et l'écriture « 12,5 k€ » ne s'appliquent qu'en français |
+| `frontend/src/App.vue` | Au changement de langue, la page est réaffichée (`<router-view :key="locale">`) pour que tout soit refait dans la nouvelle langue |
+| `frontend/vite.config.ts` | Plugin `langues` : le build s'arrête si une clé existe dans une langue et pas dans une autre |
+
+**Écrire un texte** : jamais de phrase en dur dans un composant ou un graphique. Ajouter la clé dans les **trois** fichiers, puis `{{ t('rubrique.cle') }}` dans le template (`const { t } = useI18n()`), ou `t()` importé de `i18n/index.js` hors composant. Les données de ta feuille (instruments, types d'actifs, colonnes) ne sont pas traduites.
+
+**Ajouter une langue** : une entrée dans `LANGUAGES` et un fichier `<code>.json` avec toutes les clés.
+
+**Couverture** : tout le site est traduit, pages, graphiques (titres, explications, légendes, infobulles, vues tableau, textes pour les lecteurs d'écran), messages d'erreur du serveur, nombres, dates et pourcentages. Restent tels quels : les données de ta feuille, les noms de colonnes et d'onglets, les noms des rubriques choisis en anglais (Flow, Snapshot, Strategy, Budget) et les messages destinés aux développeurs (console, ligne de commande). Les traductions thaïes sont à faire relire par une personne qui parle thaï.
+
+**Dans le code** : un graphique déclare son titre, son résumé, son explication et sa source par des getters (`get title() { return t('charts.<nom>.title') }`), lus au moment de l'affichage ; les paragraphes sont des listes (`tList()`). Un texte au pluriel s'écrit « un | plusieurs » et s'appelle `t('cle', { count }, count)`. Un paragraphe qui contient un lien utilise `<i18n-t keypath="…">` avec un emplacement par lien, pour que le lien tombe au bon endroit dans chaque langue.
+
+**Glossaire** : les mêmes mots partout, dans chaque langue.
+
+| Français | Anglais | Thaï |
+|---|---|---|
+| patrimoine / patrimoine net / patrimoine brut | wealth / net worth / gross assets | ทรัพย์สิน / ทรัพย์สินสุทธิ / ทรัพย์สินรวม |
+| actifs / dettes | assets / debts | สินทรัพย์ / หนี้สิน |
+| type d'actif | asset type | ประเภทสินทรัพย์ |
+| enveloppe (de placement) | (investment) envelope | บัญชีลงทุน |
+| instrument / placement | instrument / investment | ตราสาร / การลงทุน |
+| relevé | record | บันทึก |
+| onglet / table | tab / table | แท็บ / ตาราง |
+| Tout actualiser / synchroniser | Refresh all / sync | รีเฟรชทั้งหมด / ซิงค์ |
+| entrées / sorties / impôts | inflows / outflows / taxes | เงินเข้า / เงินออก / ภาษี |
+| versement | contribution | เงินลงทุน |
+| objectif / tendance | goal / trend | เป้าหมาย / แนวโน้ม |
+| médiane / trajectoire | median / path | ค่ามัธยฐาน / เส้นทาง |
+| Autres / Non renseigné | Others / Not specified | อื่น ๆ / ไม่ระบุ |
 
 ## Commandes utiles
 

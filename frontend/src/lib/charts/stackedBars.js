@@ -4,8 +4,9 @@
 import { axisLabelStyle, baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { euro, percent } from '../format.js'
 import { AXIS, FONT, HOVER_SHADE, INK, SURFACE } from '../palette.js'
+import { t } from '../../i18n/index.js'
 
-const TOTAL = 'Total'
+const TOTAL = () => t('chart.total')
 
 export function stackedOption(groups, series, values) {
   // Dernier segment non nul de chaque barre : c'est lui qui a le bout arrondi
@@ -31,7 +32,7 @@ export function stackedOption(groups, series, values) {
             label: item.serie.label,
             value: `${euro(item.value)} (${percent(item.value / group.total)})`,
           }))
-        rows.push({ label: TOTAL, value: euro(group.total), strong: true })
+        rows.push({ label: TOTAL(), value: euro(group.total), strong: true })
         return tooltipHtml(group.name, rows)
       },
     }),
@@ -61,7 +62,7 @@ export function stackedOption(groups, series, values) {
       })),
       {
         // Série invisible de longueur 0 : elle porte seulement le total, écrit au bout de chaque barre
-        name: TOTAL,
+        name: TOTAL(),
         type: 'bar',
         stack: 'total',
         silent: true,

@@ -6,6 +6,7 @@ import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis
 import { formatMonthKey, formatMonthKeyTiny } from '../format.js'
 import { HOVER_SHADE, SERIES } from '../palette.js'
 import { compactNumber, findCurrencyColumn, money, monthEnds, monthsSubtitle, skippedNote, totalsByDate } from './flowData.js'
+import { t, tList } from '../../i18n/index.js'
 
 // Une couleur par devise, la même partout : l'euro garde la première teinte du site
 const CURRENCIES = [
@@ -50,16 +51,20 @@ export function currencyOption(months, series) {
 
 export default {
   slug: 'patrimoine-devises',
-  title: 'Patrimoine par devise',
-  summary: 'La valeur de ton patrimoine exprimée en CHF, en euros et en dollars, mois par mois.',
+  get title() {
+    return t('charts.currency.title')
+  },
+  get summary() {
+    return t('charts.currency.summary')
+  },
   table: '_history',
   minWidth: 720,
-  explain: [
-    'Pour chaque mois, trois barres donnent la valeur totale de ton patrimoine exprimée dans chaque devise. Ce n’est pas une répartition : c’est le même patrimoine, converti trois fois.',
-    'Les barres changent donc ensemble ; leur écart ne bouge qu’avec les taux de change. Le montant d’un mois est celui du dernier relevé de ce mois.',
-  ],
-  source:
-    'Table _history, colonne Date et une colonne de montants pour chaque devise (CHF, EUR, USD), additionnées par date.',
+  get explain() {
+    return tList('charts.currency.explain')
+  },
+  get source() {
+    return t('charts.currency.source')
+  },
 
   build(table) {
     const cols = requireColumns(table, { date: ['Date'] })
@@ -70,14 +75,16 @@ export default {
 
     if (!found.length) {
       throw new DataError(
-        `Aucune colonne de montants en CHF, EUR ou USD dans la table « ${table?.name ?? '_history'} ». ` +
-          `Colonnes disponibles : ${(table?.columns ?? []).join(', ') || 'aucune'}.`,
+        t('charts.currency.noColumn', {
+          table: table?.name ?? '_history',
+          available: (table?.columns ?? []).join(', ') || t('data.none'),
+        }),
       )
     }
 
     const rows = rowsOf(table)
     const months = monthEnds(rows, cols.date)
-    if (!months.length) return { empty: 'Aucune date exploitable dans la table _history.' }
+    if (!months.length) return { empty: t('errors.noDates', { table: '_history' }) }
 
     const series = found.map((currency) => {
       const totals = totalsByDate(rows, cols.date, currency.column)
@@ -87,21 +94,25 @@ export default {
 
     return {
       subtitle: monthsSubtitle(months),
-      summary:
-        `Patrimoine en ${series.map((serie) => serie.code).join(', ')} entre ${formatMonthKey(months[0].key)} et ${formatMonthKey(months[last].key)} : ` +
-        series.map((serie) => money(serie.values[last], serie.code)).join(', ') +
-        ' au dernier mois.',
+      summary: t('charts.currency.a11y', {
+        codes: series.map((serie) => serie.code).join(', '),
+        from: formatMonthKey(months[0].key),
+        to: formatMonthKey(months[last].key),
+        amounts: series.map((serie) => money(serie.values[last], serie.code)).join(', '),
+      }),
       option: currencyOption(months, series),
       height: 360,
       table: {
-        columns: ['Mois', ...series.map((serie) => serie.code)],
+        columns: [t('chart.month'), ...series.map((serie) => serie.code)],
         numeric: [false, ...series.map(() => true)],
         rows: [...months]
           .map((month, m) => [formatMonthKey(month.key), ...series.map((serie) => money(serie.values[m], serie.code))])
           .reverse(),
       },
       note: [
-        found.length < CURRENCIES.length ? `Colonnes trouvées : ${found.map((currency) => currency.column).join(', ')}.` : '',
+        found.length < CURRENCIES.length
+          ? t('charts.currency.columnsFound', { columns: found.map((currency) => currency.column).join(', ') })
+          : '',
         skippedNote(months.skipped),
       ]
         .filter(Boolean)

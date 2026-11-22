@@ -3,20 +3,21 @@ import vue from '@vitejs/plugin-vue'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { COLORS, STORAGE_KEY } from './src/lib/theme.js'
+import { COLORS } from './src/lib/theme.js'
+import { PREFERENCES } from './src/lib/preferences.js'
 
 // Remplace __dirname en mode ES module
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Mode clair / sombre : index.html ne contient aucune valeur, elles viennent de src/lib/theme.js.
+// Mode clair / sombre : index.html ne contient aucune valeur, elles viennent de src/lib/theme.js et src/lib/preferences.js.
 // - Remplace __THEME_KEY__, __THEME_LIGHT__, __THEME_DARK__ (clé de stockage, couleurs de fond) dans index.html.
 // - Signale au démarrage toute couleur écrite en dur dans les fichiers des graphiques (src/lib/**/*.js) :
 //   elle ne passerait pas en sombre. Les couleurs viennent de palette.js ; une couleur voulue fixe
 //   (texte blanc posé sur une couleur de série…) porte le commentaire « couleur fixe » sur sa ligne.
 function theme(): Plugin {
   const values: Record<string, string> = {
-    '__THEME_KEY__': STORAGE_KEY,
+    '__THEME_KEY__': PREFERENCES.theme,
     '__THEME_LIGHT__': COLORS.paper.light,
     '__THEME_DARK__': COLORS.paper.dark,
   }
@@ -49,8 +50,35 @@ function theme(): Plugin {
   }
 }
 
+// Langues : les fichiers src/i18n/*.json doivent avoir exactement les mêmes clés. Au build, une clé présente
+// dans une langue et absente d'une autre arrête le build (elle s'afficherait en français par défaut).
+function languages(): Plugin {
+  const dir = path.resolve(__dirname, 'src/i18n')
+  const keysOf = (value: unknown, prefix = ''): string[] =>
+    value && typeof value === 'object'
+      ? Object.entries(value as Record<string, unknown>).flatMap(([key, child]) => keysOf(child, prefix ? `${prefix}.${key}` : key))
+      : [prefix]
+
+  return {
+    name: 'langues',
+    buildStart() {
+      const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'))
+      const keys = new Map(files.map((f) => [f, new Set(keysOf(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))))]))
+      const all = new Set([...keys.values()].flatMap((set) => [...set]))
+      const problems = files.flatMap((f) => [...all].filter((key) => !keys.get(f)!.has(key)).map((key) => `${f} : clé manquante « ${key} »`))
+      if (problems.length) this.error(`Traductions incomplètes :\n${problems.join('\n')}`)
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [vue(), theme()],
+  plugins: [vue(), theme(), languages()],
+  // vue-i18n : API Composition seulement, pas d'outils de développement en production
+  define: {
+    __VUE_I18N_FULL_INSTALL__: true,
+    __VUE_I18N_LEGACY_API__: false,
+    __INTLIFY_PROD_DEVTOOLS__: false,
+  },
   resolve: {               
     alias: {
       '@': path.resolve(__dirname, './src')

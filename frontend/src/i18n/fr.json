@@ -1,0 +1,755 @@
+{
+  "common": {
+    "yes": "oui",
+    "no": "non"
+  },
+  "app": {
+    "skipLink": "Aller au contenu",
+    "home": "Overfolio, retour à la page d’accueil"
+  },
+  "nav": {
+    "main": "Navigation principale",
+    "mainMobile": "Navigation principale (mobile)",
+    "sheet": "GoogleSheet",
+    "charts": "Graphiques",
+    "simulation": "Simulation",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu"
+  },
+  "theme": {
+    "toDark": "Passer en mode sombre",
+    "toLight": "Passer en mode clair",
+    "dark": "Mode sombre",
+    "light": "Mode clair"
+  },
+  "language": {
+    "label": "Langue"
+  },
+  "footer": {
+    "tagline": "Ton Google Sheet, mis en graphiques : la répartition et l’évolution de ton patrimoine.",
+    "pages": "Pages",
+    "pagesLabel": "Pages du site",
+    "legal": "© {year} Overfolio. Outil de suivi de patrimoine : il ne donne ni conseil en investissement ni recommandation."
+  },
+  "chartsMenu": {
+    "label": "Graphiques",
+    "flow": "Flow",
+    "snapshot": "Snapshot",
+    "envelopes": "Enveloppes",
+    "strategy": "Strategy",
+    "volatility": "Volatilité",
+    "budget": "Budget"
+  },
+  "pages": {
+    "home": "Ton patrimoine en graphiques",
+    "login": "Connexion",
+    "sheet": "GoogleSheet",
+    "flow": "Portfolio Flow",
+    "snapshot": "Portfolio Snapshot",
+    "strategy": "Stratégie CTO",
+    "envelopes": "Enveloppes",
+    "volatility": "Volatilité",
+    "simulation": "Simulation",
+    "notFound": "Page introuvable"
+  },
+  "apiErrors": {
+    "unreachable": "Impossible de joindre le serveur. Vérifie que l’application est démarrée.",
+    "http": "Erreur HTTP {status}",
+    "notJson": "Réponse inattendue du serveur (ce n’est pas du JSON).",
+    "table_not_found": "Table « {name} » introuvable en base. Lance la synchronisation (bouton Tout actualiser de la page GoogleSheet).",
+    "tab_not_syncable": "Onglet « {name} » non synchronisable.",
+    "sync_too_soon": "Synchronisation déjà faite à l’instant, réessaie dans {seconds} secondes.",
+    "sync_failed": "Synchronisation impossible.",
+    "no_tab_saved": "Aucun onglet n’a pu être actualisé.",
+    "invalid_json": "Corps JSON attendu.",
+    "form_incomplete": "Formulaire incomplet.",
+    "header_row_invalid": "header_row doit être un entier supérieur ou égal à 1.",
+    "doc_name_missing": "Paramètre obligatoire manquant : doc_name.",
+    "doc_not_allowed": "Document non autorisé.",
+    "internal_error": "Erreur interne pendant la lecture de la feuille.",
+    "credentials_incomplete": "Identifiants Google incomplets, champs manquants : {fields}. Complète-les sur la page GoogleSheet.",
+    "credentials_invalid": "Identifiants Google invalides : {detail}",
+    "sheet_not_found_by_id": "Feuille introuvable (vérifie l’identifiant du document) ou non partagée avec {email}.",
+    "sheet_not_found_by_name": "Feuille introuvable (vérifie le nom « {name} ») ou non partagée avec {email}.",
+    "google_api_error": "Erreur de l’API Google Sheets : {detail}",
+    "google_unreachable": "Google Sheets est injoignable : {detail}",
+    "no_tabs": "Le document ne contient aucun onglet.",
+    "tab_not_found": "Onglet « {tab} » introuvable.",
+    "empty_kept": "Aucune ligne lue : données existantes conservées.",
+    "dry_run": "Simulation : rien n’a été écrit.",
+    "database_error": "Erreur de base de données : {detail}",
+    "fields": {
+      "required": "{label} : champ obligatoire.",
+      "private_key_format": "Clé privée : elle doit commencer par -----BEGIN PRIVATE KEY-----.",
+      "email_invalid": "E-mail du compte de service : adresse invalide.",
+      "sheet_id_or_name": "Renseigne l’identifiant du document ou son nom.",
+      "sync_tabs_required": "Indique au moins un onglet à synchroniser."
+    }
+  },
+  "data": {
+    "unknown": "Non renseigné",
+    "others": "Autres",
+    "othersCount": "Autres ({count})",
+    "none": "aucune"
+  },
+  "errors": {
+    "missingColumns": "Colonne(s) introuvable(s) dans la table « {table} » : {missing}. Colonnes disponibles : {available}.",
+    "noDates": "Aucune date exploitable dans la table {table}.",
+    "noPositive": "Aucun montant supérieur à 0 dans la table {table}.",
+    "twoMonths": "Il faut au moins deux mois de relevés dans la table {table}."
+  },
+  "subtitle": {
+    "dataAsOf": "Données au {date}.",
+    "syncedAt": "Synchronisé le {date}.",
+    "movesUntil": "Mouvements jusqu’au {date}.",
+    "recordOf": "Relevé du {date}."
+  },
+  "chart": {
+    "amount": "Montant",
+    "total": "Total",
+    "month": "Mois",
+    "wealth": "Patrimoine",
+    "date": "Date",
+    "shareOfTotal": "Part du total",
+    "shareOf": "Part de {parent}",
+    "totalAssets": "Total des actifs",
+    "netWorth": "Patrimoine net",
+    "assets": "Actifs",
+    "liabilities": "Dettes",
+    "lastPoint": "Dernier point"
+  },
+  "charts": {
+    "budget": {
+      "title": "Flux du budget",
+      "summary": "D’où vient l’argent et où il va.",
+      "explain": [
+        "Chaque bande relie une source à une destination. Son épaisseur est le montant. Les blocs sont les sources, les étapes intermédiaires et les destinations.",
+        "Passe la souris sur un bloc ou sur une bande pour mettre en avant les flux qui y passent et lire leur montant."
+      ],
+      "source": "Table budget, colonnes Source, Destination et Valeur (lignes supérieures à 0, doublons additionnés).",
+      "flowTotal": "Total des flux",
+      "empty": "Aucun flux supérieur à 0 dans la table budget.",
+      "a11y": "Diagramme de flux : {links} flux entre {nodes} blocs, pour {amount} au départ.",
+      "dropped": "{count} flux a été ignoré : il fermait une boucle (A vers B puis B vers A), ce qu’un diagramme de flux ne peut pas dessiner. | {count} flux ont été ignorés : ils fermaient une boucle (A vers B puis B vers A), ce qu’un diagramme de flux ne peut pas dessiner.",
+      "columns": [
+        "Source",
+        "Destination",
+        "Montant"
+      ]
+    },
+    "flow": {
+      "skipped": "{count} mois très éloigné des autres relevés n’est pas affiché (une pause de plus de 6 mois coupe la série). | {count} mois très éloignés des autres relevés ne sont pas affichés (une pause de plus de 6 mois coupe la série).",
+      "recordsUntil": "Relevés jusqu’au {date}.",
+      "othersNote": "Les types d’actifs au-delà des 8 couleurs du site sont regroupés dans « {others} »."
+    },
+    "currency": {
+      "title": "Patrimoine par devise",
+      "summary": "La valeur de ton patrimoine exprimée en CHF, en euros et en dollars, mois par mois.",
+      "source": "Table _history, colonne Date et une colonne de montants pour chaque devise (CHF, EUR, USD), additionnées par date.",
+      "explain": [
+        "Pour chaque mois, trois barres donnent la valeur totale de ton patrimoine exprimée dans chaque devise. Ce n’est pas une répartition : c’est le même patrimoine, converti trois fois.",
+        "Les barres changent donc ensemble ; leur écart ne bouge qu’avec les taux de change. Le montant d’un mois est celui du dernier relevé de ce mois."
+      ],
+      "noColumn": "Aucune colonne de montants en CHF, EUR ou USD dans la table « {table} ». Colonnes disponibles : {available}.",
+      "a11y": "Patrimoine en {codes} entre {from} et {to} : {amounts} au dernier mois.",
+      "columnsFound": "Colonnes trouvées : {columns}."
+    },
+    "allocation": {
+      "a11y": "Répartition par type d’actif entre {from} et {to}. Au dernier mois, {asset} pèse {share}.",
+      "title": "Répartition par type d’actif, mois par mois",
+      "summary": "La part de chaque type d’actif dans ton patrimoine, à chaque mois.",
+      "source": "Table _history, colonnes Date, Asset et Assets Master Currency (montants supérieurs à 0), dernier relevé de chaque mois.",
+      "explain": [
+        "Chaque barre représente 100 % de ton patrimoine à la fin d’un mois, découpé par type d’actif. Les couleurs sont celles de l’anneau des types d’actifs.",
+        "Seuls les actifs comptent (les dettes sont exclues). Passe la souris sur une barre pour lire la part et le montant de chaque type."
+      ]
+    },
+    "assets": {
+      "a11y": "Courbes de {count} types d’actifs entre {from} et {to}. Total au dernier mois : {total}.",
+      "title": "Évolution par type d’actif",
+      "summary": "Le montant de chaque type d’actif, mois après mois.",
+      "source": "Table _history, colonnes Date, Asset et Assets Master Currency (montants supérieurs à 0), dernier relevé de chaque mois.",
+      "explain": [
+        "Chaque courbe suit un type d’actif, avec la même couleur que dans les autres graphiques. Elle monte quand tu verses ou quand le marché progresse, et baisse quand il recule ou que tu retires.",
+        "Passe la souris sur un mois : l’infobulle classe les types d’actifs du plus gros au plus petit. Cliquer sur un nom de la légende masque ou affiche sa courbe."
+      ]
+    },
+    "variation": {
+      "change": "Variation",
+      "gap": "Écart",
+      "a11y": "Variation mensuelle du patrimoine entre {from} et {to}. Dernier mois : {last}.",
+      "average": "Moyenne mensuelle : {value}.",
+      "title": "Variation mensuelle",
+      "summary": "De combien ton patrimoine monte ou baisse, en %, d’un mois à l’autre.",
+      "source": "Table _history, colonnes Date et Assets Master Currency, additionnées par date ; dernier relevé de chaque mois.",
+      "explain": [
+        "Chaque barre compare le total de tes actifs à la fin d’un mois avec celui du mois précédent. Les barres bleues au-dessus du zéro sont des hausses, les barres orange en dessous sont des baisses.",
+        "Cette variation mélange deux causes : ce que tu as versé ou retiré, et ce que le marché a fait. Pour les séparer, il faut l’onglet inout, qui n’est pas encore utilisé ici."
+      ]
+    },
+    "inout": {
+      "in": "Entrées",
+      "out": "Sorties",
+      "tax": "Impôts",
+      "monthBalance": "Solde du mois",
+      "balance": "Solde",
+      "a11y": "Barres par mois entre {from} et {to} : {in} d’entrées, {out} de sorties au total.",
+      "a11yTax": "Barres par mois entre {from} et {to} : {in} d’entrées, {out} de sorties et {tax} d’impôts au total.",
+      "title": "Entrées, sorties et impôts",
+      "summary": "L’argent que tu verses, que tu retires et les impôts payés, mois par mois.",
+      "source": "Table inout, colonnes date, in, out et tax. Les sorties et les impôts saisis en négatif sont comptés en valeur absolue.",
+      "explain": [
+        "Pour chaque mois, la barre bleue totalise l’argent versé sur tes placements (in), la barre orange l’argent retiré (out) et la barre jaune les impôts (tax). Les mois sans mouvement apparaissent à zéro.",
+        "Le solde du mois (entrées moins sorties et impôts) se lit dans l’infobulle et dans la vue en tableau. Il explique la part de la variation mensuelle qui ne vient pas du marché."
+      ]
+    },
+    "trend": {
+      "bars": "Patrimoine en euros",
+      "trend": "Tendance",
+      "goals": "Objectifs",
+      "goal": "Objectif",
+      "noColumn": "Colonne de montants en euros introuvable dans la table « {table} » : EUR ou Assets Master Currency. Colonnes disponibles : {available}.",
+      "twoRecords": "Il faut au moins deux relevés dans la table _history pour tracer une tendance.",
+      "nextGoal": "Prochain objectif : {goal} au {date} ; au rythme de la tendance, tu serais à {projected}.",
+      "a11y": "Patrimoine en euros sur {count} relevés, du {from} au {to}. Dernier relevé : {last}. La tendance est de {perYear} par an.",
+      "note": "Colonne utilisée : {column}. Tendance : {perYear} par an en moyenne.",
+      "goalCount": "{count} objectif (ligne sans Asset ni Instrument). | {count} objectifs (lignes sans Asset ni Instrument).",
+      "title": "Patrimoine et tendance",
+      "summary": "Ton patrimoine en euros à chaque relevé, avec la droite de tendance.",
+      "source": "Table _history, colonne Date et colonne de montants en euros (EUR, sinon Assets Master Currency), additionnées par date. Les lignes sans Asset ni Instrument sont des objectifs.",
+      "explain": [
+        "Chaque barre est le total de tes actifs en euros à la date d’un relevé. La droite est la tendance moyenne de tous les relevés : elle montre le rythme de croissance passé.",
+        "Les losanges orange sont tes objectifs : dans la table _history, ce sont les lignes qui n’ont qu’une date et un montant (ni type d’actif, ni instrument). La tendance est prolongée en pointillés jusqu’au dernier objectif : si elle passe au-dessus d’un losange, ton rythme actuel suffit pour l’atteindre.",
+        "Les objectifs étirent l’axe du temps : le curseur du bas permet de zoomer sur les relevés."
+      ]
+    },
+    "envelopes": {
+      "none": "Aucune enveloppe de placement dans la table {table} : il faut une colonne Envelope (ou Account) et au moins une ligne d’actions, d’ETF ou de fonds.",
+      "envelope": "Enveloppe",
+      "instrument": "Instrument",
+      "shareOfEnvelope": "Part de l’enveloppe",
+      "count": "{count} enveloppe de placement | {count} enveloppes de placement",
+      "months": "{count} mois | {count} mois",
+      "ringA11y": "{envelopes} pour {total} : {shares}.",
+      "total": "Total des enveloppes de placement : {total}.",
+      "noRecord": "Aucun relevé daté dans la table _history.",
+      "historyA11y": "Montant de {envelopes} sur {months}. Dernier relevé : {last}.",
+      "missingColumn": "Colonne {column} introuvable dans la table « {table} ». Colonnes disponibles : {available}.",
+      "mixSource": "Table portfolio, colonnes Envelope (ou Account), {column} et Assets Master Currency, au dernier relevé."
+    },
+    "envelopeTypes": {
+      "a11y": "Répartition par sous-type de {envelopes}. {details}.",
+      "title": "ETF, actions et liquidités par enveloppe",
+      "summary": "Ce que contient chaque enveloppe : ETF, actions, liquidités…",
+      "explain": [
+        "Une barre par enveloppe de placement, découpée par sous-type (ETF, action, liquidités en attente d’investissement…). Le total est écrit au bout de la barre.",
+        "C’est le pendant des graphiques « etf_pea/cto » et « action_pea/cto » de l’ancien rapport Data Studio."
+      ]
+    },
+    "envelopeAreas": {
+      "a11y": "Répartition par zone de {envelopes}. {details}.",
+      "title": "Zones géographiques par enveloppe",
+      "summary": "Le pays ou la zone de ce que contient chaque enveloppe.",
+      "explain": [
+        "Une barre par enveloppe de placement, découpée par pays ou zone (colonne Area de ta feuille). Un ETF monde est rangé dans la zone que tu lui as donnée.",
+        "C’est le pendant des graphiques « pee/per » et « pea/cto » par pays de l’ancien rapport Data Studio."
+      ]
+    },
+    "envelopeInstruments": {
+      "title": "Enveloppes et instruments",
+      "summary": "Le poids de chaque enveloppe de placement, et ce qu’elle contient.",
+      "source": "Table portfolio, colonnes Envelope (ou Account), Instrument, Ticker et Assets Master Currency, au dernier relevé. Seules les enveloppes qui contiennent des actions, des ETF ou des fonds sont retenues.",
+      "explain": [
+        "L’anneau intérieur montre le poids de chaque enveloppe de placement (CTO, PEA, PER, PEE…). L’anneau extérieur détaille ce qu’elle contient, instrument par instrument, dans des nuances de la même couleur.",
+        "Chaque instrument est nommé par sa colonne Instrument suivie de son ticker (« MSCI world · UETW »). Passe la souris sur une part pour lire son montant, sa part du total et sa part de l’enveloppe ; la vue en tableau les liste tous.",
+        "Les instruments qui pèsent moins de 1 % de leur enveloppe (souvent des liquidités en attente) sont regroupés en « Autres »."
+      ]
+    },
+    "envelopeHistory": {
+      "title": "Évolution de chaque enveloppe",
+      "summary": "Le montant de chaque enveloppe de placement, mois après mois.",
+      "source": "Table _history, colonnes Date, Envelope (ou Account), Asset et Assets Master Currency ; dernier relevé de chaque mois. Les enveloppes retenues sont celles qui contiennent des actions, des ETF ou des fonds au dernier relevé.",
+      "explain": [
+        "Une courbe par enveloppe de placement, au dernier relevé de chaque mois. Elle monte quand tu verses ou quand le marché progresse.",
+        "Cliquer sur un nom de la légende masque ou affiche sa courbe ; l’infobulle classe les enveloppes de la plus grosse à la plus petite."
+      ]
+    },
+    "volatility": {
+      "period": {
+        "1": "1 mois",
+        "3": "3 mois",
+        "12": "1 an"
+      },
+      "title": {
+        "1": "Sur 1 mois",
+        "3": "Sur 3 mois",
+        "12": "Sur 1 an"
+      },
+      "summary": "De combien le prix de chacun de tes placements a bougé sur {period}.",
+      "explain1": "Une bulle par placement. Horizontalement, le montant que tu détiens (échelle logarithmique : chaque graduation multiplie par 10) ; verticalement, la variation de son prix unitaire sur {period}. Plus la bulle est grosse, plus le placement pèse dans ton patrimoine.",
+      "explain2": "Le prix unitaire est calculé en euros (montant ÷ quantité) : il tient compte du change, mais pas de tes achats ni de tes ventes. Une grosse bulle loin sous la ligne du zéro est le placement qui t’a fait perdre le plus.",
+      "explain3": "Les liquidités, l’immobilier et les biens sans cours de marché ne sont pas affichés.",
+      "source": "Table _history, colonnes Date, Instrument, Quantity, Assets Master Currency (et Asset, Envelope, Broker si présentes) : dernier relevé comparé au relevé d’il y a {period}.",
+      "notYet": "L’historique ne remonte pas encore à {period} avant le dernier relevé ({date}).",
+      "noCommon": "Aucun placement commun au {from} et au {to} avec une quantité et un montant renseignés.",
+      "range": "Du {from} au {to}.",
+      "count": "{count} placement comparé | {count} placements comparés",
+      "a11y": "{investments} entre le {from} et le {to}. Variation moyenne pondérée par les montants : {weighted}. Variation la plus basse : {worst} ({worstPct}) ; la plus haute : {best} ({bestPct}).",
+      "note": "Variation moyenne pondérée par les montants : {weighted} sur {total} de placements.",
+      "priceChange": "Variation du prix",
+      "held": "Montant détenu",
+      "heldLog": "Montant détenu (échelle logarithmique)",
+      "priceBefore": "Prix unitaire avant",
+      "priceNow": "Prix unitaire maintenant",
+      "investment": "Placement",
+      "type": "Type"
+    }
+  },
+  "simulation": {
+    "median": "Médiane",
+    "range50": "Fourchette 25-75 %",
+    "range80": "Fourchette 10-90 %",
+    "goal": "Objectif",
+    "p90": "Scénario favorable (90 %)",
+    "p75": "Plutôt favorable (75 %)",
+    "p25": "Plutôt défavorable (25 %)",
+    "p10": "Scénario défavorable (10 %)"
+  },
+  "strategy": {
+    "rings": {
+      "sector": "Secteur",
+      "moat": "Moat",
+      "area": "Localisation",
+      "rating": "Note S&P",
+      "business": "Business",
+      "exchange": "Place de cotation",
+      "instruments": "Instruments"
+    },
+    "instrument": "Instrument",
+    "envelope": "Enveloppe",
+    "all": "Ensemble",
+    "used": {
+      "column": "{title} : {column}",
+      "stock": "{title} : {column} (table stock, rattachée par {join})",
+      "ticker": "{title} : début du ticker, avant « : » ({column})"
+    },
+    "scopes": {
+      "all": "Toutes les enveloppes",
+      "peacto": "PEA et CTO"
+    },
+    "notes": {
+      "equityOnly": "Seuls les actifs de type « public equity » (colonne Asset) sont comptés.",
+      "noEquity": "Aucune ligne « public equity » dans la colonne Asset : toutes les lignes sont comptées.",
+      "joined": "Table stock rattachée par la colonne {column} : {matched} lignes de portfolio sur {total} retrouvées.",
+      "notJoined": "La table stock n’a pas pu être rattachée à portfolio (aucune valeur commune dans Ticker, Instrument ou Nom)."
+    },
+    "empty": {
+      "noRows": "Aucune ligne d’actions avec un montant supérieur à 0 dans la table portfolio.",
+      "noScope": "Aucune ligne dans cette enveloppe."
+    },
+    "errors": {
+      "noAttribute": "Aucun attribut trouvé pour les anneaux (secteur, moat, localisation, note, business, place de cotation, instrument). Colonnes de portfolio : {portfolio}. Colonnes de stock : {stock}.",
+      "noTable": "table absente"
+    },
+    "categories": "{count} catégorie | {count} catégories",
+    "parts": "{count} part | {count} parts",
+    "detail": "détail : {detail}",
+    "a11yDouble": "Anneau à deux niveaux : {title}. {parts} pour {total}. La plus grosse : {biggest}, {share}.",
+    "a11ySingle": "Anneau simple : {title}. {parts} pour {total}. La plus grosse : {biggest}, {share}.",
+    "positionsAt": "Positions au {date}.",
+    "subtitleDefault": "Les actions de ton portefeuille, regroupées de plusieurs façons."
+  },
+  "snapshot": {
+    "dims": {
+      "sub": "Sous-type",
+      "instrument": "Instrument",
+      "envelope": "Enveloppe",
+      "broker": "Courtier",
+      "area": "Zone"
+    },
+    "usedColumn": "{label} : {column}"
+  },
+  "home": {
+    "title": "L’allocation avant la sélection",
+    "lead": "Overfolio transforme ton Google Sheet en graphiques clairs, pour voir l’évolution et la répartition de ton patrimoine avant de faire tes arbitrages.",
+    "start": "Commencer",
+    "seeCharts": "Voir les graphiques",
+    "ownership": "Ta feuille reste la tienne : Overfolio la lit, il ne la modifie pas.",
+    "preview": {
+      "label": "Patrimoine net",
+      "sample": "Exemple fictif",
+      "since": "+{amount} depuis le {date}",
+      "a11y": "Exemple de courbe de patrimoine net, de {from} à {to}, avec des données fictives.",
+      "caption": "Exemple avec des données fictives : les lignes de ta feuille deviennent la courbe."
+    },
+    "benefits": {
+      "title": "Tu gardes ta feuille, Overfolio la rend lisible",
+      "source": {
+        "title": "Ta feuille reste la source",
+        "text": "Tu continues à tenir ton suivi dans Google Sheets. Overfolio lit tes onglets, rien de plus : il n’écrit pas dans ta feuille."
+      },
+      "split": {
+        "title": "Ta répartition en un coup d’œil",
+        "text": "Types d’actifs, enveloppes, secteurs, zones géographiques : vois où se trouve ton patrimoine sans refaire un tableau croisé."
+      },
+      "check": {
+        "title": "Des chiffres que tu peux vérifier",
+        "text": "Chaque graphique indique la table et les colonnes dont il vient, et s’affiche aussi sous forme de tableau."
+      }
+    },
+    "steps": {
+      "title": "Comment ça marche",
+      "connect": {
+        "title": "Connecte ta feuille",
+        "text": "Partage ton Google Sheet, en lecture seule, avec l’adresse d’Overfolio. Les onglets portfolio, inout, stock, budget et _history sont repérés par leur nom."
+      },
+      "sync": {
+        "title": "Synchronise",
+        "text": "Sur la page GoogleSheet, un clic sur Tout actualiser relit tous tes onglets et met la base à jour. La date de la dernière synchronisation reste affichée."
+      },
+      "follow": {
+        "title": "Suis ton patrimoine",
+        "text": "Ouvre les graphiques : l’historique mois par mois, ton patrimoine d’aujourd’hui, ta stratégie sur les actions et le flux de ton budget."
+      }
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "sheet": {
+        "q": "Que doit contenir ma feuille Google Sheets ?",
+        "a": "Overfolio cherche cinq onglets par leur nom : portfolio, inout, stock, budget et _history. Chaque page indique les colonnes dont elle a besoin. S’il en manque une, elle te dit laquelle, et les autres pages continuent de s’afficher."
+      },
+      "access": {
+        "q": "Overfolio peut-il modifier ma feuille ou voir mes comptes bancaires ?",
+        "a": "Non. Overfolio ne se connecte à aucune banque : il lit uniquement la feuille que tu partages avec lui, sans rien y écrire. Les lignes lues sont copiées dans sa base de données pour que les pages s’affichent vite. Si tu retires le partage dans Google Sheets, Overfolio ne peut plus la lire."
+      },
+      "update": {
+        "q": "Comment les chiffres sont-ils mis à jour ?",
+        "a": "À la demande. Sur la page GoogleSheet, le bouton Tout actualiser relit tous tes onglets. La date et l’heure de la dernière synchronisation restent visibles, et chaque graphique rappelle la date de ses données."
+      },
+      "advice": {
+        "q": "Overfolio me dit-il quoi acheter ou vendre ?",
+        "a": "Non. Overfolio montre ce que contient ta feuille : il ne recommande aucun placement. La page Simulation projette des scénarios à partir de tes propres hypothèses, sans rien prédire. Ses graphiques t’aident à voir ta situation d’ensemble avant de prendre tes propres décisions."
+      }
+    },
+    "product": {
+      "title": "Tes données d’un côté, tes graphiques de l’autre",
+      "lead": "La page GoogleSheet montre ce qu’Overfolio a lu, ligne par ligne. Les pages Graphiques en tirent la courbe et les répartitions.",
+      "refreshAll": "Tout actualiser",
+      "sheetLink": "Page GoogleSheet",
+      "sheetCaption": " : tes cinq onglets en tableau, avec recherche, pagination et un bouton Tout actualiser pour relire ta feuille.",
+      "donutTitle": "Répartition par type d’actif",
+      "chartsLink": "Pages Graphiques",
+      "chartsCaption": " : six pages, chacune avec son explication et d’où viennent les chiffres.",
+      "samples": "Exemples avec des données fictives.",
+      "donutA11y": "Exemple d’anneau : {total} répartis en {count} types d’actifs, avec des données fictives."
+    },
+    "sample": {
+      "worldEtf": "ETF actions monde",
+      "savings": "Livret"
+    }
+  },
+  "chartUi": {
+    "display": "Affichage",
+    "displayOf": "Affichage : {title}",
+    "chart": "Graphique",
+    "table": "Tableau",
+    "loading": "Chargement du graphique…",
+    "loadingData": "Chargement des données…",
+    "missingTableTitle": "Cette table n’est pas encore dans la base",
+    "loadErrorTitle": "Impossible de charger les données",
+    "missingTableText": "La table « {table} » n’a pas encore été synchronisée depuis Google Sheets.",
+    "openSheet": "Ouvrir la page GoogleSheet",
+    "retry": "Réessayer",
+    "problemTitle": "Les données ne correspondent pas à ce graphique",
+    "problemHint": "Compare avec les noms de colonnes de la page GoogleSheet.",
+    "emptyTitle": "Pas de données à afficher",
+    "tableVersion": "{title}, version tableau",
+    "amountsByPart": "Montants par part",
+    "howToRead": "Comment lire ce graphique",
+    "whereFrom": "D’où viennent les chiffres",
+    "refreshHint": "Pour mettre à jour les données depuis Google Sheets, utilise le bouton Tout actualiser de la page {sheet}.",
+    "buildFailed": "Le graphique n’a pas pu être construit ({message}).",
+    "unknownError": "erreur inconnue",
+    "tableSynced": "Table {table} synchronisée le {date}.",
+    "explainLink": "Explication et source des chiffres",
+    "horizontalScroll": "{label} (défilement horizontal)",
+    "chartDefault": "Graphique",
+    "tableDefault": "Données du graphique",
+    "partsOf": "Parts : {title}",
+    "ringsHint": "Anneau intérieur : {inner}. Anneau extérieur : {outer}, en nuances de la couleur de sa catégorie. Survole une part pour voir son montant."
+  },
+  "chartPage": {
+    "breadcrumb": "Fil d’Ariane",
+    "notFoundTitle": "Ce graphique n’existe pas",
+    "notFoundText": "L’adresse « {slug} » ne correspond à aucun graphique. La page Graphiques les regroupe tous.",
+    "allCharts": "Voir tous les graphiques",
+    "otherCharts": "Autres graphiques",
+    "previous": "Graphique précédent",
+    "next": "Graphique suivant",
+    "notFoundDocTitle": "Graphique introuvable"
+  },
+  "flowPage": {
+    "lead": "L’historique de ton patrimoine, mois par mois : devises, répartition, évolution par type d’actif, variation, entrées et sorties, tendance et objectifs. Chaque carte a sa version tableau et sa page d’explication.",
+    "period": "Période",
+    "allYears": "Toutes les années",
+    "yearNote": "Seuls les relevés et les mouvements de {year} sont affichés : la variation de janvier n’est pas calculée, faute de relevé de décembre dans la période, et la tendance ne porte que sur l’année.",
+    "footer": "Les graphiques lisent la base de données. Pour la mettre à jour depuis ta feuille, utilise le bouton Tout actualiser de la page {sheet}. Pour ton patrimoine d’aujourd’hui, ouvre {snapshot}."
+  },
+  "envelopesPage": {
+    "lead": "Tes enveloppes de placement : ce que chacune contient, comment elles évoluent, et leur répartition entre ETF, actions et liquidités, puis par zone. Les comptes qui ne contiennent ni actions, ni ETF, ni fonds n’y figurent pas.",
+    "footer": "Pour le détail de tes actions par secteur, moat ou note, ouvre {strategy}."
+  },
+  "volatilityPage": {
+    "lead": "De combien le prix de chacun de tes placements a bougé. Une bulle par placement : à droite ce que tu détiens le plus, en bas ce qui a le plus baissé. Le prix est calculé en euros, change compris, sans tes achats ni tes ventes.",
+    "footer": "Les variations comparent deux relevés de la table _history : plus tu fais de relevés, plus elles sont précises. L’ancien rapport proposait aussi « 1 semaine », qui demande des relevés hebdomadaires."
+  },
+  "notFound": {
+    "text": "L’adresse que tu as ouverte n’existe pas, ou plus. Tu peux repartir de l’accueil.",
+    "home": "Retour à l’accueil"
+  },
+  "page": {
+    "problemTitle": "Les données ne correspondent pas à cette page",
+    "buildFailed": "La page n’a pas pu être construite ({message}).",
+    "notSyncedYet": "Elle n’a pas encore été synchronisée depuis Google Sheets.",
+    "tableMissing": "La table {table} n’est pas encore dans la base"
+  },
+  "snapshotPage": {
+    "loading": "Chargement de ton patrimoine…",
+    "yourAssets": "Tes actifs",
+    "amountsByType": "Montants par type d’actif",
+    "detailTitle": "Détail par type d’actif",
+    "detailLead": "Pour chaque type : ce qu’il contient, du plus gros au plus petit. Les parts sont celles du type, pas du patrimoine entier.",
+    "ofWealth": "{share} du patrimoine",
+    "dimOf": "{dim} : {type}",
+    "noDetail": "Aucune colonne de détail (sous-type, instrument, enveloppe…) dans la table portfolio.",
+    "noData": "Sans données : {types}.",
+    "columnsRead": "Colonnes lues pour le détail : {columns}.",
+    "noColumnFor": "Pas de colonne pour : {dims}.",
+    "footer": "Les variations de l’année et du mois comparent le patrimoine brut aux relevés de la table _history ; elles incluent tes versements et retraits. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
+    "defaultSubtitle": "Ton patrimoine aujourd’hui, type d’actif par type d’actif.",
+    "donutA11y": "Anneau de {count} types d’actifs pour {total} au total. Le plus gros : {biggest}, {share}.",
+    "since": "Depuis le {date}",
+    "notEnough": "Pas assez de relevés dans _history",
+    "loadingShort": "Chargement…",
+    "noHistory": "Historique indisponible",
+    "gross": "Patrimoine brut",
+    "afterDebts": "Après {amount} de dettes",
+    "noDebtColumn": "Pas de colonne de dettes",
+    "thisYear": "Cette année",
+    "thisMonth": "Ce mois-ci"
+  },
+  "strategyPage": {
+    "loading": "Chargement de tes actions…",
+    "envelope": "Enveloppe",
+    "skippedTitle": "Anneaux non affichés",
+    "skippedText": "Pas de colonne trouvée, ni dans portfolio ni dans stock, pour : {list}. Dès qu’une colonne de ce nom existe dans la feuille et que tu as cliqué sur Tout actualiser, l’anneau apparaît.",
+    "skippedItem": "{title} (« {tried} »)",
+    "footer": "Chaque anneau additionne le montant « Assets Master Currency » des lignes supérieures à 0. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
+    "footerScope": "Chaque anneau additionne le montant « Assets Master Currency » des lignes supérieures à 0 (enveloppe : {scope}). Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
+    "columnsRead": "Colonnes lues dans la feuille",
+    "defaultSubtitle": "Tes actions regroupées de plusieurs façons, sur deux niveaux."
+  },
+  "sheetPage": {
+    "lead": "Les onglets de ta feuille, tels qu’Overfolio les a lus.",
+    "loadingTabs": "Chargement des onglets…",
+    "listError": "Impossible de charger la liste des onglets",
+    "tab": "Onglet",
+    "refreshTitle": "Relit tous les onglets dans Google Sheets et met la base à jour",
+    "refreshing": "Actualisation…",
+    "refreshAll": "Tout actualiser",
+    "search": "Rechercher dans l’onglet",
+    "syncedOn": "Synchronisé le {date}",
+    "syncIncomplete": "Actualisation incomplète",
+    "loadingTab": "Chargement de l’onglet…",
+    "unsyncedTitle": "Cet onglet n’a pas encore été synchronisé",
+    "unsyncedText": "Clique sur Tout actualiser pour lire les onglets dans Google Sheets et les enregistrer.",
+    "tabError": "Impossible de charger l’onglet « {tab} »",
+    "emptyTitle": "Cet onglet est vide",
+    "emptyText": "Aucune ligne n’a été lue. Ajoute des données dans ta feuille puis clique sur Tout actualiser.",
+    "noMatchTitle": "Aucune ligne ne correspond",
+    "noMatchText": "Aucun résultat pour « {query} » dans cet onglet.",
+    "clearSearch": "Effacer la recherche",
+    "tableOf": "Tableau de l’onglet {tab}",
+    "caption": "Onglet {tab} : {rows}",
+    "pagination": "Pagination",
+    "rowsRange": "Lignes {from} à {to} sur {total}",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "pageOf": "Page {page} sur {count}",
+    "rows": "{count} ligne | {count} lignes",
+    "filtered": "{shown} sur {all}",
+    "optionRows": "{name} ({rows})",
+    "notSynced": "{name} (pas encore synchronisé)",
+    "savedNotice": "{count} onglet actualisé dans la base. | {count} onglets actualisés dans la base.",
+    "failedNotice": "{count} onglet non actualisé (anciennes données conservées) : {details} | {count} onglets non actualisés (anciennes données conservées) : {details}",
+    "tabFailure": "{tab} : {message}",
+    "error": "erreur"
+  },
+  "sheetSettings": {
+    "title": "Connexion à Google Sheets",
+    "loading": "Chargement des paramètres…",
+    "unavailable": "Paramètres indisponibles",
+    "savedHere": "Valeurs enregistrées sur cette page.",
+    "savedHereOn": "Valeurs enregistrées sur cette page le {date}.",
+    "fromEnv": "Valeurs par défaut, lues dans le fichier .env.",
+    "readBy": "Document lu par {email}.",
+    "hide": "Masquer",
+    "edit": "Modifier",
+    "document": "Document",
+    "account": "Compte de service Google",
+    "importJson": "Importer le fichier JSON",
+    "accountHelp": "Le fichier se télécharge dans Google Cloud : IAM → Comptes de service → Clés. Partage ensuite le Google Sheet, en Lecteur, avec l’adresse du compte de service.",
+    "required": " (obligatoire)",
+    "keyAlreadySet": "Une clé est déjà enregistrée. Laisse vide pour la conserver, ou colle une nouvelle clé.",
+    "keyInPlace": "Clé en place ({source}). Par sécurité, elle n’est jamais réaffichée.",
+    "keySourcePage": "enregistrée sur cette page",
+    "keySourceEnv": "lue dans le .env",
+    "noKey": "Aucune clé n’est définie, ni ici ni dans le .env.",
+    "advanced": "Champs avancés (rarement à modifier)",
+    "saveFailed": "L’enregistrement a échoué",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer",
+    "cancel": "Annuler les modifications",
+    "backToEnv": "Revenir aux valeurs du .env",
+    "savedNotice": "Paramètres enregistrés. Clique sur Tout actualiser pour relire les onglets.",
+    "fixFields": "Corrige les champs signalés.",
+    "confirmEnv": "Effacer les valeurs saisies ici et revenir à celles du fichier .env ?",
+    "envRestored": "Valeurs du .env rétablies.",
+    "notServiceAccount": "ce n’est pas le fichier d’un compte de service Google",
+    "imported": "Fichier « {file} » importé. Vérifie puis clique sur Enregistrer.",
+    "importFailed": "Import impossible : {reason}.",
+    "unreadableJson": "fichier JSON illisible",
+    "fields": {
+      "sheet_id": "Identifiant ou adresse du document",
+      "doc_name": "Nom du document",
+      "sync_tabs": "Onglets à synchroniser",
+      "client_email": "E-mail du compte de service",
+      "project_id": "ID du projet",
+      "private_key_id": "ID de la clé privée",
+      "private_key": "Clé privée",
+      "client_id": "ID client",
+      "type": "Type",
+      "universe_domain": "Domaine (universe_domain)",
+      "auth_uri": "auth_uri",
+      "token_uri": "token_uri",
+      "auth_provider_x509_cert_url": "auth_provider_x509_cert_url",
+      "client_x509_cert_url": "client_x509_cert_url"
+    },
+    "help": {
+      "sheet_id": "Colle l’adresse du Google Sheet ou seulement la partie entre /d/ et /edit.",
+      "doc_name": "Utilisé seulement si l’identifiant est vide (demande alors l’API Google Drive).",
+      "sync_tabs": "Noms exacts des onglets, séparés par des virgules."
+    }
+  },
+  "simulationPage": {
+    "lead": "{runs} avenirs possibles pour ton patrimoine net, tirés au hasard à partir de tes montants actuels et des hypothèses ci-dessous. La fourchette montre ce qui peut raisonnablement arriver, pas une prévision.",
+    "prepareError": "Impossible de préparer la simulation",
+    "results": "Résultats",
+    "fanTitle": "Patrimoine net simulé",
+    "realNote": "En euros d’aujourd’hui (inflation déduite).",
+    "nominalNote": "En euros courants.",
+    "computing": "Calcul en cours…",
+    "unit": "Unité",
+    "computingRuns": "Calcul des {runs} trajectoires…",
+    "tableCaption": "Patrimoine net simulé, version tableau",
+    "fanHelp": "La ligne bleue est la médiane : une trajectoire sur deux finit au-dessus. La bande foncée contient la moitié des trajectoires (25 à 75 %), la bande claire 8 sur 10 (10 à 90 %).",
+    "assumptions": "Hypothèses",
+    "startPoint": "Point de départ : ton relevé du {date}. Les modifications sont retenues par ce navigateur.",
+    "reset": "Revenir aux valeurs par défaut",
+    "contribution": "Versement net mensuel",
+    "contributionGrowth": "Hausse du versement",
+    "contributionGrowthHint": "Suit par exemple ton salaire.",
+    "debtPayment": "Capital de prêt remboursé",
+    "goalAmount": "Objectif de patrimoine net",
+    "goalDate": "Date de l’objectif",
+    "goalDateHint": "La simulation va jusqu’à cette date.",
+    "fees": "Frais annuels",
+    "feesHint": "ETF, courtiers, gestion : sur les actifs financiers.",
+    "inflation": "Inflation",
+    "inflationHint": "Sert aux montants en euros d’aujourd’hui.",
+    "perYear": "% par an",
+    "perMonth": "€ / mois",
+    "fatTails": "Krachs plus fréquents qu’une loi normale",
+    "fatTailsHint": "Loi de Student à 5 degrés de liberté : plus réaliste pour les actions et la crypto. Décoché, la simulation est plus optimiste dans les mauvaises années.",
+    "byType": "Par type d’actif",
+    "byTypeHelp": "Rendement : moyenne annuelle attendue. Volatilité : ampleur des variations d’une année (environ 2 années sur 3 restent dans ± cette valeur). Lien avec les actions : 1 = bouge exactement avec le marché actions, 0 = sans rapport, négatif = tend à monter quand il baisse. Les versements sont répartis entre les types cochés, au prorata de leurs montants.",
+    "cols": {
+      "type": "Type d’actif",
+      "amount": "Montant actuel",
+      "return": "Rendement (%/an)",
+      "volatility": "Volatilité (%)",
+      "link": "Lien avec les actions",
+      "invest": "Reçoit les versements"
+    },
+    "a11y": {
+      "return": "Rendement de {asset}, en % par an",
+      "volatility": "Volatilité de {asset}, en %",
+      "link": "Lien de {asset} avec les actions, de -1 à 1",
+      "invest": "{asset} reçoit les versements"
+    },
+    "limitsTitle": "Ce que la simulation ne fait pas",
+    "limits": [
+      "Pas d’impôt à la sortie (PEA, CTO, PER n’ont pas la même fiscalité) : les montants sont avant impôt.",
+      "Pas de rééquilibrage : la répartition dérive au fil des tirages, comme si tu ne vendais jamais.",
+      "Les rendements par défaut sont des ordres de grandeur de long terme, pas des promesses : change-les.",
+      "Le passé récent de ta feuille (environ deux ans) est trop court pour en tirer des rendements : il n’est pas utilisé pour les hypothèses."
+    ],
+    "notAdvice": "C’est un outil de projection, pas un conseil en investissement.",
+    "units": {
+      "real": "Euros d’aujourd’hui",
+      "nominal": "Euros courants"
+    },
+    "noPositive": "La table portfolio ne contient aucun montant positif dans Assets Master Currency.",
+    "readFailed": "Lecture impossible ({message}).",
+    "realUnitText": "en euros d’aujourd’hui",
+    "nominalUnitText": "en euros courants",
+    "kpi": {
+      "chance": "Chance d’atteindre l’objectif",
+      "chooseGoal": "Choisis un objectif et une date future.",
+      "goalAt": "{amount} au {date}",
+      "medianIn": "Médiane en {date}",
+      "medianHint": "Une trajectoire sur deux fait mieux, {unit}.",
+      "poor": "Scénario défavorable",
+      "poorHint": "1 trajectoire sur 10 fait moins bien.",
+      "good": "Scénario favorable",
+      "goodHint": "1 trajectoire sur 10 fait mieux."
+    },
+    "summaryDefault": "Simulation du patrimoine net",
+    "summary": "Éventail de {runs} trajectoires du patrimoine net jusqu’en {date}. Médiane finale {median}, entre {p10} et {p90} dans 8 cas sur 10.",
+    "summaryChance": "Chance d’atteindre {amount} : {chance}.",
+    "table": {
+      "poor": "Défavorable (10 %)",
+      "p25": "25 %",
+      "p75": "75 %",
+      "good": "Favorable (90 %)"
+    },
+    "hint": {
+      "contributionDefault": "Montant versé chaque mois sur tes placements (négatif pour un retrait).",
+      "contributionAverage": "Moyenne des 12 derniers mois de l’onglet inout : {amount}.",
+      "debt": "Dette actuelle : {amount}. Indique la part capital de tes mensualités.",
+      "noDebt": "Aucune dette dans la table portfolio.",
+      "goalFromHistory": "Lu dans _history (ligne sans type d’actif). {unit}",
+      "real": "Compté en euros d’aujourd’hui.",
+      "nominal": "Compté en euros courants."
+    }
+  },
+  "login": {
+    "lead": "Accède à ton espace personnel",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "hidePassword": "Masquer le mot de passe",
+    "showPassword": "Afficher le mot de passe",
+    "remember": "Se souvenir de moi",
+    "forgot": "Mot de passe oublié ?",
+    "signingIn": "Connexion en cours…",
+    "signIn": "Se connecter",
+    "or": "ou",
+    "google": "Continuer avec Google",
+    "noAccount": "Pas encore de compte ?",
+    "signUp": "S’inscrire",
+    "fillAll": "Remplis tous les champs.",
+    "success": "Connexion réussie !",
+    "error": "Erreur de connexion.",
+    "googleTodo": "La connexion avec Google n’est pas encore disponible."
+  }
+}

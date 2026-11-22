@@ -3,6 +3,7 @@
 // - GROUPS : les pages qui réunissent plusieurs graphiques (Portfolio Flow, Enveloppes, Volatilité), chacun dans une carte.
 // - CHARTS : tous les graphiques qui ont leur propre page /graphiques/<slug> (Flux du budget et ceux des GROUPS).
 // - MENU : les entrées du menu de gauche (GraphiquesLayout.vue), dans l'ordre d'affichage ; /graphiques ouvre la première.
+//   Leur nom est une clé de traduction (titleKey → i18n/*.json, rubrique chartsMenu).
 // Pour ajouter un graphique : créer un fichier de spécification (voir budgetFlow.js), puis l'ajouter à un groupe
 // (il apparaît sur la page du groupe) ou à CHARTS avec une entrée dans MENU.
 
@@ -15,14 +16,15 @@ import flowTrend from './flowTrend.js'
 import flowVariation from './flowVariation.js'
 import inout from './inout.js'
 import { VOLATILITY_CHARTS } from './volatility.js'
+import { t } from '../../i18n/index.js'
 
 // Les graphiques « Portfolio Flow » sont regroupés sur la page /portfolio-flow
 export const FLOW_CHARTS = [flowCurrency, flowAllocation, flowAssets, flowVariation, inout, flowTrend]
 export { ENVELOPE_CHARTS, VOLATILITY_CHARTS }
 
-const PORTFOLIO_FLOW = { key: 'portfolio-flow', title: 'Portfolio Flow', to: '/portfolio-flow', charts: FLOW_CHARTS }
-const ENVELOPES = { key: 'enveloppes', title: 'Enveloppes', to: '/enveloppes', charts: ENVELOPE_CHARTS }
-const VOLATILITY = { key: 'volatilite', title: 'Volatilité', to: '/volatilite', charts: VOLATILITY_CHARTS }
+const PORTFOLIO_FLOW = { key: 'portfolio-flow', titleKey: 'pages.flow', to: '/portfolio-flow', charts: FLOW_CHARTS }
+const ENVELOPES = { key: 'enveloppes', titleKey: 'pages.envelopes', to: '/enveloppes', charts: ENVELOPE_CHARTS }
+const VOLATILITY = { key: 'volatilite', titleKey: 'pages.volatility', to: '/volatilite', charts: VOLATILITY_CHARTS }
 export const GROUPS = [PORTFOLIO_FLOW, ENVELOPES, VOLATILITY]
 
 export const CHARTS = [budgetFlow, ...GROUPS.flatMap((group) => group.charts)]
@@ -34,38 +36,32 @@ export const MENU = [
   {
     key: PORTFOLIO_FLOW.key,
     to: PORTFOLIO_FLOW.to,
-    title: 'Flow',
-    summary: 'L’historique de ton patrimoine mois par mois : devises, répartition, évolution par type d’actif, variation, entrées et sorties, tendance et objectifs.',
+    titleKey: 'chartsMenu.flow',
   },
   {
     key: 'portfolio-snapshot',
     to: '/portfolio-snapshot',
-    title: 'Snapshot',
-    summary: 'Ton patrimoine aujourd’hui : brut, net, variation de l’année et du mois, détail type d’actif par type d’actif.',
+    titleKey: 'chartsMenu.snapshot',
   },
   {
     key: ENVELOPES.key,
     to: ENVELOPES.to,
-    title: ENVELOPES.title,
-    summary: 'Tes enveloppes de placement (CTO, PEA, PER, PEE) : contenu, évolution, sous-types et zones.',
+    titleKey: 'chartsMenu.envelopes',
   },
   {
     key: 'strategie',
     to: '/strategie',
-    title: 'Strategy',
-    summary: 'Tes actions en anneaux à deux niveaux : secteur, moat, localisation, note S&P, business et place de cotation.',
+    titleKey: 'chartsMenu.strategy',
   },
   {
     key: VOLATILITY.key,
     to: VOLATILITY.to,
-    title: VOLATILITY.title,
-    summary: 'De combien le prix de chacun de tes placements a bougé sur 1 mois, 3 mois et 1 an.',
+    titleKey: 'chartsMenu.volatility',
   },
   {
     key: budgetFlow.slug,
     to: { name: 'ChartPage', params: { slug: budgetFlow.slug } },
-    title: 'Budget',
-    summary: budgetFlow.summary,
+    titleKey: 'chartsMenu.budget',
   },
 ]
 
@@ -101,5 +97,5 @@ export function neighbours(slug) {
 /** Page qui regroupe ce graphique (pour le fil d'Ariane), ou null s'il n'appartient à aucune. */
 export const parentPage = (slug) => {
   const group = groupOf(slug)
-  return group ? { title: group.title, to: group.to } : null
+  return group ? { title: t(group.titleKey), to: group.to } : null
 }

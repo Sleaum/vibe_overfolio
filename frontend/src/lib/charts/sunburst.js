@@ -6,6 +6,7 @@
 import { baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { euro, percent } from '../format.js'
 import { SURFACE } from '../palette.js'
+import { t } from '../../i18n/index.js'
 
 // Un filet de 2 px de la couleur du fond sépare les parts
 const ring = (r0, r) => ({
@@ -44,11 +45,11 @@ export function sunburstOption(categories, total) {
         const color = item.itemStyle?.color
         const amount = Number.isFinite(item.amount) ? item.amount : Number(p?.value) || 0
         const rows = [
-          { color, label: 'Montant', value: euro(amount), strong: true },
-          { label: 'Part du total', value: percent(amount / total) },
+          { color, label: t('chart.amount'), value: euro(amount), strong: true },
+          { label: t('chart.shareOfTotal'), value: percent(amount / total) },
         ]
         if (item.parent) {
-          rows.push({ label: `Part de ${item.parent}`, value: percent(amount / item.parentAmount) })
+          rows.push({ label: t('chart.shareOf', { parent: item.parent }), value: percent(amount / item.parentAmount) })
           return tooltipHtml(`${item.parent} › ${p.name}`, rows)
         }
         return tooltipHtml(p?.name, rows)

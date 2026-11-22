@@ -1,6 +1,9 @@
 // Données FICTIVES, uniquement pour les aperçus de la page de présentation.
 // Rien ici ne vient de ta feuille : la page de vente ne doit jamais afficher tes vrais montants.
 
+import { t } from '../i18n/index.js'
+import { formatDateNumeric } from './format.js'
+
 /** 25 relevés mensuels, de novembre 2024 à novembre 2026, au format de la table `_history`. */
 export function sampleHistory() {
   const wobble = [0, 1.2, -0.6, 1.9, 0.4, -1.4, 1.1, 0.8, -0.9, 1.6, 0.3, -0.5]
@@ -33,11 +36,12 @@ export function sampleAssets() {
 
 /** Lignes de l'aperçu de la table `portfolio`. */
 export function samplePortfolioRows() {
+  const date = formatDateNumeric('2026-11-14')
   return [
-    { date: '14/11/2026', asset: 'public equity', instrument: 'ETF actions monde', amount: 52_000 },
-    { date: '14/11/2026', asset: 'public equity', instrument: 'ETF S&P 500', amount: 35_000 },
-    { date: '14/11/2026', asset: 'real estate', instrument: 'SCPI', amount: 30_000 },
-    { date: '14/11/2026', asset: 'fiat', instrument: 'Livret', amount: 24_000 },
-    { date: '14/11/2026', asset: 'crypto', instrument: 'Bitcoin', amount: 13_000 },
+    { date, asset: 'public equity', instrument: t('home.sample.worldEtf'), amount: 52_000 },
+    { date, asset: 'public equity', instrument: 'ETF S&P 500', amount: 35_000 },
+    { date, asset: 'real estate', instrument: 'SCPI', amount: 30_000 },
+    { date, asset: 'fiat', instrument: t('home.sample.savings'), amount: 24_000 },
+    { date, asset: 'crypto', instrument: 'Bitcoin', amount: 13_000 },
   ]
 }

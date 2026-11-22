@@ -8,24 +8,23 @@
       <div class="page-container">
         <div class="grid grid-cols-12 items-center gap-y-14 lg:gap-x-10">
           <div class="col-span-12 lg:col-span-6">
-            <h1 id="titre-principal" class="text-display text-ink">L’allocation avant la sélection</h1>
+            <h1 id="titre-principal" class="text-display text-ink">{{ t('home.title') }}</h1>
             <p class="mt-6 max-w-xl text-lead text-ink-2">
-              Overfolio transforme ton Google Sheet en graphiques clairs, pour voir l’évolution et la répartition de ton
-              patrimoine avant de faire tes arbitrages.
+              {{ t('home.lead') }}
             </p>
 
             <div class="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
-              <AppButton :to="{ name: 'SheetPage' }">Commencer</AppButton>
+              <AppButton :to="{ name: 'SheetPage' }">{{ t('home.start') }}</AppButton>
               <router-link
                 to="/graphiques"
                 class="rounded-md font-semibold text-accent underline underline-offset-4 hover:text-accent-hover"
               >
-                Voir les graphiques
+                {{ t('home.seeCharts') }}
               </router-link>
             </div>
 
             <p class="mt-6 max-w-md text-sm text-ink-3">
-              Ta feuille reste la tienne : Overfolio la lit, il ne la modifie pas.
+              {{ t('home.ownership') }}
             </p>
           </div>
 
@@ -44,10 +43,13 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import AppButton from '../components/ui/AppButton.vue'
 import BenefitsSection from '../components/landing/BenefitsSection.vue'
 import FaqSection from '../components/landing/FaqSection.vue'
 import HeroPreview from '../components/landing/HeroPreview.vue'
 import ProductPreview from '../components/landing/ProductPreview.vue'
 import StepsSection from '../components/landing/StepsSection.vue'
+
+const { t } = useI18n()
 </script>

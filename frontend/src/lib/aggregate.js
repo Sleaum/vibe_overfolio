@@ -2,6 +2,7 @@
 // Règle de la feuille : on ne somme que « Assets Master Currency » et « Liabilities Master Currency ».
 // « Equity » mélange les devises et « Currency Price » n'est que la devise de cotation : jamais pour un total.
 
+import { t } from '../i18n/index.js'
 import { isoToTimestamp, toIsoDate } from './dates.js'
 
 /** Erreur dont le message est destiné à être lu tel quel dans la page. */
@@ -31,7 +32,7 @@ export function toNumber(value) {
 }
 
 /** Texte nettoyé d'une cellule, ou `fallback` si elle est vide. */
-export function toLabel(value, fallback = 'Non renseigné') {
+export function toLabel(value, fallback = t('data.unknown')) {
   if (value === null || value === undefined) return fallback
   const text = String(value).trim()
   return text || fallback
@@ -58,8 +59,11 @@ export function requireColumns(table, wanted) {
   }
   if (missing.length) {
     throw new DataError(
-      `Colonne(s) introuvable(s) dans la table « ${table?.name ?? '?'} » : ${missing.join(', ')}. ` +
-        `Colonnes disponibles : ${columns.join(', ') || 'aucune'}.`,
+      t('errors.missingColumns', {
+        table: table?.name ?? '?',
+        missing: missing.join(', '),
+        available: columns.join(', ') || t('data.none'),
+      }),
     )
   }
   return found
@@ -78,7 +82,7 @@ export function latestDate(rows, dateColumn) {
 }
 
 /** Somme des montants > 0 par libellé, du plus gros au plus petit. */
-export function splitBy(rows, keyColumn, valueColumn, emptyLabel = 'Non renseigné') {
+export function splitBy(rows, keyColumn, valueColumn, emptyLabel = t('data.unknown')) {
   const groups = new Map()
   for (const row of rows) {
     const value = toNumber(row[valueColumn])

@@ -133,9 +133,12 @@ def public_view() -> dict:
 
 
 class ConfigInvalid(Exception):
-    def __init__(self, errors: Dict[str, str]):
+    """Saisie invalide : errors = {champ: message en français}, codes = {champ: code} pour le site."""
+
+    def __init__(self, errors: Dict[str, str], codes: Dict[str, str]):
         super().__init__("; ".join(errors.values()))
         self.errors = errors
+        self.codes = codes
 
 
 def save(data: dict) -> SheetConfig:
@@ -162,6 +165,7 @@ def save(data: dict) -> SheetConfig:
     values["sync_tabs"] = ",".join(parse_tabs(values["sync_tabs"]))
 
     errors = {}
+    codes = {}  # même erreur, en code stable : le site l'affiche dans la langue choisie
     labels = {
         "type": "Type",
         "project_id": "ID du projet",
@@ -171,16 +175,21 @@ def save(data: dict) -> SheetConfig:
     for field in REQUIRED_CREDENTIALS:
         if not values[field]:
             errors[field] = f"{labels[field]} : champ obligatoire."
+            codes[field] = "required"
     if values["private_key"] and "PRIVATE KEY" not in values["private_key"]:
         errors["private_key"] = "Clé privée : elle doit commencer par -----BEGIN PRIVATE KEY-----."
+        codes["private_key"] = "private_key_format"
     if values["client_email"] and "@" not in values["client_email"]:
         errors["client_email"] = "E-mail du compte de service : adresse invalide."
+        codes["client_email"] = "email_invalid"
     if not values["sheet_id"] and not values["doc_name"]:
         errors["sheet_id"] = "Renseigne l'identifiant du document ou son nom."
+        codes["sheet_id"] = "sheet_id_or_name"
     if not values["sync_tabs"]:
         errors["sync_tabs"] = "Indique au moins un onglet à synchroniser."
+        codes["sync_tabs"] = "sync_tabs_required"
     if errors:
-        raise ConfigInvalid(errors)
+        raise ConfigInvalid(errors, codes)
 
     config, _ = SheetConfig.objects.update_or_create(pk=1, defaults=values)
     return config

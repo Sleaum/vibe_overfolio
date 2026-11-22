@@ -2,6 +2,7 @@
 
 import { buildFlow, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
+import { t, tList } from '../../i18n/index.js'
 import { euro, formatDateTime } from '../format.js'
 import { FONT, INK, SERIES, SURFACE } from '../palette.js'
 
@@ -13,10 +14,10 @@ export function sankeyOption(nodes, links) {
       formatter: (p) => {
         if (p.dataType === 'edge') {
           return tooltipHtml(`${p.data.source} → ${p.data.target}`, [
-            { color: SERIES[0], label: 'Montant', value: euro(p.data.value), strong: true },
+            { color: SERIES[0], label: t('chart.amount'), value: euro(p.data.value), strong: true },
           ])
         }
-        return tooltipHtml(p.name, [{ color: SERIES[0], label: 'Total des flux', value: euro(p.value), strong: true }])
+        return tooltipHtml(p.name, [{ color: SERIES[0], label: t('charts.budget.flowTotal'), value: euro(p.value), strong: true }])
       },
     }),
     series: [
@@ -42,15 +43,20 @@ export function sankeyOption(nodes, links) {
 
 export default {
   slug: 'flux-budget',
-  title: 'Flux du budget',
-  summary: 'D’où vient l’argent et où il va.',
+  get title() {
+    return t('charts.budget.title')
+  },
+  get summary() {
+    return t('charts.budget.summary')
+  },
   table: 'budget',
   minWidth: 560,
-  explain: [
-    'Chaque bande relie une source à une destination. Son épaisseur est le montant. Les blocs sont les sources, les étapes intermédiaires et les destinations.',
-    'Passe la souris sur un bloc ou sur une bande pour mettre en avant les flux qui y passent et lire leur montant.',
-  ],
-  source: 'Table budget, colonnes Source, Destination et Valeur (lignes supérieures à 0, doublons additionnés).',
+  get explain() {
+    return tList('charts.budget.explain')
+  },
+  get source() {
+    return t('charts.budget.source')
+  },
 
   build(table) {
     const cols = requireColumns(table, {
@@ -60,7 +66,7 @@ export default {
     })
     const { nodes, links, dropped } = buildFlow(rowsOf(table), cols.source, cols.target, cols.value)
     if (!links.length) {
-      return { empty: 'Aucun flux supérieur à 0 dans la table budget.' }
+      return { empty: t('charts.budget.empty') }
     }
 
     // Total entrant : somme des flux qui partent d'un bloc sans flux entrant
@@ -68,15 +74,13 @@ export default {
     const entering = links.filter((link) => !targets.has(link.source)).reduce((sum, link) => sum + link.value, 0)
 
     return {
-      subtitle: table.synced_at ? `Synchronisé le ${formatDateTime(table.synced_at)}.` : '',
-      summary: `Diagramme de flux : ${links.length} flux entre ${nodes.length} blocs, pour ${euro(entering)} au départ.`,
+      subtitle: table.synced_at ? t('subtitle.syncedAt', { date: formatDateTime(table.synced_at) }) : '',
+      summary: t('charts.budget.a11y', { links: links.length, nodes: nodes.length, amount: euro(entering) }),
       option: sankeyOption(nodes, links),
       height: Math.max(360, nodes.length * 30),
-      note: dropped
-        ? `${dropped} flux ${dropped > 1 ? 'ont été ignorés' : 'a été ignoré'} : ${dropped > 1 ? 'ils fermaient' : 'il fermait'} une boucle (A vers B puis B vers A), ce qu’un diagramme de flux ne peut pas dessiner.`
-        : '',
+      note: dropped ? t('charts.budget.dropped', { count: dropped }, dropped) : '',
       table: {
-        columns: ['Source', 'Destination', 'Montant'],
+        columns: tList('charts.budget.columns'),
         numeric: [false, false, true],
         rows: [...links].sort((a, b) => b.value - a.value).map((link) => [link.source, link.target, euro(link.value)]),
       },

@@ -10,7 +10,7 @@
         <h2 :id="titleId" class="text-h3 text-ink">{{ spec.title }}</h2>
         <p class="mt-1 text-ink-2">{{ subtitle }}</p>
       </div>
-      <SegmentedControl v-if="status === 'ready'" v-model="view" :options="VIEWS" label="Affichage" />
+      <SegmentedControl v-if="status === 'ready'" v-model="view" :options="VIEWS" :label="t('chartUi.display')" />
     </header>
 
     <div class="p-4 sm:p-6">
@@ -19,37 +19,37 @@
         role="status"
         class="flex h-72 items-center justify-center rounded-lg bg-wash text-ink-2 motion-safe:animate-pulse"
       >
-        Chargement du graphique…
+        {{ t('chartUi.loading') }}
       </div>
 
       <div v-else-if="status === 'error'" role="alert" class="rounded-lg border border-danger-line bg-danger-wash p-5">
         <p class="font-semibold text-danger">
-          {{ missingTable ? 'Cette table n’est pas encore dans la base' : 'Impossible de charger les données' }}
+          {{ missingTable ? t('chartUi.missingTableTitle') : t('chartUi.loadErrorTitle') }}
         </p>
         <p class="mt-1 text-ink">
           {{
             missingTable
-              ? `La table « ${spec.table} » n’a pas encore été synchronisée depuis Google Sheets.`
+              ? t('chartUi.missingTableText', { table: spec.table })
               : error.message
           }}
         </p>
         <div class="mt-4 flex flex-wrap gap-3">
-          <AppButton v-if="missingTable" :to="sheetLink" variant="secondary" size="sm">Ouvrir la page GoogleSheet</AppButton>
-          <AppButton variant="secondary" size="sm" @click="reload">Réessayer</AppButton>
+          <AppButton v-if="missingTable" :to="sheetLink" variant="secondary" size="sm">{{ t('chartUi.openSheet') }}</AppButton>
+          <AppButton variant="secondary" size="sm" @click="reload">{{ t('chartUi.retry') }}</AppButton>
         </div>
       </div>
 
       <div v-else-if="status === 'problem'" role="alert" class="rounded-lg border border-danger-line bg-danger-wash p-5">
-        <p class="font-semibold text-danger">Les données ne correspondent pas à ce graphique</p>
+        <p class="font-semibold text-danger">{{ t('chartUi.problemTitle') }}</p>
         <p class="mt-1 text-ink">{{ model.problem }}</p>
-        <p class="mt-3 text-sm text-ink-2">Compare avec les noms de colonnes de la page GoogleSheet.</p>
+        <p class="mt-3 text-sm text-ink-2">{{ t('chartUi.problemHint') }}</p>
       </div>
 
       <div
         v-else-if="status === 'empty'"
         class="flex h-56 flex-col items-center justify-center rounded-lg border border-dashed border-line-strong bg-wash px-6 text-center"
       >
-        <p class="font-semibold text-ink">Pas de données à afficher</p>
+        <p class="font-semibold text-ink">{{ t('chartUi.emptyTitle') }}</p>
         <p class="mt-1 max-w-md text-ink-2">{{ model.empty }}</p>
       </div>
 
@@ -59,7 +59,7 @@
           :columns="model.table.columns"
           :rows="model.table.rows"
           :numeric="model.table.numeric"
-          :caption="`${spec.title}, version tableau`"
+          :caption="t('chartUi.tableVersion', { title: spec.title })"
         />
         <BaseChart
           v-else
@@ -78,13 +78,14 @@
         :to="{ name: 'ChartPage', params: { slug: spec.slug } }"
         class="font-medium text-accent underline underline-offset-2 hover:text-accent-hover"
       >
-        Explication et source des chiffres
+        {{ t('chartUi.explainLink') }}
       </router-link>
     </footer>
   </section>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { computed, ref } from 'vue'
 import { DataError } from '../../lib/aggregate.js'
 import { formatDateTime } from '../../lib/format.js'
@@ -92,6 +93,8 @@ import AppButton from '../ui/AppButton.vue'
 import SegmentedControl from '../ui/SegmentedControl.vue'
 import BaseChart from './BaseChart.vue'
 import DataTableView from './DataTableView.vue'
+
+const { t } = useI18n()
 
 const props = defineProps({
   spec: { type: Object, required: true },
@@ -101,8 +104,8 @@ const props = defineProps({
 })
 
 const VIEWS = [
-  { value: 'chart', label: 'Graphique' },
-  { value: 'table', label: 'Tableau' },
+  { value: 'chart', label: t('chartUi.chart') },
+  { value: 'table', label: t('chartUi.table') },
 ]
 
 const view = ref('chart')
@@ -115,7 +118,7 @@ const model = computed(() => {
   } catch (err) {
     if (err instanceof DataError) return { problem: err.message }
     console.error(err)
-    return { problem: `Le graphique n’a pas pu être construit (${err?.message ?? 'erreur inconnue'}).` }
+    return { problem: t('chartUi.buildFailed', { message: err?.message ?? t('chartUi.unknownError') }) }
   }
 })
 
@@ -131,6 +134,6 @@ const missingTable = computed(() => props.error?.status === 404)
 const sheetLink = computed(() => ({ path: '/sheet', query: { onglet: props.spec.table } }))
 const subtitle = computed(() => model.value?.subtitle || props.spec.summary)
 const syncLabel = computed(() =>
-  props.data?.synced_at ? `Table ${props.spec.table} synchronisée le ${formatDateTime(props.data.synced_at)}.` : '',
+  props.data?.synced_at ? t('chartUi.tableSynced', { table: props.spec.table, date: formatDateTime(props.data.synced_at) }) : '',
 )
 </script>

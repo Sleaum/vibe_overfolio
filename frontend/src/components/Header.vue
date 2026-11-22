@@ -12,28 +12,29 @@
       <router-link
         to="/"
         class="rounded-md text-xl font-extrabold tracking-tight text-ink"
-        aria-label="Overfolio, retour à la page d’accueil"
+        :aria-label="t('app.home')"
       >
         Overfolio
       </router-link>
 
       <!-- Menu ordinateur -->
-      <nav aria-label="Navigation principale" class="hidden items-center md:ml-auto md:flex">
+      <nav :aria-label="t('nav.main')" class="hidden items-center md:ml-auto md:flex">
         <ul class="flex items-center gap-1">
-          <li v-for="link in LINKS" :key="link.label">
+          <li v-for="link in LINKS" :key="link.to">
             <router-link
               :to="link.to"
               :class="[linkClasses, isActive(link) ? '!text-ink after:!bg-accent' : '']"
               :aria-current="isActive(link) ? 'page' : undefined"
             >
-              {{ link.label }}
+              {{ t(link.labelKey) }}
             </router-link>
           </li>
         </ul>
       </nav>
 
       <div class="flex items-center gap-1 md:ml-2">
-        <!-- Mode clair / sombre (mobile et ordinateur) -->
+        <!-- Langue, puis mode clair / sombre (mobile et ordinateur) -->
+        <LanguageSelect />
         <ThemeToggle />
 
         <!-- Bouton burger (mobile) -->
@@ -43,7 +44,7 @@
           class="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink hover:bg-wash md:hidden"
           aria-controls="menu-mobile"
           :aria-expanded="open"
-          :aria-label="open ? 'Fermer le menu' : 'Ouvrir le menu'"
+          :aria-label="open ? t('nav.closeMenu') : t('nav.openMenu')"
           @click="open = !open"
         >
           <svg v-if="!open" viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -60,18 +61,18 @@
     <nav
       v-show="open"
       id="menu-mobile"
-      aria-label="Navigation principale (mobile)"
+      :aria-label="t('nav.mainMobile')"
       class="border-t border-line bg-paper md:hidden"
     >
       <ul class="page-container space-y-1 py-3">
-        <li v-for="link in LINKS" :key="link.label">
+        <li v-for="link in LINKS" :key="link.to">
           <router-link
             :to="link.to"
             class="flex h-12 items-center rounded-lg px-3 text-base font-medium text-ink-2 hover:bg-wash hover:text-ink"
             :class="isActive(link) ? 'bg-accent-wash !text-accent' : ''"
             :aria-current="isActive(link) ? 'page' : undefined"
           >
-            {{ link.label }}
+            {{ t(link.labelKey) }}
           </router-link>
         </li>
       </ul>
@@ -82,18 +83,22 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import LanguageSelect from './ui/LanguageSelect.vue'
 import ThemeToggle from './ui/ThemeToggle.vue'
+
+const { t } = useI18n()
 
 // Les chemins existants restent valides : /sheet (alias /source) et /graphiques (alias /echart)
 // `under` : adresses qui font partie de la rubrique (la page d'un graphique est sous /graphiques/…)
 const LINKS = [
-  { label: 'GoogleSheet', to: '/sheet', under: ['/sheet', '/source'] },
+  { labelKey: 'nav.sheet', to: '/sheet', under: ['/sheet', '/source'] },
   {
-    label: 'Graphiques',
+    labelKey: 'nav.charts',
     to: '/graphiques',
     under: ['/graphiques', '/echart', '/portfolio-flow', '/portfolio-snapshot', '/strategie', '/enveloppes', '/volatilite'],
   },
-  { label: 'Simulation', to: '/simulation', under: ['/simulation'] },
+  { labelKey: 'nav.simulation', to: '/simulation', under: ['/simulation'] },
 ]
 
 const isActive = (link) => link.under.some((base) => route.path === base || route.path.startsWith(`${base}/`))

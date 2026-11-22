@@ -6,21 +6,24 @@
 // un attribut introuvable n'empêche pas les autres anneaux de s'afficher, il est simplement signalé.
 
 import { DataError, findColumn, latestDate, requireColumns, rowsOf, toLabel, toNumber } from './aggregate.js'
-import { capitalize, euro, formatDateLong, percent, plural } from './format.js'
+import { capitalize, euro, formatDateLong, percent } from './format.js'
 import { CONTEXT, SERIES } from './palette.js'
+import { t } from '../i18n/index.js'
 
 /** Les six attributs d'une action ; le premier nom de `names` est celui affiché quand la colonne manque. */
 export const ATTRIBUTES = [
-  { key: 'sector', title: 'Secteur', names: ['Sector', 'Secteur'] },
-  { key: 'moat', title: 'Moat', names: ['Moat', 'Avantage concurrentiel'] },
-  { key: 'area', title: 'Localisation', names: ['Area', 'Localisation', 'Pays', 'Country', 'Zone', 'Region', 'Région'] },
+  { key: 'sector', get title() { return t('strategy.rings.sector') }, names: ['Sector', 'Secteur'] },
+  { key: 'moat', get title() { return t('strategy.rings.moat') }, names: ['Moat', 'Avantage concurrentiel'] },
+  { key: 'area', get title() { return t('strategy.rings.area') }, names: ['Area', 'Localisation', 'Pays', 'Country', 'Zone', 'Region', 'Région'] },
   {
     key: 'rating',
-    title: 'Note S&P',
+    get title() {
+      return t('strategy.rings.rating')
+    },
     names: ['Note SP Trié', 'Note SP Trie', 'Note SP', 'S&P Rating', 'SP Rating', 'Rating', 'Notation', 'Note'],
   },
-  { key: 'business', title: 'Business', names: ['Business', 'Business Model', 'Modèle', 'Modele'] },
-  { key: 'exchange', title: 'Place de cotation', names: ['Exchange', 'New Field', 'Place', 'Bourse', 'Place de cotation'] },
+  { key: 'business', get title() { return t('strategy.rings.business') }, names: ['Business', 'Business Model', 'Modèle', 'Modele'] },
+  { key: 'exchange', get title() { return t('strategy.rings.exchange') }, names: ['Exchange', 'New Field', 'Place', 'Bourse', 'Place de cotation'] },
 ]
 
 const INSTRUMENT_NAMES = ['Instrument', 'Instruments']
@@ -34,7 +37,8 @@ export const VALUE_NAMES = ['Assets Master Currency']
 
 export const MAX_CATEGORIES = 8 // au-delà, le reste est regroupé en « Autres (n) »
 export const MAX_CHILDREN = 6 // anneau extérieur : par catégorie, les 6 plus gros puis « Autres (n) »
-export const UNKNOWN = 'Non renseigné'
+// Catégorie des lignes sans valeur, dans la langue active
+export const UNKNOWN = () => t('data.unknown')
 export const UNKNOWN_COLOR = '#c4c2bc' // couleur fixe : gris clair : se distingue du gris « Autres » (CONTEXT)
 
 // Échelle des notes S&P, de la meilleure à la moins bonne : l'anneau « Note S&P » suit cet ordre plutôt que la taille
@@ -115,12 +119,12 @@ function resolveAttributes(portfolio, stock, join) {
 
     if (inPortfolio) {
       getters[attr.key] = (row) => cell(row, inPortfolio)
-      used.push(`${attr.title} : ${inPortfolio}`)
+      used.push(t('strategy.used.column', { title: attr.title, column: inPortfolio }))
       continue
     }
     if (inStock) {
       getters[attr.key] = (row) => cell(stockRowOf(row), inStock)
-      used.push(`${attr.title} : ${inStock} (table stock, rattachée par ${join.column})`)
+      used.push(t('strategy.used.stock', { title: attr.title, column: inStock, join: join.column }))
       continue
     }
     if (attr.key === 'exchange') {
@@ -129,7 +133,7 @@ function resolveAttributes(portfolio, stock, join) {
       const anyColon = rowsOf(portfolio).some((row) => exchangeFromTicker(tickerOf(row)))
       if (anyColon) {
         getters[attr.key] = (row) => exchangeFromTicker(tickerOf(row))
-        used.push(`${attr.title} : début du ticker, avant « : » (${portfolioTicker ?? stockTicker})`)
+        used.push(t('strategy.used.ticker', { title: attr.title, column: portfolioTicker ?? stockTicker }))
         continue
       }
     }
@@ -144,12 +148,12 @@ function aggregate(rows, valueColumn, innerOf, outerOf) {
   for (const row of rows) {
     const value = toNumber(row[valueColumn])
     if (!(value > 0)) continue
-    const name = innerOf(row) || UNKNOWN
+    const name = innerOf(row) || UNKNOWN()
     const key = lower(name)
     const group = groups.get(key) ?? { name, value: 0, children: new Map() }
     group.value += value
     if (outerOf) {
-      const childName = outerOf(row) || UNKNOWN
+      const childName = outerOf(row) || UNKNOWN()
       const childKey = lower(childName)
       const child = group.children.get(childKey) ?? { name: childName, value: 0 }
       child.value += value
@@ -183,7 +187,7 @@ function mergeGroups(groups, name) {
 function topChildren(children, limit) {
   if (children.length <= limit) return children
   const rest = children.slice(limit)
-  return [...children.slice(0, limit), { name: `Autres (${rest.length})`, value: rest.reduce((sum, c) => sum + c.value, 0) }]
+  return [...children.slice(0, limit), { name: t('data.othersCount', { count: rest.length }), value: rest.reduce((sum, c) => sum + c.value, 0) }]
 }
 
 /**
@@ -192,8 +196,8 @@ function topChildren(children, limit) {
  * Le détail de chaque catégorie est une nuance de sa couleur : plus on descend dans la liste, plus la nuance est claire.
  */
 export function buildCategories(groups, total, labelOf = capitalize, rankOf = null) {
-  const known = groups.filter((group) => lower(group.name) !== lower(UNKNOWN))
-  const unknown = groups.find((group) => lower(group.name) === lower(UNKNOWN))
+  const known = groups.filter((group) => lower(group.name) !== lower(UNKNOWN()))
+  const unknown = groups.find((group) => lower(group.name) === lower(UNKNOWN()))
 
   // On garde les plus grosses ; si un ordre est donné (notes S&P), elles s'affichent dans cet ordre, les inconnues à la suite
   const shown = known.slice(0, MAX_CATEGORIES)
@@ -209,8 +213,11 @@ export function buildCategories(groups, total, labelOf = capitalize, rankOf = nu
     })
   }
   const ordered = shown.map((group, index) => ({ group, name: labelOf(group.name), color: SERIES[index] }))
-  if (rest.length) ordered.push({ group: mergeGroups(rest, `Autres (${rest.length})`), name: `Autres (${rest.length})`, color: CONTEXT })
-  if (unknown) ordered.push({ group: unknown, name: UNKNOWN, color: UNKNOWN_COLOR })
+  if (rest.length) {
+    const others = t('data.othersCount', { count: rest.length })
+    ordered.push({ group: mergeGroups(rest, others), name: others, color: CONTEXT })
+  }
+  if (unknown) ordered.push({ group: unknown, name: UNKNOWN(), color: UNKNOWN_COLOR })
 
   return ordered.map(({ group, name, color }) => {
     const kids = topChildren(group.children, MAX_CHILDREN)
@@ -236,18 +243,18 @@ export function buildCategories(groups, total, labelOf = capitalize, rankOf = nu
 function tableOf(title, detailTitle, categories, total) {
   if (!detailTitle) {
     return {
-      columns: [title, 'Montant', 'Part du total'],
+      columns: [title, t('chart.amount'), t('chart.shareOfTotal')],
       numeric: [false, true, true],
-      rows: [...categories.map((c) => [c.name, euro(c.value), percent(c.share)]), ['Total', euro(total), percent(1)]],
+      rows: [...categories.map((c) => [c.name, euro(c.value), percent(c.share)]), [t('chart.total'), euro(total), percent(1)]],
     }
   }
   const rows = []
   for (const category of categories) {
-    rows.push([category.name, 'Ensemble', euro(category.value), percent(category.share)])
+    rows.push([category.name, t('strategy.all'), euro(category.value), percent(category.share)])
     for (const child of category.allChildren) rows.push([category.name, child.name, euro(child.value), percent(child.share)])
   }
-  rows.push(['Total', '', euro(total), percent(1)])
-  return { columns: [title, detailTitle, 'Montant', 'Part du total'], numeric: [false, false, true, true], rows }
+  rows.push([t('chart.total'), '', euro(total), percent(1)])
+  return { columns: [title, detailTitle, t('chart.amount'), t('chart.shareOfTotal')], numeric: [false, false, true, true], rows }
 }
 
 /** Choix proposés pour restreindre les lignes : toutes, « PEA et CTO » si les deux existent, puis chaque enveloppe. */
@@ -257,7 +264,7 @@ function buildScopes(rows, envelopeColumn, valueColumn) {
   for (const row of rows) {
     const value = toNumber(row[valueColumn])
     if (!(value > 0)) continue
-    const name = cell(row, envelopeColumn) || UNKNOWN
+    const name = cell(row, envelopeColumn) || UNKNOWN()
     const key = lower(name)
     const entry = totals.get(key) ?? { name, value: 0 }
     entry.value += value
@@ -266,8 +273,8 @@ function buildScopes(rows, envelopeColumn, valueColumn) {
   const envelopes = [...totals.values()].sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, 'fr'))
   if (envelopes.length < 2) return []
 
-  const scopes = [{ value: 'all', label: 'Toutes les enveloppes' }]
-  if (MY_ENVELOPES.every((name) => totals.has(name))) scopes.push({ value: 'peacto', label: 'PEA et CTO' })
+  const scopes = [{ value: 'all', label: t('strategy.scopes.all') }]
+  if (MY_ENVELOPES.every((name) => totals.has(name))) scopes.push({ value: 'peacto', label: t('strategy.scopes.peacto') })
   for (const envelope of envelopes) scopes.push({ value: `env:${lower(envelope.name)}`, label: envelope.name })
   return scopes
 }
@@ -295,28 +302,28 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
   if (assetColumn) {
     const equities = rows.filter((row) => EQUITY.has(lower(row[assetColumn])))
     if (equities.length) {
-      if (equities.length < rows.length) notes.push('Seuls les actifs de type « public equity » (colonne Asset) sont comptés.')
+      if (equities.length < rows.length) notes.push(t('strategy.notes.equityOnly'))
       rows = equities
     } else if (rows.length) {
-      notes.push('Aucune ligne « public equity » dans la colonne Asset : toutes les lignes sont comptées.')
+      notes.push(t('strategy.notes.noEquity'))
     }
   }
-  if (!rows.length) return { empty: 'Aucune ligne d’actions avec un montant supérieur à 0 dans la table portfolio.' }
+  if (!rows.length) return { empty: t('strategy.empty.noRows') }
 
   // Enveloppe : sert au choix PEA / CTO et à l'anneau « Instruments »
   const envelopeColumn = findColumn(portfolio.columns, ENVELOPE_NAMES)
   const scopes = buildScopes(rows, envelopeColumn, cols.value)
   const defaultScope = scopes.some((s) => s.value === 'peacto') ? 'peacto' : 'all'
   const current = scopes.some((s) => s.value === scope) ? scope : defaultScope
-  const scoped = scopes.length ? rows.filter((row) => inScope(current, cell(row, envelopeColumn) || UNKNOWN)) : rows
-  if (!scoped.length) return { empty: 'Aucune ligne dans cette enveloppe.', scopes, scope: current }
+  const scoped = scopes.length ? rows.filter((row) => inScope(current, cell(row, envelopeColumn) || UNKNOWN())) : rows
+  if (!scoped.length) return { empty: t('strategy.empty.noScope'), scopes, scope: current }
 
   const join = findJoin(portfolio, stock)
   const { getters, used, skipped } = resolveAttributes(portfolio, stock, join)
   const instrumentColumn = findColumn(portfolio.columns, INSTRUMENT_NAMES)
-  if (instrumentColumn) used.push(`Instrument : ${instrumentColumn}`)
-  else skipped.push({ title: 'Instruments', tried: INSTRUMENT_NAMES[0] })
-  if (envelopeColumn) used.push(`Enveloppe : ${envelopeColumn}`)
+  if (instrumentColumn) used.push(t('strategy.used.column', { title: t('strategy.instrument'), column: instrumentColumn }))
+  else skipped.push({ title: t('strategy.rings.instruments'), tried: INSTRUMENT_NAMES[0] })
+  if (envelopeColumn) used.push(t('strategy.used.column', { title: t('strategy.envelope'), column: envelopeColumn }))
 
   const instrumentOf = instrumentColumn ? (row) => cell(row, instrumentColumn) : null
   // Une seule enveloppe en jeu : l'anneau extérieur des instruments serait toujours le même, on le supprime
@@ -329,26 +336,28 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
     title: attr.title,
     inner: getters[attr.key],
     outer: instrumentOf,
-    detailTitle: instrumentOf ? 'Instrument' : '',
+    detailTitle: instrumentOf ? t('strategy.instrument') : '',
     labelOf: attr.key === 'rating' ? ratingLabel : capitalize,
     rankOf: attr.key === 'rating' ? ratingRank : null,
   }))
   if (instrumentOf) {
     defs.push({
       key: 'instrument',
-      title: 'Instruments',
+      title: t('strategy.rings.instruments'),
       inner: instrumentOf,
       outer: envelopeOf,
-      detailTitle: envelopeOf ? 'Enveloppe' : '',
+      detailTitle: envelopeOf ? t('strategy.envelope') : '',
       labelOf: (text) => text, // les noms d'instruments gardent leur graphie
     })
   }
 
   if (!defs.length) {
-    const columns = (table) => (table?.columns?.length ? table.columns.join(', ') : 'aucune')
+    const columns = (table) => (table?.columns?.length ? table.columns.join(', ') : t('data.none'))
     throw new DataError(
-      'Aucun attribut trouvé pour les anneaux (secteur, moat, localisation, note, business, place de cotation, instrument). ' +
-        `Colonnes de portfolio : ${columns(portfolio)}. Colonnes de stock : ${stock ? columns(stock) : 'table absente'}.`,
+      t('strategy.errors.noAttribute', {
+        portfolio: columns(portfolio),
+        stock: stock ? columns(stock) : t('strategy.errors.noTable'),
+      }),
     )
   }
 
@@ -356,19 +365,29 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
     const groups = aggregate(scoped, cols.value, def.inner, def.outer)
     const total = groups.reduce((sum, group) => sum + group.value, 0)
     const categories = buildCategories(groups, total, def.labelOf, def.rankOf)
-    const biggest = categories.find((c) => c.name !== UNKNOWN) ?? categories[0]
-    const named = categories.filter((c) => c.name !== UNKNOWN).length
+    const biggest = categories.find((c) => c.name !== UNKNOWN()) ?? categories[0]
+    const named = categories.filter((c) => c.name !== UNKNOWN()).length
     return {
       key: def.key,
       title: def.title,
       detailTitle: def.detailTitle,
       total,
       categories,
-      unknownShare: categories.find((c) => c.name === UNKNOWN)?.share ?? 0,
-      subtitle: `${euro(total)} · ${plural(named, 'catégorie')}${def.detailTitle ? ` · détail : ${def.detailTitle.toLowerCase()}` : ''}`,
-      summary:
-        `Anneau ${def.detailTitle ? 'à deux niveaux' : 'simple'} : ${def.title.toLowerCase()}. ` +
-        `${plural(categories.length, 'part')} pour ${euro(total)}. La plus grosse : ${biggest.name}, ${percent(biggest.share)}.`,
+      unknownShare: categories.find((c) => c.name === UNKNOWN())?.share ?? 0,
+      subtitle: [
+        euro(total),
+        t('strategy.categories', { count: named }, named),
+        def.detailTitle ? t('strategy.detail', { detail: def.detailTitle.toLowerCase() }) : '',
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      summary: t(def.detailTitle ? 'strategy.a11yDouble' : 'strategy.a11ySingle', {
+        title: def.title.toLowerCase(),
+        parts: t('strategy.parts', { count: categories.length }, categories.length),
+        total: euro(total),
+        biggest: biggest.name,
+        share: percent(biggest.share),
+      }),
       legend: categories.map((c) => ({ name: c.name, color: c.color, amount: euro(c.value), share: percent(c.share) })),
       table: tableOf(def.title, def.detailTitle, categories, total),
     }
@@ -376,9 +395,9 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
 
   if (join) {
     const matched = rows.filter((row) => join.lookup.has(lower(row[join.column]))).length
-    notes.push(`Table stock rattachée par la colonne ${join.column} : ${matched} lignes de portfolio sur ${rows.length} retrouvées.`)
+    notes.push(t('strategy.notes.joined', { column: join.column, matched, total: rows.length }))
   } else if (stock?.columns?.length) {
-    notes.push('La table stock n’a pas pu être rattachée à portfolio (aucune valeur commune dans Ticker, Instrument ou Nom).')
+    notes.push(t('strategy.notes.notJoined'))
   }
 
   const dateColumn = findColumn(portfolio.columns, ['Date'])
@@ -386,7 +405,7 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
 
   return {
     asOf,
-    subtitle: asOf ? `Positions au ${formatDateLong(asOf)}.` : 'Les actions de ton portefeuille, regroupées de plusieurs façons.',
+    subtitle: asOf ? t('strategy.positionsAt', { date: formatDateLong(asOf) }) : t('strategy.subtitleDefault'),
     scopes,
     scope: current,
     scopeLabel: scopes.find((s) => s.value === current)?.label ?? '',

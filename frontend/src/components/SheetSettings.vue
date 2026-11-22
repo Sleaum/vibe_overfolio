@@ -9,16 +9,16 @@
   <section class="mt-10 rounded-xl border border-line bg-paper shadow-soft" aria-labelledby="sheet-settings-title">
     <div class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 id="sheet-settings-title" class="text-h3 text-ink">Connexion à Google Sheets</h2>
+        <h2 id="sheet-settings-title" class="text-h3 text-ink">{{ t('sheetSettings.title') }}</h2>
         <p class="mt-1 text-sm text-ink-2" aria-live="polite">
-          <template v-if="loading">Chargement des paramètres…</template>
-          <template v-else-if="loadError">Paramètres indisponibles</template>
+          <template v-if="loading">{{ t('sheetSettings.loading') }}</template>
+          <template v-else-if="loadError">{{ t('sheetSettings.unavailable') }}</template>
           <template v-else-if="config?.source === 'page'">
-            Valeurs enregistrées sur cette page<span v-if="updatedLabel"> le {{ updatedLabel }}</span>.
+            {{ updatedLabel ? t('sheetSettings.savedHereOn', { date: updatedLabel }) : t('sheetSettings.savedHere') }}
           </template>
-          <template v-else>Valeurs par défaut, lues dans le fichier .env.</template>
+          <template v-else>{{ t('sheetSettings.fromEnv') }}</template>
           <span v-if="!loading && !loadError && config?.values.client_email">
-            Document lu par {{ config.values.client_email }}.
+            {{ t('sheetSettings.readBy', { email: config.values.client_email }) }}
           </span>
         </p>
       </div>
@@ -29,13 +29,13 @@
         aria-controls="sheet-settings-form"
         @click="open = !open"
       >
-        {{ open ? 'Masquer' : 'Modifier' }}
+        {{ open ? t('sheetSettings.hide') : t('sheetSettings.edit') }}
       </AppButton>
     </div>
 
     <div v-if="loadError" role="alert" class="mx-5 mb-5 rounded-lg border border-danger-line bg-danger-wash p-4">
       <p class="text-ink">{{ loadError }}</p>
-      <AppButton variant="secondary" size="sm" class="mt-3" @click="load">Réessayer</AppButton>
+      <AppButton variant="secondary" size="sm" class="mt-3" @click="load">{{ t('chartUi.retry') }}</AppButton>
     </div>
 
     <form
@@ -47,10 +47,10 @@
     >
       <!-- Document -->
       <fieldset>
-        <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">Document</legend>
+        <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">{{ t('sheetSettings.document') }}</legend>
         <div class="mt-4 grid gap-5 md:grid-cols-2">
           <div v-for="field in DOC_FIELDS" :key="field.name" :class="field.wide ? 'md:col-span-2' : ''">
-            <label :for="`cfg-${field.name}`" class="block text-sm font-medium text-ink">{{ field.label }}</label>
+            <label :for="`cfg-${field.name}`" class="block text-sm font-medium text-ink">{{ t(`sheetSettings.fields.${field.name}`) }}</label>
             <input
               :id="`cfg-${field.name}`"
               v-model="form[field.name]"
@@ -63,7 +63,7 @@
               :class="inputClass(field.name)"
             />
             <p :id="`cfg-${field.name}-help`" class="mt-1.5 text-sm" :class="errors[field.name] ? 'text-danger' : 'text-ink-3'">
-              {{ errors[field.name] || field.help }}
+              {{ errors[field.name] || t(`sheetSettings.help.${field.name}`) }}
             </p>
           </div>
         </div>
@@ -72,15 +72,14 @@
       <!-- Compte de service -->
       <fieldset class="mt-8">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">Compte de service Google</legend>
+          <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">{{ t('sheetSettings.account') }}</legend>
           <div>
             <input ref="fileInput" type="file" accept="application/json,.json" class="sr-only" tabindex="-1" @change="importJson" />
-            <AppButton variant="outline" size="sm" @click="fileInput?.click()">Importer le fichier JSON</AppButton>
+            <AppButton variant="outline" size="sm" @click="fileInput?.click()">{{ t('sheetSettings.importJson') }}</AppButton>
           </div>
         </div>
         <p class="mt-2 text-sm text-ink-3">
-          Le fichier se télécharge dans Google Cloud : IAM → Comptes de service → Clés. Partage ensuite le Google Sheet,
-          en Lecteur, avec l’adresse du compte de service.
+          {{ t('sheetSettings.accountHelp') }}
         </p>
         <p v-if="importMessage" class="mt-2 text-sm" :class="importError ? 'text-danger' : 'text-success'" role="status">
           {{ importMessage }}
@@ -89,7 +88,7 @@
         <div class="mt-4 grid gap-5 md:grid-cols-2">
           <div v-for="field in ACCOUNT_FIELDS" :key="field.name">
             <label :for="`cfg-${field.name}`" class="block text-sm font-medium text-ink">
-              {{ field.label }}<span v-if="field.required" class="text-ink-3"> (obligatoire)</span>
+              {{ t(`sheetSettings.fields.${field.name}`) }}<span v-if="field.required" class="text-ink-3">{{ t('sheetSettings.required') }}</span>
             </label>
             <input
               :id="`cfg-${field.name}`"
@@ -108,7 +107,7 @@
 
           <div class="md:col-span-2">
             <label for="cfg-private_key" class="block text-sm font-medium text-ink">
-              Clé privée<span class="text-ink-3"> (obligatoire)</span>
+              {{ t('sheetSettings.fields.private_key') }}<span class="text-ink-3">{{ t('sheetSettings.required') }}</span>
             </label>
             <textarea
               id="cfg-private_key"
@@ -118,7 +117,7 @@
               spellcheck="false"
               :placeholder="
                 keySet
-                  ? 'Une clé est déjà enregistrée. Laisse vide pour la conserver, ou colle une nouvelle clé.'
+                  ? t('sheetSettings.keyAlreadySet')
                   : '-----BEGIN PRIVATE KEY-----…'
               "
               :aria-invalid="!!errors.private_key"
@@ -129,8 +128,8 @@
               {{
                 errors.private_key ||
                 (keySet
-                  ? `Clé en place (${keySource}). Par sécurité, elle n’est jamais réaffichée.`
-                  : 'Aucune clé n’est définie, ni ici ni dans le .env.')
+                  ? t('sheetSettings.keyInPlace', { source: keySource })
+                  : t('sheetSettings.noKey'))
               }}
             </p>
           </div>
@@ -138,12 +137,12 @@
 
         <details class="mt-6 rounded-lg border border-line">
           <summary class="cursor-pointer select-none px-4 py-3 text-sm font-medium text-ink">
-            Champs avancés (rarement à modifier)
+            {{ t('sheetSettings.advanced') }}
           </summary>
           <div class="grid gap-5 border-t border-line p-4 md:grid-cols-2">
             <div v-for="field in ADVANCED_FIELDS" :key="field.name">
               <label :for="`cfg-${field.name}`" class="block text-sm font-medium text-ink">
-                {{ field.label }}<span v-if="field.required" class="text-ink-3"> (obligatoire)</span>
+                {{ t(`sheetSettings.fields.${field.name}`) }}<span v-if="field.required" class="text-ink-3">{{ t('sheetSettings.required') }}</span>
               </label>
               <input
                 :id="`cfg-${field.name}`"
@@ -161,15 +160,15 @@
       </fieldset>
 
       <div v-if="saveError" role="alert" class="mt-6 rounded-lg border border-danger-line bg-danger-wash p-4">
-        <p class="font-semibold text-danger">L’enregistrement a échoué</p>
+        <p class="font-semibold text-danger">{{ t('sheetSettings.saveFailed') }}</p>
         <p class="mt-1 text-ink">{{ saveError }}</p>
       </div>
 
       <div class="mt-6 flex flex-wrap items-center gap-3">
         <AppButton type="submit" :disabled="saving" :aria-busy="saving">
-          {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+          {{ saving ? t('sheetSettings.saving') : t('sheetSettings.save') }}
         </AppButton>
-        <AppButton variant="ghost" :disabled="saving || !dirty" @click="fill(config)">Annuler les modifications</AppButton>
+        <AppButton variant="ghost" :disabled="saving || !dirty" @click="fill(config)">{{ t('sheetSettings.cancel') }}</AppButton>
         <AppButton
           v-if="config?.source === 'page'"
           variant="secondary"
@@ -177,7 +176,7 @@
           :disabled="saving"
           @click="backToEnv"
         >
-          Revenir aux valeurs du .env
+          {{ t('sheetSettings.backToEnv') }}
         </AppButton>
         <span v-if="notice" class="text-sm font-medium text-success" role="status">{{ notice }}</span>
       </div>
@@ -186,49 +185,47 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import AppButton from './ui/AppButton.vue'
 import { getSheetConfig, resetSheetConfig, saveSheetConfig } from '../lib/api.js'
 import { formatDateTime } from '../lib/format.js'
 
+const { t } = useI18n()
+
 const emit = defineEmits(['loaded', 'saved'])
 
+// Noms et aides des champs : rubrique sheetSettings.fields / sheetSettings.help de i18n/*.json
 const DOC_FIELDS = [
   {
     name: 'sheet_id',
-    label: 'Identifiant ou adresse du document',
     placeholder: 'https://docs.google.com/spreadsheets/d/…/edit',
-    help: 'Colle l’adresse du Google Sheet ou seulement la partie entre /d/ et /edit.',
     wide: true,
   },
   {
     name: 'doc_name',
-    label: 'Nom du document',
     placeholder: 'overfolio',
-    help: 'Utilisé seulement si l’identifiant est vide (demande alors l’API Google Drive).',
   },
   {
     name: 'sync_tabs',
-    label: 'Onglets à synchroniser',
     placeholder: 'portfolio, inout, stock, budget, _history',
-    help: 'Noms exacts des onglets, séparés par des virgules.',
   },
 ]
 
 const ACCOUNT_FIELDS = [
-  { name: 'client_email', label: 'E-mail du compte de service', type: 'email', required: true },
-  { name: 'project_id', label: 'ID du projet', required: true },
-  { name: 'private_key_id', label: 'ID de la clé privée' },
-  { name: 'client_id', label: 'ID client' },
+  { name: 'client_email', type: 'email', required: true },
+  { name: 'project_id', required: true },
+  { name: 'private_key_id' },
+  { name: 'client_id' },
 ]
 
 const ADVANCED_FIELDS = [
-  { name: 'type', label: 'Type', required: true },
-  { name: 'universe_domain', label: 'Domaine (universe_domain)' },
-  { name: 'auth_uri', label: 'auth_uri' },
-  { name: 'token_uri', label: 'token_uri' },
-  { name: 'auth_provider_x509_cert_url', label: 'auth_provider_x509_cert_url' },
-  { name: 'client_x509_cert_url', label: 'client_x509_cert_url' },
+  { name: 'type', required: true },
+  { name: 'universe_domain' },
+  { name: 'auth_uri' },
+  { name: 'token_uri' },
+  { name: 'auth_provider_x509_cert_url' },
+  { name: 'client_x509_cert_url' },
 ]
 
 const FIELD_NAMES = [...DOC_FIELDS, ...ACCOUNT_FIELDS, ...ADVANCED_FIELDS].map((field) => field.name)
@@ -248,7 +245,9 @@ const importError = ref(false)
 const fileInput = ref(null)
 
 const keySet = computed(() => !!config.value?.private_key_set)
-const keySource = computed(() => (config.value?.source === 'page' ? 'enregistrée sur cette page' : 'lue dans le .env'))
+const keySource = computed(() =>
+  config.value?.source === 'page' ? t('sheetSettings.keySourcePage') : t('sheetSettings.keySourceEnv'),
+)
 const updatedLabel = computed(() => (config.value?.updated_at ? formatDateTime(config.value.updated_at) : ''))
 
 const dirty = computed(
@@ -311,24 +310,24 @@ async function save() {
   try {
     config.value = await saveSheetConfig({ ...form })
     fill(config.value)
-    showNotice('Paramètres enregistrés. Clique sur Tout actualiser pour relire les onglets.')
+    showNotice(t('sheetSettings.savedNotice'))
     emit('saved', config.value)
   } catch (err) {
     errors.value = err.fields || {}
-    saveError.value = Object.keys(errors.value).length ? 'Corrige les champs signalés.' : err.message
+    saveError.value = Object.keys(errors.value).length ? t('sheetSettings.fixFields') : err.message
   } finally {
     saving.value = false
   }
 }
 
 async function backToEnv() {
-  if (!window.confirm('Effacer les valeurs saisies ici et revenir à celles du fichier .env ?')) return
+  if (!window.confirm(t('sheetSettings.confirmEnv'))) return
   saving.value = true
   saveError.value = ''
   try {
     config.value = await resetSheetConfig()
     fill(config.value)
-    showNotice('Valeurs du .env rétablies.')
+    showNotice(t('sheetSettings.envRestored'))
     emit('saved', config.value)
   } catch (err) {
     saveError.value = err.message
@@ -346,17 +345,19 @@ async function importJson(event) {
   try {
     const data = JSON.parse(await file.text())
     if (data?.type !== 'service_account' || !data.private_key || !data.client_email) {
-      throw new Error('ce n’est pas le fichier d’un compte de service Google')
+      throw new Error(t('sheetSettings.notServiceAccount'))
     }
     for (const name of [...ACCOUNT_FIELDS, ...ADVANCED_FIELDS].map((field) => field.name)) {
       if (typeof data[name] === 'string') form[name] = data[name]
     }
     form.private_key = data.private_key
     errors.value = {}
-    importMessage.value = `Fichier « ${file.name} » importé. Vérifie puis clique sur Enregistrer.`
+    importMessage.value = t('sheetSettings.imported', { file: file.name })
   } catch (err) {
     importError.value = true
-    importMessage.value = `Import impossible : ${err instanceof SyntaxError ? 'fichier JSON illisible' : err.message}.`
+    importMessage.value = t('sheetSettings.importFailed', {
+      reason: err instanceof SyntaxError ? t('sheetSettings.unreadableJson') : err.message,
+    })
   }
 }
 </script>

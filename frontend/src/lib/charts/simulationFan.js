@@ -4,6 +4,7 @@
 import { axisLabelStyle, baseOption, legendTop, tooltipBox, tooltipHtml, valueAxis } from '../chartTheme.js'
 import { axisEuroFormatter, euro } from '../format.js'
 import { AXIS, SERIES } from '../palette.js'
+import { t } from '../../i18n/index.js'
 
 const BLUE = SERIES[0]
 const OUTER = 'rgba(42, 120, 214, 0.14)' // couleur fixe : bleu des séries
@@ -32,7 +33,7 @@ export function fanOption(points, goal) {
   return {
     ...baseOption(),
     grid: { left: 4, right: 32, top: 44, bottom: 8, containLabel: true },
-    legend: legendTop(['Médiane', 'Fourchette 25-75 %', 'Fourchette 10-90 %', ...(goal ? ['Objectif'] : [])]),
+    legend: legendTop([t('simulation.median'), t('simulation.range50'), t('simulation.range80'), ...(goal ? [t('simulation.goal')] : [])]),
     tooltip: tooltipBox({
       trigger: 'axis',
       axisPointer: { type: 'line', lineStyle: { color: AXIS, width: 1 } },
@@ -42,13 +43,13 @@ export function fanOption(points, goal) {
         if (!point) return ''
         const [p10, p25, p50, p75, p90] = point.values
         const rows = [
-          { label: 'Scénario favorable (90 %)', value: euro(p90) },
-          { label: 'Plutôt favorable (75 %)', value: euro(p75) },
-          { color: BLUE, label: 'Médiane', value: euro(p50), strong: true },
-          { label: 'Plutôt défavorable (25 %)', value: euro(p25) },
-          { label: 'Scénario défavorable (10 %)', value: euro(p10) },
+          { label: t('simulation.p90'), value: euro(p90) },
+          { label: t('simulation.p75'), value: euro(p75) },
+          { color: BLUE, label: t('simulation.median'), value: euro(p50), strong: true },
+          { label: t('simulation.p25'), value: euro(p25) },
+          { label: t('simulation.p10'), value: euro(p10) },
         ]
-        if (goal && goal.label === point.label) rows.push({ color: SERIES[1], label: 'Objectif', value: euro(goal.amount), strong: true })
+        if (goal && goal.label === point.label) rows.push({ color: SERIES[1], label: t('simulation.goal'), value: euro(goal.amount), strong: true })
         return tooltipHtml(point.label, rows)
       },
     }),
@@ -63,12 +64,12 @@ export function fanOption(points, goal) {
     yAxis: valueAxis(axisEuroFormatter(max)),
     series: [
       { ...band('base', col(0), 'transparent'), legendHoverLink: false },
-      band('Fourchette 10-90 %', diff(0, 1), OUTER),
-      band('Fourchette 25-75 %', diff(1, 2), INNER),
-      band('Fourchette 25-75 %', diff(2, 3), INNER),
-      band('Fourchette 10-90 %', diff(3, 4), OUTER),
+      band(t('simulation.range80'), diff(0, 1), OUTER),
+      band(t('simulation.range50'), diff(1, 2), INNER),
+      band(t('simulation.range50'), diff(2, 3), INNER),
+      band(t('simulation.range80'), diff(3, 4), OUTER),
       {
-        name: 'Médiane',
+        name: t('simulation.median'),
         type: 'line',
         data: col(2),
         symbol: 'circle',
@@ -81,7 +82,7 @@ export function fanOption(points, goal) {
       ...(goal
         ? [
             {
-              name: 'Objectif',
+              name: t('simulation.goal'),
               type: 'scatter',
               data: labels.map((label) => (label === goal.label ? goal.amount : null)),
               symbol: 'diamond',

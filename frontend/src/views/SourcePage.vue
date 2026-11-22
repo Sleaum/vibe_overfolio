@@ -9,13 +9,13 @@
   <div class="page-container py-12 sm:py-16">
     <header class="max-w-3xl">
       <h1 class="text-h2 text-ink">GoogleSheet</h1>
-      <p class="mt-3 text-lead text-ink-2">Les onglets de ta feuille, tels qu’Overfolio les a lus.</p>
+      <p class="mt-3 text-lead text-ink-2">{{ t('sheetPage.lead') }}</p>
     </header>
 
     <SheetSettings @loaded="applyConfig" @saved="onConfigSaved" />
 
     <!-- Liste des onglets : chargement -->
-    <p v-if="state === 'loading-list'" role="status" class="mt-10 text-ink-2">Chargement des onglets…</p>
+    <p v-if="state === 'loading-list'" role="status" class="mt-10 text-ink-2">{{ t('sheetPage.loadingTabs') }}</p>
 
     <!-- Liste des onglets : erreur -->
     <div
@@ -23,9 +23,9 @@
       role="alert"
       class="mt-10 max-w-2xl rounded-lg border border-danger-line bg-danger-wash p-5"
     >
-      <p class="font-semibold text-danger">Impossible de charger la liste des onglets</p>
+      <p class="font-semibold text-danger">{{ t('sheetPage.listError') }}</p>
       <p class="mt-1 text-ink">{{ listError }}</p>
-      <AppButton variant="secondary" size="sm" class="mt-4" @click="start">Réessayer</AppButton>
+      <AppButton variant="secondary" size="sm" class="mt-4" @click="start">{{ t('chartUi.retry') }}</AppButton>
     </div>
 
     <template v-else>
@@ -33,7 +33,7 @@
       <div class="mt-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div>
-            <label for="onglet" class="block text-sm font-medium text-ink">Onglet</label>
+            <label for="onglet" class="block text-sm font-medium text-ink">{{ t('sheetPage.tab') }}</label>
             <div class="relative mt-1.5">
               <select
                 id="onglet"
@@ -61,15 +61,15 @@
             class="min-w-[10rem]"
             :disabled="syncing"
             :aria-busy="syncing"
-            title="Relit tous les onglets dans Google Sheets et met la base à jour"
+            :title="t('sheetPage.refreshTitle')"
             @click="refresh"
           >
-            {{ syncing ? 'Actualisation…' : 'Tout actualiser' }}
+            {{ syncing ? t('sheetPage.refreshing') : t('sheetPage.refreshAll') }}
           </AppButton>
         </div>
 
         <div v-if="state === 'ready' && total > 0" class="relative w-full lg:w-80">
-          <label for="recherche" class="sr-only">Rechercher dans l’onglet</label>
+          <label for="recherche" class="sr-only">{{ t('sheetPage.search') }}</label>
           <svg
             viewBox="0 0 20 20"
             class="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-3"
@@ -87,7 +87,7 @@
             v-model="query"
             type="search"
             autocomplete="off"
-            placeholder="Rechercher dans l’onglet"
+            :placeholder="t('sheetPage.search')"
             class="h-11 w-full rounded-lg border border-line-strong bg-paper pl-11 pr-3 text-[0.9375rem] text-ink placeholder:text-ink-3"
           />
         </div>
@@ -97,14 +97,14 @@
       <div class="mt-6 flex min-h-[1.5rem] flex-wrap gap-x-6 gap-y-1 text-sm text-ink-2" aria-live="polite">
         <template v-if="state === 'ready'">
           <span class="font-medium text-ink">{{ rowsLabel }}</span>
-          <span v-if="syncedLabel">Synchronisé le {{ syncedLabel }}</span>
+          <span v-if="syncedLabel">{{ t('sheetPage.syncedOn', { date: syncedLabel }) }}</span>
         </template>
         <span v-if="notice" class="font-medium text-success">{{ notice }}</span>
       </div>
 
       <!-- Échec de l'actualisation : le tableau reste affiché en dessous -->
       <div v-if="syncError" role="alert" class="mt-4 rounded-lg border border-danger-line bg-danger-wash p-4">
-        <p class="font-semibold text-danger">Actualisation incomplète</p>
+        <p class="font-semibold text-danger">{{ t('sheetPage.syncIncomplete') }}</p>
         <p class="mt-1 text-ink">{{ syncError }}</p>
       </div>
 
@@ -115,7 +115,7 @@
           role="status"
           class="flex h-64 items-center justify-center rounded-xl bg-wash text-ink-2 motion-safe:animate-pulse"
         >
-          Chargement de l’onglet…
+          {{ t('sheetPage.loadingTab') }}
         </div>
 
         <!-- Onglet jamais synchronisé -->
@@ -123,9 +123,9 @@
           v-else-if="state === 'unsynced'"
           class="flex flex-col items-center rounded-xl border border-dashed border-line-strong bg-wash px-6 py-14 text-center"
         >
-          <p class="text-h3 text-ink">Cet onglet n’a pas encore été synchronisé</p>
+          <p class="text-h3 text-ink">{{ t('sheetPage.unsyncedTitle') }}</p>
           <p class="mt-2 max-w-md text-ink-2">
-            Clique sur Tout actualiser pour lire les onglets dans Google Sheets et les enregistrer.
+            {{ t('sheetPage.unsyncedText') }}
           </p>
         </div>
 
@@ -135,9 +135,9 @@
           role="alert"
           class="rounded-lg border border-danger-line bg-danger-wash p-5"
         >
-          <p class="font-semibold text-danger">Impossible de charger l’onglet « {{ selected }} »</p>
+          <p class="font-semibold text-danger">{{ t('sheetPage.tabError', { tab: selected }) }}</p>
           <p class="mt-1 text-ink">{{ error.message }}</p>
-          <AppButton variant="secondary" size="sm" class="mt-4" @click="reload">Réessayer</AppButton>
+          <AppButton variant="secondary" size="sm" class="mt-4" @click="reload">{{ t('chartUi.retry') }}</AppButton>
         </div>
 
         <!-- Onglet chargé -->
@@ -146,9 +146,9 @@
             v-if="total === 0"
             class="flex flex-col items-center rounded-xl border border-dashed border-line-strong bg-wash px-6 py-14 text-center"
           >
-            <p class="text-h3 text-ink">Cet onglet est vide</p>
+            <p class="text-h3 text-ink">{{ t('sheetPage.emptyTitle') }}</p>
             <p class="mt-2 max-w-md text-ink-2">
-              Aucune ligne n’a été lue. Ajoute des données dans ta feuille puis clique sur Tout actualiser.
+              {{ t('sheetPage.emptyText') }}
             </p>
           </div>
 
@@ -156,9 +156,9 @@
             v-else-if="!filtered.length"
             class="flex flex-col items-center rounded-xl border border-dashed border-line-strong bg-wash px-6 py-14 text-center"
           >
-            <p class="text-h3 text-ink">Aucune ligne ne correspond</p>
-            <p class="mt-2 max-w-md text-ink-2">Aucun résultat pour « {{ query.trim() }} » dans cet onglet.</p>
-            <AppButton variant="secondary" size="sm" class="mt-5" @click="query = ''">Effacer la recherche</AppButton>
+            <p class="text-h3 text-ink">{{ t('sheetPage.noMatchTitle') }}</p>
+            <p class="mt-2 max-w-md text-ink-2">{{ t('sheetPage.noMatchText', { query: query.trim() }) }}</p>
+            <AppButton variant="secondary" size="sm" class="mt-5" @click="query = ''">{{ t('sheetPage.clearSearch') }}</AppButton>
           </div>
 
           <template v-else>
@@ -168,12 +168,12 @@
               :class="loading ? 'opacity-60' : ''"
               role="region"
               tabindex="0"
-              :aria-label="`Tableau de l’onglet ${selected}`"
+              :aria-label="t('sheetPage.tableOf', { tab: selected })"
               :aria-busy="loading"
             >
               <table class="min-w-full border-separate border-spacing-0 text-sm">
                 <caption class="sr-only">
-                  Onglet {{ selected }} : {{ rowsLabel }}
+                  {{ t('sheetPage.caption', { tab: selected, rows: rowsLabel }) }}
                 </caption>
                 <thead>
                   <tr>
@@ -205,17 +205,19 @@
 
             <nav
               v-if="pageCount > 1"
-              aria-label="Pagination"
+              :aria-label="t('sheetPage.pagination')"
               class="mt-6 flex flex-wrap items-center justify-between gap-4"
             >
-              <p class="text-sm text-ink-2">Lignes {{ firstRow }} à {{ lastRow }} sur {{ filtered.length }}</p>
+              <p class="text-sm text-ink-2">
+                {{ t('sheetPage.rowsRange', { from: formatNumber(firstRow), to: formatNumber(lastRow), total: formatNumber(filtered.length) }) }}
+              </p>
               <div class="flex items-center gap-3">
                 <AppButton variant="secondary" size="sm" :disabled="page <= 1" @click="goTo(page - 1)">
-                  Précédent
+                  {{ t('sheetPage.previous') }}
                 </AppButton>
-                <span class="text-sm text-ink-2">Page {{ page }} sur {{ pageCount }}</span>
+                <span class="text-sm text-ink-2">{{ t('sheetPage.pageOf', { page, count: pageCount }) }}</span>
                 <AppButton variant="secondary" size="sm" :disabled="page >= pageCount" @click="goTo(page + 1)">
-                  Suivant
+                  {{ t('sheetPage.next') }}
                 </AppButton>
               </div>
             </nav>
@@ -227,13 +229,18 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppButton from '../components/ui/AppButton.vue'
 import SheetSettings from '../components/SheetSettings.vue'
 import { useTable } from '../composables/useTable.js'
-import { listTables, syncAll } from '../lib/api.js'
-import { formatCell, formatDateTime, plural } from '../lib/format.js'
+import { apiMessage, listTables, syncAll } from '../lib/api.js'
+import { formatCell, formatDateTime, formatNumber } from '../lib/format.js'
+
+const { t } = useI18n()
+// « 1 234 lignes » dans la langue active
+const rowsText = (n) => t('sheetPage.rows', { count: formatNumber(n) }, n)
 
 const PAGE_SIZE = 50
 
@@ -268,7 +275,7 @@ const options = computed(() => {
     const info = inBase.get(name)
     return {
       name,
-      label: info ? `${name} (${plural(info.row_count, 'ligne')})` : `${name} (pas encore synchronisé)`,
+      label: info ? t('sheetPage.optionRows', { name, rows: rowsText(info.row_count) }) : t('sheetPage.notSynced', { name }),
     }
   })
 })
@@ -359,11 +366,12 @@ async function refresh() {
     const tabs = result.tabs ?? []
     const failed = tabs.filter((tab) => !tab.ok)
     const saved = tabs.length - failed.length
-    showNotice(`${plural(saved, 'onglet')} actualisé${saved > 1 ? 's' : ''} dans la base.`)
+    showNotice(t('sheetPage.savedNotice', { count: saved }, saved))
     if (failed.length) {
-      syncError.value =
-        `${plural(failed.length, 'onglet')} non actualisé${failed.length > 1 ? 's' : ''} (anciennes données conservées) : ` +
-        failed.map((tab) => `${tab.name} : ${tab.message || 'erreur'}`).join(' ; ')
+      const details = failed
+        .map((tab) => t('sheetPage.tabFailure', { tab: tab.name, message: apiMessage(tab.code, tab.params, tab.message) || t('sheetPage.error') }))
+        .join(' ; ')
+      syncError.value = t('sheetPage.failedNotice', { count: failed.length, details }, failed.length)
     }
   } catch (err) {
     syncError.value = err.message
@@ -436,11 +444,9 @@ async function goTo(next) {
 
 /* ---------- Textes ---------- */
 
-const count = new Intl.NumberFormat('fr-FR')
-
 const rowsLabel = computed(() => {
-  const all = plural(total.value, 'ligne')
-  return query.value.trim() ? `${count.format(filtered.value.length)} sur ${all}` : all
+  const all = rowsText(total.value)
+  return query.value.trim() ? t('sheetPage.filtered', { shown: formatNumber(filtered.value.length), all }) : all
 })
 
 const syncedLabel = computed(() => (data.value?.synced_at ? formatDateTime(data.value.synced_at) : ''))

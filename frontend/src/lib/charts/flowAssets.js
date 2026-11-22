@@ -6,6 +6,7 @@ import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis
 import { axisEuroFormatter, euro, formatMonthKey, formatMonthKeyTiny } from '../format.js'
 import { AXIS, SURFACE } from '../palette.js'
 import { assetMonthly, monthsSubtitle, skippedNote } from './flowData.js'
+import { t, tList } from '../../i18n/index.js'
 
 export function assetsLinesOption(model) {
   const { months, series, values, totals } = model
@@ -28,7 +29,7 @@ export function assetsLinesOption(model) {
           .filter((item) => item.value > 0)
           .sort((a, b) => b.value - a.value)
           .map((item) => ({ color: item.serie.color, label: item.serie.label, value: euro(item.value) }))
-        rows.push({ label: 'Total', value: euro(totals[m]), strong: true })
+        rows.push({ label: t('chart.total'), value: euro(totals[m]), strong: true })
         return tooltipHtml(formatMonthKey(months[m].key), rows)
       },
     }),
@@ -51,31 +52,40 @@ export function assetsLinesOption(model) {
 
 export default {
   slug: 'evolution-par-actif',
-  title: 'Évolution par type d’actif',
-  summary: 'Le montant de chaque type d’actif, mois après mois.',
+  get title() {
+    return t('charts.assets.title')
+  },
+  get summary() {
+    return t('charts.assets.summary')
+  },
   table: '_history',
   minWidth: 720,
-  explain: [
-    'Chaque courbe suit un type d’actif, avec la même couleur que dans les autres graphiques. Elle monte quand tu verses ou quand le marché progresse, et baisse quand il recule ou que tu retires.',
-    'Passe la souris sur un mois : l’infobulle classe les types d’actifs du plus gros au plus petit. Cliquer sur un nom de la légende masque ou affiche sa courbe.',
-  ],
-  source: 'Table _history, colonnes Date, Asset et Assets Master Currency (montants supérieurs à 0), dernier relevé de chaque mois.',
+  get explain() {
+    return tList('charts.assets.explain')
+  },
+  get source() {
+    return t('charts.assets.source')
+  },
 
   build(table) {
     const cols = requireColumns(table, { date: ['Date'], asset: ['Asset'], value: ['Assets Master Currency'] })
     const model = assetMonthly(rowsOf(table), cols.date, cols.asset, cols.value)
-    if (model.months.length < 2) return { empty: 'Il faut au moins deux mois de relevés dans la table _history.' }
+    if (model.months.length < 2) return { empty: t('errors.twoMonths', { table: '_history' }) }
 
     const last = model.months.length - 1
     return {
       subtitle: monthsSubtitle(model.months),
       summary:
-        `Courbes de ${model.series.length} types d’actifs entre ${formatMonthKey(model.months[0].key)} et ${formatMonthKey(model.months[last].key)}. ` +
-        `Total au dernier mois : ${euro(model.totals[last])}.`,
+        t('charts.assets.a11y', {
+          count: model.series.length,
+          from: formatMonthKey(model.months[0].key),
+          to: formatMonthKey(model.months[last].key),
+          total: euro(model.totals[last]),
+        }),
       option: assetsLinesOption(model),
       height: 400,
       table: {
-        columns: ['Mois', ...model.series.map((serie) => serie.label), 'Total'],
+        columns: [t('chart.month'), ...model.series.map((serie) => serie.label), t('chart.total')],
         numeric: [false, ...model.series.map(() => true), true],
         rows: model.months
           .map((month, m) => [
@@ -86,8 +96,8 @@ export default {
           .reverse(),
       },
       note: [
-        model.series.some((serie) => serie.label === 'Autres')
-          ? 'Les types d’actifs au-delà des 8 couleurs du site sont regroupés dans « Autres ».'
+        model.series.some((serie) => serie.label === t('data.others'))
+          ? t('charts.flow.othersNote', { others: t('data.others') })
           : '',
         skippedNote(model.skipped),
       ]

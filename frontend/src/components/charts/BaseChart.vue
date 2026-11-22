@@ -8,7 +8,7 @@
     class="w-full overflow-x-auto"
     :tabindex="minWidth ? 0 : undefined"
     :role="minWidth ? 'region' : undefined"
-    :aria-label="minWidth ? `${label} (défilement horizontal)` : undefined"
+    :aria-label="minWidth ? t('chartUi.horizontalScroll', { label: chartLabel }) : undefined"
   >
     <VChart
       class="w-full"
@@ -17,12 +17,13 @@
       :update-options="{ notMerge: true }"
       autoresize
       role="img"
-      :aria-label="label"
+      :aria-label="chartLabel"
     />
   </div>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import VChart from 'vue-echarts'
 import '../../lib/echartsSetup.js'
@@ -30,11 +31,14 @@ import { useReducedMotion } from '../../composables/useReducedMotion.js'
 import { useTheme } from '../../composables/useTheme.js'
 import { toDark } from '../../lib/chartDark.js'
 
+const { t } = useI18n()
+const chartLabel = computed(() => props.label || t('chartUi.chartDefault'))
+
 const props = defineProps({
   option: { type: Object, required: true },
   height: { type: Number, default: 360 },
   minWidth: { type: Number, default: 0 },
-  label: { type: String, default: 'Graphique' },
+  label: { type: String, default: '' }, // vide : « Graphique » dans la langue active
 })
 
 const reducedMotion = useReducedMotion()

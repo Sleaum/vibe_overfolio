@@ -11,10 +11,11 @@
 import { DataError, findColumn, requireColumns, rowsOf, toLabel, toNumber } from '../aggregate.js'
 import { axisLabelStyle, baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { toIsoDate } from '../dates.js'
-import { capitalize, euro, formatDateLong, plural } from '../format.js'
+import { axisPercent, capitalize, euro, formatDateLong } from '../format.js'
 import { envelopeLabel } from './envelopes.js'
 import { AXIS, GRID, INK_2, SURFACE, assignAssetColors } from '../palette.js'
 import { compactNumber, monthEnds, signedPercent } from './flowData.js'
+import { t } from '../../i18n/index.js'
 
 const NOT_QUOTED = new Set(['fiat', 'real estate', 'depreciating', 'exotic', 'cash', 'liquidités'])
 const DAY = 86_400_000
@@ -92,7 +93,7 @@ export function priceChanges(table, months) {
     lines.push({
       name: envelopeLabel(toLabel(now.row[cols.instrument])),
       envelope: envelope ? toLabel(now.row[envelope], '') : '',
-      asset: asset ? toLabel(now.row[asset]) : 'Non renseigné',
+      asset: asset ? toLabel(now.row[asset]) : t('data.unknown'),
       amount: now.amount,
       before: priceBefore,
       after: priceAfter,
@@ -130,16 +131,16 @@ export function bubbleOption(lines) {
         const line = p?.data?.line
         if (!line) return ''
         return tooltipHtml(line.envelope ? `${line.name} (${envelopeLabel(line.envelope)})` : line.name, [
-          { color: colors.get(line.asset)?.color, label: 'Variation du prix', value: signedPercent(line.pct), strong: true },
-          { label: 'Montant détenu', value: euro(line.amount) },
-          { label: 'Prix unitaire avant', value: euro(line.before) },
-          { label: 'Prix unitaire maintenant', value: euro(line.after) },
+          { color: colors.get(line.asset)?.color, label: t('charts.volatility.priceChange'), value: signedPercent(line.pct), strong: true },
+          { label: t('charts.volatility.held'), value: euro(line.amount) },
+          { label: t('charts.volatility.priceBefore'), value: euro(line.before) },
+          { label: t('charts.volatility.priceNow'), value: euro(line.after) },
         ])
       },
     }),
     xAxis: {
       type: 'log',
-      name: 'Montant détenu (échelle logarithmique)',
+      name: t('charts.volatility.heldLog'),
       nameLocation: 'middle',
       nameGap: 26,
       nameTextStyle: { color: INK_2, fontSize: 12 },
@@ -151,7 +152,7 @@ export function bubbleOption(lines) {
       type: 'value',
       axisLine: { show: false },
       splitLine: { lineStyle: { color: GRID } },
-      axisLabel: { ...axisLabelStyle, formatter: (value) => `${value} %` },
+      axisLabel: { ...axisLabelStyle, formatter: axisPercent },
     },
     series: assets.map((name) => ({
       name: capitalize(name),
@@ -169,29 +170,36 @@ export function bubbleOption(lines) {
   }
 }
 
-function volatilitySpec({ months, slug, title, period }) {
+function volatilitySpec({ months, slug }) {
+  const period = () => t(`charts.volatility.period.${months}`)
   return {
     slug,
-    title,
-    summary: `De combien le prix de chacun de tes placements a bougé sur ${period}.`,
+    get title() {
+      return t(`charts.volatility.title.${months}`)
+    },
+    get summary() {
+      return t('charts.volatility.summary', { period: period() })
+    },
     table: '_history',
     minWidth: 640,
-    explain: [
-      `Une bulle par placement. Horizontalement, le montant que tu détiens (échelle logarithmique : chaque graduation multiplie par 10) ; verticalement, la variation de son prix unitaire sur ${period}. Plus la bulle est grosse, plus le placement pèse dans ton patrimoine.`,
-      'Le prix unitaire est calculé en euros (montant ÷ quantité) : il tient compte du change, mais pas de tes achats ni de tes ventes. Une grosse bulle loin sous la ligne du zéro est le placement qui t’a fait perdre le plus.',
-      'Les liquidités, l’immobilier et les biens sans cours de marché ne sont pas affichés.',
-    ],
-    source:
-      'Table _history, colonnes Date, Instrument, Quantity, Assets Master Currency (et Asset, Envelope, Broker si présentes) : dernier relevé comparé au relevé d’il y a ' +
-      `${period}.`,
+    get explain() {
+      return [
+        t('charts.volatility.explain1', { period: period() }),
+        t('charts.volatility.explain2'),
+        t('charts.volatility.explain3'),
+      ]
+    },
+    get source() {
+      return t('charts.volatility.source', { period: period() })
+    },
 
     build(table) {
       const { latest, reference, lines } = priceChanges(table, months)
-      if (!latest) return { empty: 'Aucun relevé daté dans la table _history.' }
-      if (!reference) return { empty: `L’historique ne remonte pas encore à ${period} avant le dernier relevé (${formatDateLong(latest)}).` }
+      if (!latest) return { empty: t('charts.envelopes.noRecord') }
+      if (!reference) return { empty: t('charts.volatility.notYet', { period: period(), date: formatDateLong(latest) }) }
       if (!lines.length) {
         throw new DataError(
-          `Aucun placement commun au ${formatDateLong(reference)} et au ${formatDateLong(latest)} avec une quantité et un montant renseignés.`,
+          t('charts.volatility.noCommon', { from: formatDateLong(reference), to: formatDateLong(latest) }),
         )
       }
 
@@ -200,26 +208,38 @@ function volatilitySpec({ months, slug, title, period }) {
       const worst = lines[0]
       const best = lines[lines.length - 1]
       return {
-        subtitle: `Du ${formatDateLong(reference)} au ${formatDateLong(latest)}.`,
-        summary:
-          `${plural(lines.length, 'placement')} comparés entre le ${formatDateLong(reference)} et le ${formatDateLong(latest)}. ` +
-          `Variation moyenne pondérée par les montants : ${signedPercent(weighted)}. ` +
-          `Variation la plus basse : ${worst.name} (${signedPercent(worst.pct)}) ; la plus haute : ${best.name} (${signedPercent(best.pct)}).`,
+        subtitle: t('charts.volatility.range', { from: formatDateLong(reference), to: formatDateLong(latest) }),
+        summary: t('charts.volatility.a11y', {
+          investments: t('charts.volatility.count', { count: lines.length }, lines.length),
+          from: formatDateLong(reference),
+          to: formatDateLong(latest),
+          weighted: signedPercent(weighted),
+          worst: worst.name,
+          worstPct: signedPercent(worst.pct),
+          best: best.name,
+          bestPct: signedPercent(best.pct),
+        }),
         option: bubbleOption(lines),
         height: 440,
         table: {
-          columns: ['Placement', 'Enveloppe', 'Type', 'Montant', 'Variation du prix'],
+          columns: [
+            t('charts.volatility.investment'),
+            t('charts.envelopes.envelope'),
+            t('charts.volatility.type'),
+            t('chart.amount'),
+            t('charts.volatility.priceChange'),
+          ],
           numeric: [false, false, false, true, true],
           rows: lines.map((line) => [line.name, line.envelope ? envelopeLabel(line.envelope) : '', capitalize(line.asset), euro(line.amount), signedPercent(line.pct)]),
         },
-        note: `Variation moyenne pondérée par les montants : ${signedPercent(weighted)} sur ${euro(total)} de placements.`,
+        note: t('charts.volatility.note', { weighted: signedPercent(weighted), total: euro(total) }),
       }
     },
   }
 }
 
 export const VOLATILITY_CHARTS = [
-  volatilitySpec({ months: 1, slug: 'volatilite-1-mois', title: 'Sur 1 mois', period: '1 mois' }),
-  volatilitySpec({ months: 3, slug: 'volatilite-3-mois', title: 'Sur 3 mois', period: '3 mois' }),
-  volatilitySpec({ months: 12, slug: 'volatilite-1-an', title: 'Sur 1 an', period: '1 an' }),
+  volatilitySpec({ months: 1, slug: 'volatilite-1-mois' }),
+  volatilitySpec({ months: 3, slug: 'volatilite-3-mois' }),
+  volatilitySpec({ months: 12, slug: 'volatilite-1-an' }),
 ]

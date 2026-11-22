@@ -7,10 +7,9 @@
 <template>
   <div class="page-container py-12 sm:py-16">
     <header class="max-w-3xl">
-      <h1 class="text-h2 text-ink">Simulation</h1>
+      <h1 class="text-h2 text-ink">{{ t('pages.simulation') }}</h1>
       <p class="mt-3 text-lead text-ink-2">
-        {{ runsLabel }} avenirs possibles pour ton patrimoine net, tirés au hasard à partir de tes montants actuels et des
-        hypothèses ci-dessous. La fourchette montre ce qui peut raisonnablement arriver, pas une prévision.
+        {{ t('simulationPage.lead', { runs: runsLabel }) }}
       </p>
     </header>
 
@@ -19,22 +18,24 @@
       role="status"
       class="mt-10 flex h-80 items-center justify-center rounded-xl bg-wash text-ink-2 motion-safe:animate-pulse"
     >
-      Chargement de ton patrimoine…
+      {{ t('snapshotPage.loading') }}
     </div>
 
     <div v-else-if="status === 'error'" role="alert" class="mt-10 rounded-xl border border-danger-line bg-danger-wash p-6">
-      <p class="font-semibold text-danger">Impossible de préparer la simulation</p>
+      <p class="font-semibold text-danger">{{ t('simulationPage.prepareError') }}</p>
       <p class="mt-1 text-ink">{{ problem }}</p>
       <div class="mt-4 flex flex-wrap gap-3">
-        <AppButton :to="{ path: '/sheet', query: { onglet: 'portfolio' } }" variant="secondary" size="sm">Ouvrir la page GoogleSheet</AppButton>
-        <AppButton variant="secondary" size="sm" @click="portfolio.reload">Réessayer</AppButton>
+        <AppButton :to="{ path: '/sheet', query: { onglet: 'portfolio' } }" variant="secondary" size="sm">{{
+          t('chartUi.openSheet')
+        }}</AppButton>
+        <AppButton variant="secondary" size="sm" @click="portfolio.reload">{{ t('chartUi.retry') }}</AppButton>
       </div>
     </div>
 
     <template v-else>
       <!-- Repères -->
       <section aria-labelledby="titre-resultats" class="mt-10">
-        <h2 id="titre-resultats" class="sr-only">Résultats</h2>
+        <h2 id="titre-resultats" class="sr-only">{{ t('simulationPage.results') }}</h2>
         <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-live="polite">
           <div v-for="kpi in kpis" :key="kpi.label" class="rounded-xl border border-line bg-paper p-5 shadow-soft">
             <dt class="text-sm text-ink-2">{{ kpi.label }}</dt>
@@ -48,20 +49,20 @@
       <section class="mt-8 rounded-xl border border-line bg-paper shadow-soft" aria-labelledby="titre-eventail">
         <header class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-line px-4 py-4 sm:px-6">
           <div class="min-w-0">
-            <h2 id="titre-eventail" class="text-h3 text-ink">Patrimoine net simulé</h2>
+            <h2 id="titre-eventail" class="text-h3 text-ink">{{ t('simulationPage.fanTitle') }}</h2>
             <p class="mt-1 text-ink-2">
-              {{ settings.real ? 'En euros d’aujourd’hui (inflation déduite).' : 'En euros courants.' }}
-              <span v-if="computing" class="ml-1 text-ink-3">Calcul en cours…</span>
+              {{ settings.real ? t('simulationPage.realNote') : t('simulationPage.nominalNote') }}
+              <span v-if="computing" class="ml-1 text-ink-3">{{ t('simulationPage.computing') }}</span>
             </p>
           </div>
           <div class="flex flex-wrap gap-3">
-            <SegmentedControl v-model="unit" :options="UNITS" label="Unité" />
-            <SegmentedControl v-model="view" :options="VIEWS" label="Affichage" />
+            <SegmentedControl v-model="unit" :options="UNITS" :label="t('simulationPage.unit')" />
+            <SegmentedControl v-model="view" :options="VIEWS" :label="t('chartUi.display')" />
           </div>
         </header>
         <div class="p-4 sm:p-6">
           <div v-if="!result" class="flex h-80 items-center justify-center rounded-lg bg-wash text-ink-2 motion-safe:animate-pulse">
-            Calcul des {{ runsLabel }} trajectoires…
+            {{ t('simulationPage.computingRuns', { runs: runsLabel }) }}
           </div>
           <template v-else>
             <DataTableView
@@ -69,12 +70,11 @@
               :columns="table.columns"
               :rows="table.rows"
               :numeric="table.numeric"
-              caption="Patrimoine net simulé, version tableau"
+              :caption="t('simulationPage.tableCaption')"
             />
             <BaseChart v-else :option="option" :height="420" :min-width="560" :label="summary" />
             <p class="mt-4 text-sm text-ink-2">
-              La ligne bleue est la médiane : une trajectoire sur deux finit au-dessus. La bande foncée contient la moitié des
-              trajectoires (25 à 75 %), la bande claire 8 sur 10 (10 à 90 %).
+              {{ t('simulationPage.fanHelp') }}
             </p>
           </template>
         </div>
@@ -84,61 +84,57 @@
       <section class="mt-8 rounded-xl border border-line bg-paper shadow-soft" aria-labelledby="titre-hypotheses">
         <header class="flex flex-wrap items-start justify-between gap-4 border-b border-line px-4 py-4 sm:px-6">
           <div>
-            <h2 id="titre-hypotheses" class="text-h3 text-ink">Hypothèses</h2>
+            <h2 id="titre-hypotheses" class="text-h3 text-ink">{{ t('simulationPage.assumptions') }}</h2>
             <p class="mt-1 text-ink-2">
-              Point de départ : ton relevé du {{ startLabel }}. Les modifications sont retenues par ce navigateur.
+              {{ t('simulationPage.startPoint', { date: startLabel }) }}
             </p>
           </div>
-          <AppButton variant="secondary" size="sm" @click="resetSettings">Revenir aux valeurs par défaut</AppButton>
+          <AppButton variant="secondary" size="sm" @click="resetSettings">{{ t('simulationPage.reset') }}</AppButton>
         </header>
 
         <div class="grid gap-x-6 gap-y-5 p-4 sm:grid-cols-2 sm:p-6 lg:grid-cols-3">
-          <NumberField id="sim-versement" v-model="settings.contribution" label="Versement net mensuel" suffix="€" :step="50" :hint="contributionHint" />
-          <NumberField id="sim-hausse" v-model="settings.contributionGrowth" label="Hausse du versement" suffix="% par an" :step="0.5" hint="Suit par exemple ton salaire." />
-          <NumberField id="sim-pret" v-model="settings.debtPayment" label="Capital de prêt remboursé" suffix="€ / mois" :step="50" :hint="debtHint" />
-          <NumberField id="sim-objectif" v-model="settings.goalAmount" label="Objectif de patrimoine net" suffix="€" :step="10000" :hint="goalHint" />
+          <NumberField id="sim-versement" v-model="settings.contribution" :label="t('simulationPage.contribution')" suffix="€" :step="50" :hint="contributionHint" />
+          <NumberField id="sim-hausse" v-model="settings.contributionGrowth" :label="t('simulationPage.contributionGrowth')" :suffix="t('simulationPage.perYear')" :step="0.5" :hint="t('simulationPage.contributionGrowthHint')" />
+          <NumberField id="sim-pret" v-model="settings.debtPayment" :label="t('simulationPage.debtPayment')" :suffix="t('simulationPage.perMonth')" :step="50" :hint="debtHint" />
+          <NumberField id="sim-objectif" v-model="settings.goalAmount" :label="t('simulationPage.goalAmount')" suffix="€" :step="10000" :hint="goalHint" />
           <div>
-            <label for="sim-date" class="block text-sm font-medium text-ink">Date de l’objectif</label>
+            <label for="sim-date" class="block text-sm font-medium text-ink">{{ t('simulationPage.goalDate') }}</label>
             <input
               id="sim-date"
               v-model="settings.goalDate"
               type="date"
               class="mt-1 w-full rounded-lg border border-line-strong bg-paper px-3 py-2 text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
-            <p class="mt-1 text-sm text-ink-3">La simulation va jusqu’à cette date.</p>
+            <p class="mt-1 text-sm text-ink-3">{{ t('simulationPage.goalDateHint') }}</p>
           </div>
-          <NumberField id="sim-frais" v-model="settings.fees" label="Frais annuels" suffix="%" :step="0.05" hint="ETF, courtiers, gestion : sur les actifs financiers." />
-          <NumberField id="sim-inflation" v-model="settings.inflation" label="Inflation" suffix="% par an" :step="0.1" hint="Sert aux montants en euros d’aujourd’hui." />
+          <NumberField id="sim-frais" v-model="settings.fees" :label="t('simulationPage.fees')" suffix="%" :step="0.05" :hint="t('simulationPage.feesHint')" />
+          <NumberField id="sim-inflation" v-model="settings.inflation" :label="t('simulationPage.inflation')" :suffix="t('simulationPage.perYear')" :step="0.1" :hint="t('simulationPage.inflationHint')" />
           <div class="flex items-start gap-3 sm:col-span-2 lg:col-span-2">
             <input id="sim-queues" v-model="settings.fatTails" type="checkbox" class="mt-1 h-4 w-4 accent-accent" />
             <label for="sim-queues" class="text-ink">
-              Krachs plus fréquents qu’une loi normale
+              {{ t('simulationPage.fatTails') }}
               <span class="block text-sm text-ink-3">
-                Loi de Student à 5 degrés de liberté : plus réaliste pour les actions et la crypto. Décoché, la simulation est
-                plus optimiste dans les mauvaises années.
+                {{ t('simulationPage.fatTailsHint') }}
               </span>
             </label>
           </div>
         </div>
 
         <div class="border-t border-line p-4 sm:p-6">
-          <h3 class="font-semibold text-ink">Par type d’actif</h3>
+          <h3 class="font-semibold text-ink">{{ t('simulationPage.byType') }}</h3>
           <p class="mt-1 max-w-3xl text-sm text-ink-2">
-            Rendement : moyenne annuelle attendue. Volatilité : ampleur des variations d’une année (environ 2 années sur 3
-            restent dans ± cette valeur). Lien avec les actions : 1 = bouge exactement avec le marché actions, 0 = sans
-            rapport, négatif = tend à monter quand il baisse. Les versements sont répartis entre les types cochés, au
-            prorata de leurs montants.
+            {{ t('simulationPage.byTypeHelp') }}
           </p>
           <div class="mt-4 overflow-x-auto">
             <table class="w-full min-w-[640px] text-left text-sm">
               <thead class="border-b border-line text-ink-2">
                 <tr>
-                  <th scope="col" class="py-2 pr-4 font-medium">Type d’actif</th>
-                  <th scope="col" class="py-2 pr-4 text-right font-medium">Montant actuel</th>
-                  <th scope="col" class="py-2 pr-4 font-medium">Rendement (%/an)</th>
-                  <th scope="col" class="py-2 pr-4 font-medium">Volatilité (%)</th>
-                  <th scope="col" class="py-2 pr-4 font-medium">Lien avec les actions</th>
-                  <th scope="col" class="py-2 font-medium">Reçoit les versements</th>
+                  <th scope="col" class="py-2 pr-4 font-medium">{{ t('simulationPage.cols.type') }}</th>
+                  <th scope="col" class="py-2 pr-4 text-right font-medium">{{ t('simulationPage.cols.amount') }}</th>
+                  <th scope="col" class="py-2 pr-4 font-medium">{{ t('simulationPage.cols.return') }}</th>
+                  <th scope="col" class="py-2 pr-4 font-medium">{{ t('simulationPage.cols.volatility') }}</th>
+                  <th scope="col" class="py-2 pr-4 font-medium">{{ t('simulationPage.cols.link') }}</th>
+                  <th scope="col" class="py-2 font-medium">{{ t('simulationPage.cols.invest') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -146,16 +142,16 @@
                   <th scope="row" class="py-2 pr-4 font-medium text-ink">{{ asset.label }}</th>
                   <td class="py-2 pr-4 text-right tabular-nums text-ink">{{ euro(asset.amount) }}</td>
                   <td class="py-2 pr-4">
-                    <input v-model.number="settings.assets[asset.name].mu" type="number" step="0.5" :aria-label="`Rendement de ${asset.label}, en % par an`" :class="cellInput" />
+                    <input v-model.number="settings.assets[asset.name].mu" type="number" step="0.5" :aria-label="t('simulationPage.a11y.return', { asset: asset.label })" :class="cellInput" />
                   </td>
                   <td class="py-2 pr-4">
-                    <input v-model.number="settings.assets[asset.name].sigma" type="number" step="1" min="0" :aria-label="`Volatilité de ${asset.label}, en %`" :class="cellInput" />
+                    <input v-model.number="settings.assets[asset.name].sigma" type="number" step="1" min="0" :aria-label="t('simulationPage.a11y.volatility', { asset: asset.label })" :class="cellInput" />
                   </td>
                   <td class="py-2 pr-4">
-                    <input v-model.number="settings.assets[asset.name].rho" type="number" step="0.05" min="-1" max="1" :aria-label="`Lien de ${asset.label} avec les actions, de -1 à 1`" :class="cellInput" />
+                    <input v-model.number="settings.assets[asset.name].rho" type="number" step="0.05" min="-1" max="1" :aria-label="t('simulationPage.a11y.link', { asset: asset.label })" :class="cellInput" />
                   </td>
                   <td class="py-2">
-                    <input v-model="settings.assets[asset.name].invest" type="checkbox" class="h-4 w-4 accent-accent" :aria-label="`${asset.label} reçoit les versements`" />
+                    <input v-model="settings.assets[asset.name].invest" type="checkbox" class="h-4 w-4 accent-accent" :aria-label="t('simulationPage.a11y.invest', { asset: asset.label })" />
                   </td>
                 </tr>
               </tbody>
@@ -165,23 +161,19 @@
       </section>
 
       <section class="mt-8 max-w-3xl text-ink-2" aria-labelledby="titre-limites">
-        <h2 id="titre-limites" class="text-h3 text-ink">Ce que la simulation ne fait pas</h2>
+        <h2 id="titre-limites" class="text-h3 text-ink">{{ t('simulationPage.limitsTitle') }}</h2>
         <ul class="mt-3 list-disc space-y-1 pl-5">
-          <li>Pas d’impôt à la sortie (PEA, CTO, PER n’ont pas la même fiscalité) : les montants sont avant impôt.</li>
-          <li>Pas de rééquilibrage : la répartition dérive au fil des tirages, comme si tu ne vendais jamais.</li>
-          <li>Les rendements par défaut sont des ordres de grandeur de long terme, pas des promesses : change-les.</li>
-          <li>
-            Le passé récent de ta feuille (environ deux ans) est trop court pour en tirer des rendements : il n’est pas
-            utilisé pour les hypothèses.
-          </li>
+          <li v-for="limit in tList('simulationPage.limits')" :key="limit">{{ limit }}</li>
         </ul>
-        <p class="mt-4 text-sm">C’est un outil de projection, pas un conseil en investissement.</p>
+        <p class="mt-4 text-sm">{{ t('simulationPage.notAdvice') }}</p>
       </section>
     </template>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
+import { tList } from '../i18n/index.js'
 import { computed, defineComponent, h, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import AppButton from '../components/ui/AppButton.vue'
 import SegmentedControl from '../components/ui/SegmentedControl.vue'
@@ -190,22 +182,24 @@ import DataTableView from '../components/charts/DataTableView.vue'
 import { useTable } from '../composables/useTable.js'
 import { DataError } from '../lib/aggregate.js'
 import { fanOption } from '../lib/charts/simulationFan.js'
-import { capitalize, euro, formatDateLong, formatMonthYear, percent } from '../lib/format.js'
+import { capitalize, euro, formatDateLong, formatMonthYear, formatNumber, percent } from '../lib/format.js'
 import { assumptionFor, averageContribution, monthsBetween, readGoals, readPortfolio } from '../lib/simulation.js'
+import { readPreference, writePreference } from '../lib/preferences.js'
+
+const { t } = useI18n()
 
 const RUNS = 5000
-const STORAGE_KEY = 'overfolio.simulation.v1'
 const UNITS = [
-  { value: 'real', label: 'Euros d’aujourd’hui' },
-  { value: 'nominal', label: 'Euros courants' },
+  { value: 'real', label: t('simulationPage.units.real') },
+  { value: 'nominal', label: t('simulationPage.units.nominal') },
 ]
 const VIEWS = [
-  { value: 'chart', label: 'Graphique' },
-  { value: 'table', label: 'Tableau' },
+  { value: 'chart', label: t('chartUi.chart') },
+  { value: 'table', label: t('chartUi.table') },
 ]
 const cellInput =
   'w-24 rounded-md border border-line-strong bg-paper px-2 py-1 text-right tabular-nums text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
-const runsLabel = new Intl.NumberFormat('fr-FR').format(RUNS)
+const runsLabel = formatNumber(RUNS)
 
 // Champ numérique avec libellé, unité et aide
 const NumberField = defineComponent({
@@ -246,10 +240,12 @@ const start = computed(() => {
   if (!portfolio.data.value) return null
   try {
     const read = readPortfolio(portfolio.data.value)
-    if (!read.assets.length) throw new DataError('La table portfolio ne contient aucun montant positif dans Assets Master Currency.')
+    if (!read.assets.length) throw new DataError(t('simulationPage.noPositive'))
     return { ...read, date: read.date || new Date().toISOString().slice(0, 10) }
   } catch (err) {
-    return { problem: err instanceof DataError ? err.message : `Lecture impossible (${err?.message ?? 'erreur inconnue'}).` }
+    return {
+      problem: err instanceof DataError ? err.message : t('simulationPage.readFailed', { message: err?.message ?? t('chartUi.unknownError') }),
+    }
   }
 })
 const settled = (table) => Boolean(table.data.value || table.error.value)
@@ -306,7 +302,7 @@ const sumAssets = () => start.value.assets.reduce((sum, asset) => sum + asset.am
 function load() {
   const base = defaults()
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
+    const saved = JSON.parse(readPreference('simulation') ?? 'null')
     if (saved && typeof saved === 'object') {
       for (const key of Object.keys(base)) if (key !== 'assets' && saved[key] !== undefined) base[key] = saved[key]
       for (const name of Object.keys(base.assets)) if (saved.assets?.[name]) Object.assign(base.assets[name], saved.assets[name])
@@ -319,11 +315,7 @@ function load() {
 }
 
 function resetSettings() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // rien à faire
-  }
+  writePreference('simulation', null)
   Object.assign(settings, defaults())
   unit.value = settings.real ? 'real' : 'nominal'
 }
@@ -405,11 +397,7 @@ watch(
   (p) => {
     clearTimeout(timer)
     timer = setTimeout(() => run(p), result.value ? 350 : 0)
-    try {
-      if (settings.goalDate) localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-    } catch {
-      // stockage indisponible : la page marche quand même
-    }
+    if (settings.goalDate) writePreference('simulation', JSON.stringify(settings))
   },
   { deep: true },
 )
@@ -452,52 +440,67 @@ const kpis = computed(() => {
   if (!result.value || !last.value) return []
   const [p10, , p50, , p90] = last.value.values
   const chance = result.value.goalChance
-  const unitText = settings.real ? 'en euros d’aujourd’hui' : 'en euros courants'
+  const unitText = settings.real ? t('simulationPage.realUnitText') : t('simulationPage.nominalUnitText')
   return [
     {
-      label: 'Chance d’atteindre l’objectif',
+      label: t('simulationPage.kpi.chance'),
       value: chance === null ? '–' : percent(chance),
-      hint: chance === null ? 'Choisis un objectif et une date future.' : `${euro(settings.goalAmount)} au ${goalLabel.value}`,
+      hint:
+        chance === null
+          ? t('simulationPage.kpi.chooseGoal')
+          : t('simulationPage.kpi.goalAt', { amount: euro(settings.goalAmount), date: goalLabel.value }),
       tone: chance === null ? '' : chance >= 0.75 ? 'text-success' : chance < 0.4 ? 'text-danger' : 'text-ink',
     },
-    { label: `Médiane en ${last.value.label}`, value: euro(p50), hint: `Une trajectoire sur deux fait mieux, ${unitText}.` },
-    { label: 'Scénario défavorable', value: euro(p10), hint: '1 trajectoire sur 10 fait moins bien.' },
-    { label: 'Scénario favorable', value: euro(p90), hint: '1 trajectoire sur 10 fait mieux.' },
+    {
+      label: t('simulationPage.kpi.medianIn', { date: last.value.label }),
+      value: euro(p50),
+      hint: t('simulationPage.kpi.medianHint', { unit: unitText }),
+    },
+    { label: t('simulationPage.kpi.poor'), value: euro(p10), hint: t('simulationPage.kpi.poorHint') },
+    { label: t('simulationPage.kpi.good'), value: euro(p90), hint: t('simulationPage.kpi.goodHint') },
   ]
 })
 
 const summary = computed(() => {
-  if (!last.value) return 'Simulation du patrimoine net'
+  if (!last.value) return t('simulationPage.summaryDefault')
   const [p10, , p50, , p90] = last.value.values
   const chance = result.value?.goalChance
   return (
-    `Éventail de ${runsLabel} trajectoires du patrimoine net jusqu’en ${last.value.label}. ` +
-    `Médiane finale ${euro(p50)}, entre ${euro(p10)} et ${euro(p90)} dans 8 cas sur 10.` +
-    (chance === null || chance === undefined ? '' : ` Chance d’atteindre ${euro(settings.goalAmount)} : ${percent(chance)}.`)
+    t('simulationPage.summary', { runs: runsLabel, date: last.value.label, median: euro(p50), p10: euro(p10), p90: euro(p90) }) +
+    (chance === null || chance === undefined
+      ? ''
+      : ` ${t('simulationPage.summaryChance', { amount: euro(settings.goalAmount), chance: percent(chance) })}`)
   )
 })
 
 const table = computed(() => ({
-  columns: ['Date', 'Défavorable (10 %)', '25 %', 'Médiane', '75 %', 'Favorable (90 %)'],
+  columns: [
+    t('chart.date'),
+    t('simulationPage.table.poor'),
+    t('simulationPage.table.p25'),
+    t('simulation.median'),
+    t('simulationPage.table.p75'),
+    t('simulationPage.table.good'),
+  ],
   numeric: [false, true, true, true, true, true],
   rows: points.value.map((point) => [point.label, ...point.values.map((value) => euro(value))]),
 }))
 
 const contributionHint = computed(() =>
   averageIn.value === null
-    ? 'Montant versé chaque mois sur tes placements (négatif pour un retrait).'
-    : `Moyenne des 12 derniers mois de l’onglet inout : ${euro(averageIn.value)}.`,
+    ? t('simulationPage.hint.contributionDefault')
+    : t('simulationPage.hint.contributionAverage', { amount: euro(averageIn.value) }),
 )
 const debtHint = computed(() =>
   start.value?.debt > 0
-    ? `Dette actuelle : ${euro(start.value.debt)}. Indique la part capital de tes mensualités.`
-    : 'Aucune dette dans la table portfolio.',
+    ? t('simulationPage.hint.debt', { amount: euro(start.value.debt) })
+    : t('simulationPage.hint.noDebt'),
 )
 const goalHint = computed(() =>
   goals.value.length
-    ? `Lu dans _history (ligne sans type d’actif). ${settings.real ? 'Compté en euros d’aujourd’hui.' : 'Compté en euros courants.'}`
+    ? t('simulationPage.hint.goalFromHistory', { unit: settings.real ? t('simulationPage.hint.real') : t('simulationPage.hint.nominal') })
     : settings.real
-      ? 'Compté en euros d’aujourd’hui.'
-      : 'Compté en euros courants.',
+      ? t('simulationPage.hint.real')
+      : t('simulationPage.hint.nominal'),
 )
 </script>
