@@ -61,7 +61,7 @@
           </div>
         </header>
         <div class="p-4 sm:p-6">
-          <div v-if="!result" class="flex h-80 items-center justify-center rounded-lg bg-wash text-ink-2 motion-safe:animate-pulse">
+          <div v-if="!result" role="status" class="flex h-80 items-center justify-center rounded-lg bg-wash text-ink-2 motion-safe:animate-pulse">
             {{ t('simulationPage.computingRuns', { runs: runsLabel }) }}
           </div>
           <template v-else>
