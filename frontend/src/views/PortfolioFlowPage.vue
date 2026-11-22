@@ -18,7 +18,7 @@
         <select
           id="annee"
           :value="year"
-          class="mt-1 rounded-lg border border-line-strong bg-white px-3 py-2 text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          class="mt-1 rounded-lg border border-line-strong bg-paper px-3 py-2 text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           @change="setYear($event.target.value)"
         >
           <option value="">Toutes les années</option>

@@ -10,7 +10,7 @@
       type="button"
       :aria-pressed="option.value === modelValue"
       class="rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors duration-150"
-      :class="option.value === modelValue ? 'bg-white text-ink shadow-soft' : 'text-ink-2 hover:text-ink'"
+      :class="option.value === modelValue ? 'bg-paper text-ink shadow-soft' : 'text-ink-2 hover:text-ink'"
       @click="emit('update:modelValue', option.value)"
     >
       {{ option.label }}

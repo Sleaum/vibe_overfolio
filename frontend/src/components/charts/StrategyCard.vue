@@ -4,7 +4,7 @@
   portée par la couleur seule (noms et chiffres sont écrits, et le tableau donne tout le détail).
 -->
 <template>
-  <section class="rounded-xl border border-line bg-white shadow-soft" :aria-labelledby="titleId">
+  <section class="rounded-xl border border-line bg-paper shadow-soft" :aria-labelledby="titleId">
     <header class="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b border-line px-4 py-4 sm:px-6">
       <div class="min-w-0">
         <h2 :id="titleId" class="text-h3 text-ink">{{ chart.title }}</h2>

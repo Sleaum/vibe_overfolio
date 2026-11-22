@@ -463,9 +463,11 @@ Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) 
 
 | Où | Quoi |
 |---|---|
-| `frontend/tailwind.config.js` | Couleurs du site (`paper`, `wash`, `ink`, `line`, `accent`, `danger`, `success`), tailles de texte (`text-body`, `text-lead`, `text-h2`, `text-display`), ombres. Changer l'`accent` change les boutons, les liens et les focus du site |
+| `frontend/tailwind.config.js` | Noms des couleurs du site (`paper`, `wash`, `ink`, `line`, `accent`, `danger`, `success`), tailles de texte (`text-body`, `text-lead`, `text-h2`, `text-display`), ombres. Changer l'`accent` change les boutons, les liens et les focus du site |
 | `frontend/src/lib/palette.js` | Les 8 couleurs des graphiques. Un type d'actif garde la même couleur dans tous les graphiques |
-| `frontend/src/assets/tailwind.css` | Base : focus clavier visible, animations réduites si le système le demande, largeur du contenu |
+| `frontend/src/assets/tailwind.css` | Valeurs des couleurs en mode clair (`:root`) et sombre (`html.dark`). Base : focus clavier visible, animations réduites si le système le demande, largeur du contenu |
+| `frontend/src/composables/useTheme.js` | Mode sombre : suit le réglage du système, le bouton soleil/lune de l'en-tête force clair ou sombre et s'en souvient. `index.html` pose la classe `dark` avant le premier affichage |
+| `frontend/src/lib/chartDark.js` | Passe les graphiques en sombre : remplace les couleurs claires listées dans `DARK` (`palette.js`) |
 | `frontend/src/lib/sample.js` | Données **fictives** de l'aperçu de la page d'accueil. Ce ne sont pas les tiennes |
 
 Accessibilité : lien « Aller au contenu », menu mobile utilisable au clavier (fermeture avec Échap), focus visible, animation de la courbe d'accueil désactivée avec `prefers-reduced-motion`, et chaque graphique a une version tableau.

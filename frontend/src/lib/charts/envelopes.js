@@ -90,7 +90,7 @@ const noEnvelope = (table) => ({
 function labelRings(option, total) {
   for (const series of [].concat(option.series ?? [])) {
     for (const node of series.data ?? []) {
-      node.label = { show: true, rotate: 0, color: '#ffffff', fontWeight: 600, fontSize: 13, minAngle: 12 }
+      node.label = { show: true, rotate: 0, color: '#fff', fontWeight: 600, fontSize: 13, minAngle: 12 } // '#fff' et non '#ffffff' : reste blanc en mode sombre (texte sur couleur)
       for (const child of node.children ?? []) {
         // Grande part : texte le long de l'arc (plus de place) ; petite part : texte en travers de l'anneau
         const wide = child.value / total >= 0.12

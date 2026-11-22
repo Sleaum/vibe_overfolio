@@ -54,7 +54,7 @@
 
     <template v-else>
       <!-- Vue d'ensemble -->
-      <section aria-labelledby="titre-actifs" class="mt-10 rounded-xl border border-line bg-white shadow-soft">
+      <section aria-labelledby="titre-actifs" class="mt-10 rounded-xl border border-line bg-paper shadow-soft">
         <div class="border-b border-line px-4 py-4 sm:px-6">
           <h2 id="titre-actifs" class="text-h3 text-ink">Tes actifs</h2>
         </div>
@@ -93,7 +93,7 @@
         </p>
 
         <ul class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          <li v-for="type in model.types" :key="type.name" class="rounded-xl border border-line bg-white shadow-soft">
+          <li v-for="type in model.types" :key="type.name" class="rounded-xl border border-line bg-paper shadow-soft">
             <div class="border-b border-line p-4 sm:p-6">
               <h3 class="flex items-center gap-2 text-h3 text-ink">
                 <span class="h-3 w-3 shrink-0 rounded-[3px]" :style="{ backgroundColor: type.color }" aria-hidden="true"></span>
