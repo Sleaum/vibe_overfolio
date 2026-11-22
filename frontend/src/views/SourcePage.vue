@@ -31,7 +31,7 @@
 
     <template v-else>
       <!-- Onglets à synchroniser (champ + onglets du document à cocher), juste au-dessus de Tout actualiser -->
-      <SyncTabs :key="docKey" class="mt-10" :tabs="knownTabs" @saved="onConfigSaved" />
+      <SyncTabs :key="docKey" class="mt-10" :tabs="knownTabs" :autoload="docChanged" @saved="onConfigSaved" />
       <!-- Barre d'outils : onglet, Tout actualiser, recherche -->
       <div class="mt-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -253,6 +253,8 @@ const PAGE_SIZE = 50
 const knownTabs = ref(['portfolio', 'inout', 'stock', 'budget', '_history'])
 // Document en vigueur : quand il change, la liste « Onglets du document » déjà lue est oubliée
 const docKey = ref('')
+// Vrai quand un autre document vient d'être enregistré : ses onglets sont lus tout de suite (la liste les suit)
+const docChanged = ref(false)
 
 const route = useRoute()
 const router = useRouter()
@@ -319,7 +321,11 @@ function applyConfig(config) {
     .map((name) => name.trim())
     .filter(Boolean)
   if (tabs.length) knownTabs.value = tabs
-  if (config?.values) docKey.value = [config.mode, config.values.sheet_id, config.values.doc_name].join('|')
+  if (config?.values) {
+    const key = [config.mode, config.values.sheet_id, config.values.doc_name].join('|')
+    if (docKey.value && key !== docKey.value) docChanged.value = true
+    docKey.value = key
+  }
 }
 
 function onConfigSaved(config) {

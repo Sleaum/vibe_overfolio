@@ -792,6 +792,7 @@
     "suggest": "Proposer les onglets du document",
     "loading": "Lecture des onglets…",
     "legend": "Onglets du document",
-    "instant": "Cocher ou décocher un onglet enregistre la liste aussitôt."
+    "instant": "Cocher ou décocher un onglet enregistre la liste aussitôt.",
+    "removed": "Liste enregistrée. Absent du document, retiré : {tabs} | Liste enregistrée. Absents du document, retirés : {tabs}"
   }
 }
