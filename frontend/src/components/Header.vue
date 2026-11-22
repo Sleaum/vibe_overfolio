@@ -26,7 +26,7 @@
               :class="[linkClasses, isActive(link) ? '!text-ink after:!bg-accent' : '']"
               :aria-current="isActive(link) ? 'page' : undefined"
             >
-              {{ t(link.labelKey) }}
+              {{ link.label }}
             </router-link>
           </li>
         </ul>
@@ -72,7 +72,7 @@
             :class="isActive(link) ? 'bg-accent-wash !text-accent' : ''"
             :aria-current="isActive(link) ? 'page' : undefined"
           >
-            {{ t(link.labelKey) }}
+            {{ link.label }}
           </router-link>
         </li>
       </ul>
@@ -84,21 +84,23 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { MENU_NAMES } from '../i18n/menu.js'
 import LanguageSelect from './ui/LanguageSelect.vue'
 import ThemeToggle from './ui/ThemeToggle.vue'
 
 const { t } = useI18n()
 
+// Noms des menus : toujours en anglais (i18n/menu.js), non traduits
 // Les chemins existants restent valides : /sheet (alias /source) et /graphiques (alias /echart)
 // `under` : adresses qui font partie de la rubrique (la page d'un graphique est sous /graphiques/…)
 const LINKS = [
-  { labelKey: 'nav.sheet', to: '/sheet', under: ['/sheet', '/source'] },
+  { label: MENU_NAMES.sheet, to: '/sheet', under: ['/sheet', '/source'] },
   {
-    labelKey: 'nav.charts',
+    label: MENU_NAMES.charts,
     to: '/graphiques',
     under: ['/graphiques', '/echart', '/portfolio-flow', '/portfolio-snapshot', '/strategie', '/enveloppes', '/volatilite'],
   },
-  { labelKey: 'nav.simulation', to: '/simulation', under: ['/simulation'] },
+  { label: MENU_NAMES.simulation, to: '/simulation', under: ['/simulation'] },
 ]
 
 const isActive = (link) => link.under.some((base) => route.path === base || route.path.startsWith(`${base}/`))

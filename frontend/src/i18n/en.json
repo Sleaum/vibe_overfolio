@@ -10,9 +10,6 @@
   "nav": {
     "main": "Main navigation",
     "mainMobile": "Main navigation (mobile)",
-    "sheet": "GoogleSheet",
-    "charts": "Charts",
-    "simulation": "Simulation",
     "openMenu": "Open menu",
     "closeMenu": "Close menu"
   },
@@ -31,22 +28,13 @@
     "pagesLabel": "Site pages",
     "legal": "© {year} Overfolio. A wealth-tracking tool: it gives no investment advice or recommendations."
   },
-  "chartsMenu": {
-    "label": "Charts",
-    "flow": "Flow",
-    "snapshot": "Snapshot",
-    "envelopes": "Envelopes",
-    "strategy": "Strategy",
-    "volatility": "Volatility",
-    "budget": "Budget"
-  },
   "pages": {
     "home": "Your wealth in charts",
     "login": "Sign in",
     "sheet": "GoogleSheet",
-    "flow": "Portfolio Flow",
-    "snapshot": "Portfolio Snapshot",
-    "strategy": "Brokerage strategy",
+    "flow": "Wealth history",
+    "snapshot": "Wealth today",
+    "strategy": "Brokerage account strategy",
     "envelopes": "Envelopes",
     "volatility": "Volatility",
     "simulation": "Simulation",

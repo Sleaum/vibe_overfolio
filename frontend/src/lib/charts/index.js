@@ -3,7 +3,7 @@
 // - GROUPS : les pages qui réunissent plusieurs graphiques (Portfolio Flow, Enveloppes, Volatilité), chacun dans une carte.
 // - CHARTS : tous les graphiques qui ont leur propre page /graphiques/<slug> (Flux du budget et ceux des GROUPS).
 // - MENU : les entrées du menu de gauche (GraphiquesLayout.vue), dans l'ordre d'affichage ; /graphiques ouvre la première.
-//   Leur nom est une clé de traduction (titleKey → i18n/*.json, rubrique chartsMenu).
+//   Leur nom est toujours en anglais (i18n/menu.js), non traduit.
 // Pour ajouter un graphique : créer un fichier de spécification (voir budgetFlow.js), puis l'ajouter à un groupe
 // (il apparaît sur la page du groupe) ou à CHARTS avec une entrée dans MENU.
 
@@ -17,6 +17,7 @@ import flowVariation from './flowVariation.js'
 import inout from './inout.js'
 import { VOLATILITY_CHARTS } from './volatility.js'
 import { t } from '../../i18n/index.js'
+import { MENU_NAMES } from '../../i18n/menu.js'
 
 // Les graphiques « Portfolio Flow » sont regroupés sur la page /portfolio-flow
 export const FLOW_CHARTS = [flowCurrency, flowAllocation, flowAssets, flowVariation, inout, flowTrend]
@@ -36,32 +37,32 @@ export const MENU = [
   {
     key: PORTFOLIO_FLOW.key,
     to: PORTFOLIO_FLOW.to,
-    titleKey: 'chartsMenu.flow',
+    title: MENU_NAMES.flow,
   },
   {
     key: 'portfolio-snapshot',
     to: '/portfolio-snapshot',
-    titleKey: 'chartsMenu.snapshot',
+    title: MENU_NAMES.snapshot,
   },
   {
     key: ENVELOPES.key,
     to: ENVELOPES.to,
-    titleKey: 'chartsMenu.envelopes',
+    title: MENU_NAMES.envelopes,
   },
   {
     key: 'strategie',
     to: '/strategie',
-    titleKey: 'chartsMenu.strategy',
+    title: MENU_NAMES.strategy,
   },
   {
     key: VOLATILITY.key,
     to: VOLATILITY.to,
-    titleKey: 'chartsMenu.volatility',
+    title: MENU_NAMES.volatility,
   },
   {
     key: budgetFlow.slug,
     to: { name: 'ChartPage', params: { slug: budgetFlow.slug } },
-    titleKey: 'chartsMenu.budget',
+    title: MENU_NAMES.budget,
   },
 ]
 

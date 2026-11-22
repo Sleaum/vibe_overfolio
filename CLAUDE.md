@@ -21,6 +21,7 @@ Ce fichier est lu au début de chaque session sur ce dépôt. Le README décrit 
 - Site en français (défaut et secours), anglais et thaï. **Aucun texte en dur** dans un composant ou un graphique : une clé dans `frontend/src/i18n/fr.json`, `en.json` **et** `th.json` (le build s'arrête s'il en manque une), puis `t('rubrique.cle')`.
 - Nombres et dates : toujours par `frontend/src/lib/format.js` (langue active), jamais `new Intl.…('fr-FR')`.
 - Ne pas traduire les données de la feuille (instruments, types d'actifs, colonnes) ni les adresses des pages.
+- **Noms des menus toujours en anglais**, dans toutes les langues : GoogleSheet, Charts, Simulation, Flow, Snapshot, Envelopes, Strategy, Volatility, Budget. Ils sont dans `frontend/src/i18n/menu.js` (`MENU_NAMES`), jamais dans les fichiers de langue. Tout le reste est traduit, y compris les titres des pages ; une phrase qui renvoie à un menu reprend son nom anglais.
 - Tout le site est traduit : tout nouveau texte arrive dans les trois langues dans la même PR, avec les mots du **glossaire** du README (section « Langues »). Signaler que le thaï est à faire relire.
 - Graphiques : titre, résumé, explication et source en getters (`get title() { return t(…) }`), jamais en chaîne fixe.
 - Erreurs de l'API : toujours avec un `code` (`backend/googlesheet/errors.py`), traduit dans la rubrique `apiErrors` des fichiers de langue.

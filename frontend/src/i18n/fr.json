@@ -10,9 +10,6 @@
   "nav": {
     "main": "Navigation principale",
     "mainMobile": "Navigation principale (mobile)",
-    "sheet": "GoogleSheet",
-    "charts": "Graphiques",
-    "simulation": "Simulation",
     "openMenu": "Ouvrir le menu",
     "closeMenu": "Fermer le menu"
   },
@@ -31,21 +28,12 @@
     "pagesLabel": "Pages du site",
     "legal": "© {year} Overfolio. Outil de suivi de patrimoine : il ne donne ni conseil en investissement ni recommandation."
   },
-  "chartsMenu": {
-    "label": "Graphiques",
-    "flow": "Flow",
-    "snapshot": "Snapshot",
-    "envelopes": "Enveloppes",
-    "strategy": "Strategy",
-    "volatility": "Volatilité",
-    "budget": "Budget"
-  },
   "pages": {
     "home": "Ton patrimoine en graphiques",
     "login": "Connexion",
     "sheet": "GoogleSheet",
-    "flow": "Portfolio Flow",
-    "snapshot": "Portfolio Snapshot",
+    "flow": "Historique du patrimoine",
+    "snapshot": "Patrimoine aujourd’hui",
     "strategy": "Stratégie CTO",
     "envelopes": "Enveloppes",
     "volatility": "Volatilité",
@@ -433,12 +421,12 @@
     },
     "product": {
       "title": "Tes données d’un côté, tes graphiques de l’autre",
-      "lead": "La page GoogleSheet montre ce qu’Overfolio a lu, ligne par ligne. Les pages Graphiques en tirent la courbe et les répartitions.",
+      "lead": "La page GoogleSheet montre ce qu’Overfolio a lu, ligne par ligne. Les pages Charts en tirent la courbe et les répartitions.",
       "refreshAll": "Tout actualiser",
       "sheetLink": "Page GoogleSheet",
       "sheetCaption": " : tes cinq onglets en tableau, avec recherche, pagination et un bouton Tout actualiser pour relire ta feuille.",
       "donutTitle": "Répartition par type d’actif",
-      "chartsLink": "Pages Graphiques",
+      "chartsLink": "Pages Charts",
       "chartsCaption": " : six pages, chacune avec son explication et d’où viennent les chiffres.",
       "samples": "Exemples avec des données fictives.",
       "donutA11y": "Exemple d’anneau : {total} répartis en {count} types d’actifs, avec des données fictives."
@@ -481,7 +469,7 @@
   "chartPage": {
     "breadcrumb": "Fil d’Ariane",
     "notFoundTitle": "Ce graphique n’existe pas",
-    "notFoundText": "L’adresse « {slug} » ne correspond à aucun graphique. La page Graphiques les regroupe tous.",
+    "notFoundText": "L’adresse « {slug} » ne correspond à aucun graphique. La page Charts les regroupe tous.",
     "allCharts": "Voir tous les graphiques",
     "otherCharts": "Autres graphiques",
     "previous": "Graphique précédent",
