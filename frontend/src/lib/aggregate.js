@@ -71,6 +71,31 @@ export function requireColumns(table, wanted) {
 
 export const rowsOf = (table) => (Array.isArray(table?.rows) ? table.rows : [])
 
+/*
+ * Groupes négatifs. En montants nets (bouton Brut / Net, lib/amounts.js), une dette est retirée du groupe auquel elle
+ * appartient (le prêt de la maison de « real estate »). Les découpages additionnent donc d'abord chaque groupe, puis
+ * n'affichent que les groupes positifs : un groupe dont les dettes dépassent les actifs ne peut pas être une part.
+ * Ses noms sont relevés ici, pour qu'une note sous le graphique le dise (collectDropped).
+ */
+let dropped = null
+
+/** Relève le nom d'un groupe écarté parce que son total est négatif. */
+export function noteDropped(name) {
+  dropped?.add(name)
+}
+
+/** Exécute `build()` et renvoie [résultat, noms des groupes négatifs écartés pendant le calcul]. */
+export function collectDropped(build) {
+  const previous = dropped
+  dropped = new Set()
+  try {
+    const result = build()
+    return [result, [...dropped]]
+  } finally {
+    dropped = previous
+  }
+}
+
 /** Date la plus récente d'une colonne, "AAAA-MM-JJ", ou "" s'il n'y en a pas. */
 export function latestDate(rows, dateColumn) {
   let latest = ''
@@ -81,19 +106,27 @@ export function latestDate(rows, dateColumn) {
   return latest
 }
 
-/** Somme des montants > 0 par libellé, du plus gros au plus petit. */
+/**
+ * Somme des montants par libellé, du plus gros au plus petit. Chaque libellé est d'abord additionné (dettes comprises
+ * en montants nets), puis seuls les totaux positifs sont gardés ; un total négatif est relevé (noteDropped).
+ */
 export function splitBy(rows, keyColumn, valueColumn, emptyLabel = t('data.unknown')) {
   const groups = new Map()
   for (const row of rows) {
     const value = toNumber(row[valueColumn])
-    if (!(value > 0)) continue
+    if (!value) continue
     const name = toLabel(row[keyColumn], emptyLabel)
     const key = name.toLowerCase()
     const group = groups.get(key) ?? { name, value: 0 }
     group.value += value
     groups.set(key, group)
   }
-  const entries = [...groups.values()].sort(
+  const entries = [...groups.values()]
+    .filter((group) => {
+      if (group.value < 0) noteDropped(group.name)
+      return group.value > 0
+    })
+    .sort(
     (a, b) => b.value - a.value || a.name.localeCompare(b.name, 'fr'),
   )
   const total = entries.reduce((sum, entry) => sum + entry.value, 0)

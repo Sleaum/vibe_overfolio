@@ -155,7 +155,7 @@
       "source": "_history table, columns Date, Asset and Assets Master Currency (amounts above 0), last record of each month.",
       "explain": [
         "Each bar is 100% of your wealth at the end of a month, split by asset type. The colours are those of the asset type ring.",
-        "Only assets count (debts are excluded). Hover over a bar to read the share and amount of each type."
+        "Amounts follow the Gross / Net button in the menu: in gross, debts don’t count; in net, each debt is taken off its asset type. Hover over a bar to read the share and amount of each type."
       ]
     },
     "assets": {
@@ -177,7 +177,7 @@
       "summary": "How much your wealth goes up or down, in %, from one month to the next.",
       "source": "_history table, columns Date and Assets Master Currency, added up by date; last record of each month.",
       "explain": [
-        "Each bar compares the total of your assets at the end of a month with the previous month. Blue bars above zero are rises; orange bars below are falls.",
+        "Each bar compares the total of your wealth (gross or net, depending on the menu button) at the end of a month with the previous month. Blue bars above zero are rises; orange bars below are falls.",
         "This change mixes two causes: what you put in or took out, and what the market did. Separating them needs the inout tab, which isn’t used here yet."
       ]
     },
@@ -212,7 +212,7 @@
       "summary": "Your wealth in euros at each record, with the trend line.",
       "source": "_history table, Date column and euro amount column (EUR, otherwise Assets Master Currency), added up by date. Rows without Asset or Instrument are goals.",
       "explain": [
-        "Each bar is the total of your assets in euros on a record date. The line is the average trend of all records: it shows your past growth rate.",
+        "Each bar is the total of your wealth in euros (gross or net, depending on the menu button) on a record date. The line is the average trend of all records: it shows your past growth rate.",
         "The orange diamonds are your goals: in the _history table, they are the rows that have only a date and an amount (no asset type, no instrument). The trend is extended as a dotted line to the last goal: if it passes above a diamond, your current pace is enough to reach it.",
         "Goals stretch the time axis: the slider at the bottom lets you zoom in on the records."
       ]
@@ -297,6 +297,16 @@
       "priceNow": "Unit price now",
       "investment": "Investment",
       "type": "Type"
+    },
+    "debts": {
+      "title": "Your debts",
+      "summary": "The amount of your debts, by asset type, month after month.",
+      "source": "_history table, Date, Asset and Liabilities Master Currency columns (for old records without that column: the EUR column when it is negative).",
+      "none": "No debts in the _history table.",
+      "explain": [
+        "Each line follows the debts of one asset type: the home loan under real estate, the car loan under depreciating assets… It falls as you repay.",
+        "This chart only appears in Gross mode: in Net mode, debts are already taken off the other charts."
+      ]
     }
   },
   "simulation": {
@@ -519,7 +529,7 @@
     "noData": "No data: {types}.",
     "columnsRead": "Columns read for the detail: {columns}.",
     "noColumnFor": "No column for: {dims}.",
-    "footer": "The year and month changes compare gross assets with the records in the _history table; they include your contributions and withdrawals. To update the data, use the Refresh all button on the {sheet} page.",
+    "footer": "The year and month changes compare your wealth (gross or net, depending on the Charts menu button) with the records in the _history table; they include your contributions and withdrawals. To update the data, use the Refresh all button on the {sheet} page.",
     "defaultSubtitle": "Your wealth today, asset type by asset type.",
     "donutA11y": "Ring of {count} asset types totalling {total}. The largest: {biggest}, {share}.",
     "since": "Since {date}",
@@ -530,7 +540,11 @@
     "afterDebts": "After {amount} of debts",
     "noDebtColumn": "No debt column",
     "thisYear": "This year",
-    "thisMonth": "This month"
+    "thisMonth": "This month",
+    "yourNetWorth": "Your net worth",
+    "yourDebts": "Your debts",
+    "debtsTotal": "{amount} in total, by instrument.",
+    "typeDebts": "After {amount} of debts; the breakdown shows its assets."
   },
   "strategyPage": {
     "loading": "Loading your shares…",
@@ -794,5 +808,22 @@
     "legend": "Document tabs",
     "instant": "Ticking or unticking a tab saves the list right away.",
     "removed": "List saved. Not in the document, removed: {tabs} | List saved. Not in the document, removed: {tabs}"
+  },
+  "amounts": {
+    "label": "Amounts",
+    "mode": {
+      "gross": "Gross",
+      "net": "Net"
+    },
+    "help": {
+      "gross": "Gross: your assets, without debts. Applies to Flow, Snapshot and Envelopes.",
+      "net": "Net: your assets minus your debts. Applies to Flow, Snapshot and Envelopes."
+    },
+    "note": {
+      "gross": "Gross amounts: your assets, without debts.",
+      "net": "Net amounts: each debt is taken off its asset type, its envelope…",
+      "debt": "Amounts: your debts, as positive values."
+    },
+    "dropped": "Left out because its debts exceed its assets: {names}. | Left out because their debts exceed their assets: {names}."
   }
 }

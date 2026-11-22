@@ -3,7 +3,8 @@
 // Fonctions pures : testables sans navigateur. Seules Asset et Assets Master Currency sont obligatoires ;
 // les autres découpages (sous-type, instrument, enveloppe, courtier, zone) n'apparaissent que si la colonne existe.
 
-import { findColumn, latestDate, requireColumns, rowsOf, splitBy, toLabel, toNumber } from './aggregate.js'
+import { findColumn, latestDate, requireColumns, rowsOf, splitBy, toLabel } from './aggregate.js'
+import { amountTable, amountTotals } from './amounts.js'
 import { assetParts } from './charts/assetDonut.js'
 import { totalsByDate } from './charts/flowData.js'
 import { capitalize, euro, percent, percentPrecise } from './format.js'
@@ -78,26 +79,31 @@ function topItems(rows, column, valueColumn, total) {
  * @param portfolio table `portfolio` de l'API
  * @param history   table `_history` (ou null) : sert seulement aux variations de l'année et du mois
  * @param today     "AAAA-MM-JJ" : date de référence si la table n'a pas de colonne Date
+ * @param mode      'gross' ou 'net' (bouton Brut / Net de Charts, lib/amounts.js) : montants de l'anneau, du détail
+ *                  par type et des variations. Les repères « Patrimoine brut » et « Patrimoine net » ne changent pas.
  */
-export function buildSnapshot(portfolio, history = null, today = new Date().toISOString().slice(0, 10)) {
+export function buildSnapshot(portfolio, history = null, today = new Date().toISOString().slice(0, 10), mode = 'gross') {
   const cols = requireColumns(portfolio, { asset: ['Asset'], value: ['Assets Master Currency'] })
-  const rows = rowsOf(portfolio)
+  const rows = rowsOf(amountTable(portfolio, mode))
 
-  const { entries, total: gross } = splitBy(rows, cols.asset, cols.value)
+  // `total` : somme des types affichés (brut, ou net sans les types négatifs) ; base des parts
+  const { entries, total } = splitBy(rows, cols.asset, cols.value)
   if (!entries.length) return { empty: t('errors.noPositive', { table: 'portfolio' }) }
 
-  // Dettes : colonne facultative, montants négatifs (patrimoine net = actifs + dettes)
+  // Repères : brut et net, quel que soit le mode (dettes = montants négatifs ; net = actifs + dettes)
   const liabilitiesColumn = findColumn(portfolio.columns, ['Liabilities Master Currency'])
-  const liabilities = liabilitiesColumn
-    ? rows.reduce((sum, row) => sum + toNumber(row[liabilitiesColumn]), 0)
-    : 0
+  const { assets: gross, debts: liabilities } = amountTotals(portfolio)
   const net = gross + liabilities
+
+  // Tes dettes (mode Brut) : par instrument, en positif, avec leur part du total des dettes
+  const debtColumn = findColumn(portfolio.columns, ['Instrument']) ?? cols.asset
+  const debts = mode === 'gross' && liabilities < 0 ? topItems(rowsOf(amountTable(portfolio, 'debt')), debtColumn, cols.value, -liabilities) : []
 
   const dateColumn = findColumn(portfolio.columns, ['Date'])
   const asOf = (dateColumn && latestDate(rows, dateColumn)) || today
 
   // Anneau des types d'actifs (mêmes couleurs que partout sur le site)
-  const parts = assetParts(entries, gross)
+  const parts = assetParts(entries, total)
   const byValue = [...parts].sort((a, b) => b.value - a.value)
 
   // Un bloc par type d'actif, dans l'ordre fixe des couleurs ; les types hors liste à la suite
@@ -109,17 +115,22 @@ export function buildSnapshot(portfolio, history = null, today = new Date().toIS
     const slot = colors.get(name)?.slot ?? -1
     return slot >= 0 ? slot : 99
   }
+  // Détail d'un type : toujours de quoi il est fait (ses actifs, en brut). En net, un prêt est un instrument à part :
+  // retiré du détail, il en fausserait les parts ; l'en-tête du type donne son montant net et ses dettes (`debts`).
+  const grossRows = mode === 'gross' ? rows : rowsOf(amountTable(portfolio, 'gross'))
   const types = [...entries]
     .sort((a, b) => rank(a.name) - rank(b.name) || b.value - a.value)
     .map((entry) => {
-      const mine = rows.filter((row) => toLabel(row[cols.asset]).toLowerCase() === entry.name.toLowerCase())
+      const mine = grossRows.filter((row) => toLabel(row[cols.asset]).toLowerCase() === entry.name.toLowerCase())
+      const assets = mine.reduce((sum, row) => sum + Math.max(Number(row[cols.value]) || 0, 0), 0)
       return {
         name: capitalize(entry.name),
         color: colors.get(entry.name)?.color ?? CONTEXT,
         value: entry.value,
-        share: entry.value / gross,
+        share: entry.value / total,
+        debts: Math.max(assets - entry.value, 0), // dettes retirées du type (mode net), 0 en brut
         dimensions: dimensions
-          .map((dim) => ({ key: dim.key, label: dim.label, items: topItems(mine, dim.column, cols.value, entry.value) }))
+          .map((dim) => ({ key: dim.key, label: dim.label, items: topItems(mine, dim.column, cols.value, assets) }))
           .filter((dim) => dim.items.length),
       }
     })
@@ -130,9 +141,12 @@ export function buildSnapshot(portfolio, history = null, today = new Date().toIS
 
   return {
     asOf,
+    mode,
+    total,
     gross,
     net,
     liabilities,
+    debts,
     hasLiabilities: Boolean(liabilitiesColumn),
     parts,
     legend: byValue.map((part) => ({
@@ -141,7 +155,7 @@ export function buildSnapshot(portfolio, history = null, today = new Date().toIS
       amount: euro(part.value),
       share: percent(part.share),
     })),
-    changes: history ? periodChanges(history, asOf) : { year: null, month: null },
+    changes: history ? periodChanges(amountTable(history, mode), asOf) : { year: null, month: null },
     types,
     missing,
     usedColumns: dimensions.map((dim) => t('snapshot.usedColumn', { label: dim.label, column: dim.column })),

@@ -65,6 +65,7 @@ export function variationOption(changes) {
 
 export default {
   slug: 'variation-mensuelle',
+  amounts: true, // suit le bouton Brut / Net (lib/amounts.js)
   get title() {
     return t('charts.variation.title')
   },

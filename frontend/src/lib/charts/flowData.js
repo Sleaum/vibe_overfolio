@@ -1,7 +1,7 @@
 // Calculs communs aux graphiques « Portfolio Flow » : table `_history`, des relevés datés (plusieurs lignes par date).
 // Fonctions pures. Un mois est représenté par son dernier relevé, jamais par la somme de ses relevés.
 
-import { findColumn, rowsOf, toLabel, toNumber } from '../aggregate.js'
+import { findColumn, noteDropped, rowsOf, toLabel, toNumber } from '../aggregate.js'
 import { monthKey, toIsoDate } from '../dates.js'
 import { t } from '../../i18n/index.js'
 import { capitalize, formatDateLong, percent } from '../format.js'
@@ -53,8 +53,9 @@ export function totalsByDate(rows, dateColumn, valueColumn) {
 }
 
 /**
- * Montants > 0 par date puis par libellé : { days: Map(iso -> Map(nom -> montant)), names: [noms] }.
- * Deux écritures qui ne diffèrent que par la casse sont un seul libellé.
+ * Montants par date puis par libellé : { days: Map(iso -> Map(nom -> montant)), names: [noms] }.
+ * Deux écritures qui ne diffèrent que par la casse sont un seul libellé. Chaque libellé est additionné à chaque date
+ * (dettes comprises en montants nets), puis seuls les totaux positifs sont gardés ; un total négatif est relevé.
  */
 export function groupsByDate(rows, dateColumn, groupColumn, valueColumn, emptyLabel = t('data.unknown')) {
   const days = new Map()
@@ -62,7 +63,7 @@ export function groupsByDate(rows, dateColumn, groupColumn, valueColumn, emptyLa
   for (const row of rows) {
     const iso = toIsoDate(row[dateColumn])
     const value = toNumber(row[valueColumn])
-    if (!iso || !(value > 0)) continue
+    if (!iso || !value) continue
     const label = toLabel(row[groupColumn], emptyLabel)
     const key = label.toLowerCase()
     if (!names.has(key)) names.set(key, label)
@@ -71,7 +72,17 @@ export function groupsByDate(rows, dateColumn, groupColumn, valueColumn, emptyLa
     day.set(name, (day.get(name) ?? 0) + value)
     days.set(iso, day)
   }
-  return { days, names: [...names.values()] }
+  const kept = new Set()
+  for (const day of days.values()) {
+    for (const [name, value] of day) {
+      if (value > 0) kept.add(name)
+      else {
+        if (value < 0) noteDropped(name)
+        day.delete(name)
+      }
+    }
+  }
+  return { days, names: [...names.values()].filter((name) => kept.has(name)) }
 }
 
 /**

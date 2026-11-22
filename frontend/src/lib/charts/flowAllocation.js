@@ -60,6 +60,7 @@ export function allocationOption(model) {
 
 export default {
   slug: 'repartition-mensuelle',
+  amounts: true, // suit le bouton Brut / Net (lib/amounts.js)
   get title() {
     return t('charts.allocation.title')
   },

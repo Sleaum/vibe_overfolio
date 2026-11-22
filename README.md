@@ -61,7 +61,8 @@ overfolio/
 │           ├── api.js              # appels /api/data/...
 │           ├── aggregate.js, dates.js, format.js   # calculs et formats français
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
-│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation
+│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation, brut / net
+│           ├── amounts.js          # bouton Brut / Net de Charts : montants bruts, nets ou dettes seules
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
 │           ├── chartDark.js        # passe un graphique en sombre
 │           ├── simulation.js, simulation.worker.js         # calculs de la page Simulation
@@ -483,6 +484,7 @@ Quatorze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de
 | `patrimoine-devises` | `_history` | `Date` et une colonne de montants par devise dont le nom contient `CHF`, `EUR` ou `USD` (par exemple `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées |
 | `repartition-mensuelle` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Barres à 100 % par mois |
 | `evolution-par-actif` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Une courbe par type d'actif |
+| `dettes-par-actif` | `_history` | `Date`, `Asset`, `Liabilities Master Currency` (ou `EUR` négatif). Tes dettes en positif, une courbe par type d'actif. Sur la page Flow, seulement en mode Brut |
 | `variation-mensuelle` | `_history` | `Date`, `Assets Master Currency`. Variation en % du total d'un mois à l'autre |
 | `entrees-sorties` | `inout` | `date`, `in`, `out`, `tax` (facultative). Barres par mois ; sorties et impôts saisis en négatif comptés en valeur absolue |
 | `patrimoine-tendance` | `_history` | `Date` et la colonne en euros (`EUR`, sinon `Assets Master Currency`). Barres par relevé, droite de tendance prolongée jusqu'au dernier objectif, et objectifs (lignes sans `Asset` ni `Instrument`) |
@@ -497,6 +499,19 @@ Les anciens graphiques à part (évolution du patrimoine, répartition par type 
 
 Les totaux utilisent uniquement `Assets Master Currency` (et `Liabilities Master Currency`) : `Currency Price` est la devise de cotation et `Equity` mélange plusieurs devises, donc aucun des deux ne sert à additionner.
 
+### Brut ou net
+
+En haut du menu de Charts, le bouton **Brut / Net** choisit les montants des pages Flow, Snapshot et Envelopes. Le choix est gardé par le navigateur (préférence `amounts` de `lib/preferences.js`). Volatility (prix), Budget et « Entrées, sorties et impôts » (flux) et Strategy (actions seulement) ne changent pas. Tout est dans `frontend/src/lib/amounts.js`.
+
+| Mode | Montants |
+|---|---|
+| Brut | Tes actifs (`Assets Master Currency`), sans les dettes. La page Flow ajoute le graphique « Tes dettes » (`dettes-par-actif`), la page Snapshot la liste « Tes dettes » par instrument |
+| Net | Actifs moins dettes. Chaque dette reste sur sa ligne, donc dans son type d'actif, son enveloppe… : le prêt de la maison est retiré de `real estate`. Les découpages additionnent chaque groupe, puis écartent un groupe négatif (ses dettes dépassent ses actifs), avec une note sous le graphique |
+
+- Dans la feuille, une ligne est soit un actif, soit une dette. Les colonnes de devise (`EUR`, `USD`, `CHF`, `THB`) portent les deux : positives pour un actif, négatives pour une dette. Elles suivent le mode, comme `Assets Master Currency`.
+- Les anciens relevés n'ont ni `Assets Master Currency` ni `Liabilities Master Currency`, seulement les colonnes de devise : la colonne `EUR` décide, selon son signe. Une ligne sans `Asset`, `Instrument` ni `Envelope` (un objectif) n'est ni un actif ni une dette.
+- Une spécification de graphique suit le bouton en déclarant `amounts: true` (`amounts: 'debt'` pour les dettes seules) : `buildChart()` lui passe une copie de la table avec les montants du mode, et ajoute à sa note la nature des montants.
+
 Si une colonne manque, la page du graphique le dit en clair et renvoie vers la page GoogleSheet. Si la table n'a jamais été synchronisée, elle propose d'ouvrir l'onglet correspondant pour cliquer sur Tout actualiser.
 
 ### Snapshot
@@ -505,10 +520,12 @@ La page `/portfolio-snapshot` lit la table `portfolio` (et `_history` pour deux 
 
 | Élément | Calcul |
 |---|---|
-| Patrimoine brut | Somme des `Assets Master Currency` supérieurs à 0 |
-| Patrimoine net | Brut + somme des `Liabilities Master Currency` (les dettes sont négatives). Sans cette colonne, net = brut |
-| Cette année, Ce mois-ci | Variation du total de `_history` entre le dernier relevé avant le 1er janvier (ou le 1er du mois) et le dernier relevé jusqu'à la date des positions. Elle inclut tes versements et retraits : ce n'est pas un rendement. Sans assez de relevés, elle affiche « – » |
-| Détail par type d'actif | Un bloc par valeur de `Asset`, avec des barres pour chaque découpage dont la colonne existe : Sous-type (`Sub Asset`), Instrument (`Instrument`), Enveloppe (`Envelope`, `Enveloppe`, sinon `Account`), Courtier (`Broker`), Zone (`Area`). Les 6 plus gros sont affichés, le reste est regroupé en « Autres » |
+| Patrimoine brut | Somme des `Assets Master Currency` supérieurs à 0 (anciens relevés : `EUR` positif). Ne dépend pas du bouton Brut / Net |
+| Patrimoine net | Brut + somme des `Liabilities Master Currency` (les dettes sont négatives). Sans cette colonne, net = brut. Ne dépend pas du bouton Brut / Net |
+| Anneau, montants par type | Selon le bouton Brut / Net (voir « Brut ou net »). En net, un type négatif est écarté et signalé |
+| Tes dettes | Mode Brut : les dettes par instrument, en positif, avec leur part du total des dettes |
+| Cette année, Ce mois-ci | Variation du total (brut ou net, selon le bouton) de `_history` entre le dernier relevé avant le 1er janvier (ou le 1er du mois) et le dernier relevé jusqu'à la date des positions. Elle inclut tes versements et retraits : ce n'est pas un rendement. Sans assez de relevés, elle affiche « – » |
+| Détail par type d'actif | Un bloc par valeur de `Asset`, avec des barres pour chaque découpage dont la colonne existe : Sous-type (`Sub Asset`), Instrument (`Instrument`), Enveloppe (`Envelope`, `Enveloppe`, sinon `Account`), Courtier (`Broker`), Zone (`Area`). Les 6 plus gros sont affichés, le reste est regroupé en « Autres ». Le détail montre toujours les actifs du type ; en net, l'en-tête du type donne son montant net et les dettes retirées |
 
 Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en bas les colonnes réellement lues pour chaque découpage, ce qui permet de vérifier d'un coup d'œil. Pour accepter un autre nom de colonne, ajouter ce nom dans la liste `DIMENSIONS` de `snapshot.js`. La carte du monde de Looker Studio est remplacée par une liste de zones : une carte demanderait un fichier de fonds de carte, donc une nouvelle ressource.
 
@@ -609,6 +626,7 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 |---|---|---|
 | patrimoine / patrimoine net / patrimoine brut | wealth / net worth / gross assets | ทรัพย์สิน / ทรัพย์สินสุทธิ / ทรัพย์สินรวม |
 | actifs / dettes | assets / debts | สินทรัพย์ / หนี้สิน |
+| Brut / Net (bouton de Charts) | Gross / Net | รวม / สุทธิ |
 | type d'actif | asset type | ประเภทสินทรัพย์ |
 | enveloppe (de placement) | (investment) envelope | บัญชีลงทุน |
 | instrument / placement | instrument / investment | ตราสาร / การลงทุน |
