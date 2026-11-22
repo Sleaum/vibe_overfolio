@@ -666,7 +666,12 @@
       "text": "La façon standard : tu te connectes avec ton compte Google, puis tu choisis ta feuille dans le sélecteur de fichiers de Google. Overfolio n’a accès qu’à cette feuille, qui reste privée. Pas de partage à faire, pas de compte de service, pas de fichier JSON.",
       "soon": "Bientôt disponible : cette connexion arrivera avec les comptes Overfolio. En attendant, utilise le lien public ou un compte de service."
     },
-    "accountTitle": "Compte de service Google"
+    "accountTitle": "Compte de service Google",
+    "accountLoaded": {
+      "page": "Compte de service chargé depuis la base (enregistré sur cette page). Clique sur Enregistrer pour l’utiliser.",
+      "env": "Compte de service chargé depuis le fichier .env. Clique sur Enregistrer pour l’utiliser.",
+      "none": "Aucun compte de service dans la base ni dans le .env : importe le fichier JSON ou remplis les champs."
+    }
   },
   "simulationPage": {
     "lead": "{runs} avenirs possibles pour ton patrimoine net, tirés au hasard à partir de tes montants actuels et des hypothèses ci-dessous. La fourchette montre ce qui peut raisonnablement arriver, pas une prévision.",

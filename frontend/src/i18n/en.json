@@ -666,7 +666,12 @@
       "text": "The standard way: sign in with your Google account, then pick your sheet in Google’s file picker. Overfolio only gets access to that sheet, which stays private. No sharing to set up, no service account, no JSON file.",
       "soon": "Coming soon: this connection will arrive with Overfolio accounts. Until then, use the public link or a service account."
     },
-    "accountTitle": "Google service account"
+    "accountTitle": "Google service account",
+    "accountLoaded": {
+      "page": "Service account loaded from the database (saved on this page). Click Save to use it.",
+      "env": "Service account loaded from the .env file. Click Save to use it.",
+      "none": "No service account in the database or in .env: import the JSON file or fill in the fields."
+    }
   },
   "simulationPage": {
     "lead": "{runs} possible futures for your net worth, drawn at random from your current amounts and the assumptions below. The range shows what can reasonably happen, not a forecast.",

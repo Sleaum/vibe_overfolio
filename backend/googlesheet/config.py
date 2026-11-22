@@ -138,6 +138,27 @@ def sync_tabs() -> List[str]:
     return parse_tabs(current_values()["sync_tabs"]) or list(DEFAULT_TABS)
 
 
+# Champs proposés quand on choisit le mode « compte de service » sur la page (sauf la clé privée, jamais envoyée)
+ACCOUNT_VIEW_FIELDS = [field for field in CREDENTIAL_FIELDS if field not in SECRET_FIELDS]
+
+
+def account_to_load(values: Optional[Dict[str, str]] = None, env: Optional[Dict[str, str]] = None) -> dict:
+    """
+    Compte de service à charger dans le formulaire quand on choisit le mode 2 :
+    celui enregistré en base s'il est complet, sinon celui du .env, sinon rien.
+    """
+    values = values if values is not None else current_values()
+    env = env if env is not None else env_values()
+    for source, candidate in (("page" if saved_config() else "env", values), ("env", env)):
+        if _has_account(candidate):
+            return {
+                "source": source,
+                "values": {field: candidate[field] for field in ACCOUNT_VIEW_FIELDS},
+                "private_key_set": bool(candidate["private_key"].strip()),
+            }
+    return {"source": None, "values": {field: "" for field in ACCOUNT_VIEW_FIELDS}, "private_key_set": False}
+
+
 def public_view() -> dict:
     """Ce que la page reçoit : toutes les valeurs sauf la clé privée, remplacée par un indicateur."""
     config = saved_config()
@@ -153,6 +174,8 @@ def public_view() -> dict:
             "values": {field: env[field] for field in FIELDS if field not in SECRET_FIELDS},
             "private_key_set": bool(env["private_key"].strip()),
         },
+        # Compte de service à proposer en mode 2 : base s'il est complet, sinon .env (clé jamais envoyée)
+        "account": account_to_load(values, env),
     }
 
 
@@ -188,6 +211,13 @@ def save(data: dict) -> SheetConfig:
 
     if not values["private_key"].strip():
         values["private_key"] = current["private_key"]
+    # Compte de service rechargé depuis le .env (mode 2 choisi alors que la base n'en a plus) :
+    # la clé du .env est reprise, seulement s'il s'agit du même compte (même e-mail)
+    if not values["private_key"].strip() and data.get("clear_credentials") is not True:
+        env = env_values()
+        same_account = values["client_email"] and values["client_email"] == env["client_email"].strip()
+        if same_account and env["private_key"].strip():
+            values["private_key"] = env["private_key"]
     values["private_key"] = _normalize_private_key(values["private_key"]).strip()
     if values["private_key"]:
         values["private_key"] += "\n"

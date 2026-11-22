@@ -216,7 +216,7 @@ Sur la page **GoogleSheet**, le bloc « Connexion à Google Sheets » commence p
 | **2. Compte de service** | comme avant : lien, nom du document (seulement si le lien est vide), onglets, compte de service (import du fichier JSON, champs, champs avancés) |
 | **3. Compte Google** | présentation de la connexion standard « Se connecter avec Google » (sélecteur de fichiers de Google, feuille privée). **Pas encore branchée** : elle arrivera avec les comptes Overfolio |
 
-Enregistrer en mode 1 retire le compte de service enregistré (après confirmation). Côté serveur, le mode en vigueur se déduit des valeurs enregistrées (`access_mode()` dans `backend/googlesheet/config.py`) :
+Enregistrer en mode 1 retire le compte de service enregistré (après confirmation). Cocher la carte 2 alors qu'aucun compte n'est en vigueur recharge le compte de service de la **base** s'il y en a un, sinon celui du **`.env`** (message « Compte de service chargé depuis… ») ; la clé privée n'est jamais envoyée au navigateur, elle est reprise à l'enregistrement, et celle du `.env` seulement pour le même e-mail de compte. Côté serveur, le mode en vigueur se déduit des valeurs enregistrées (`access_mode()` dans `backend/googlesheet/config.py`) :
 
 | Mode | Quand | Ce qu'il faut | La feuille |
 |---|---|---|---|
@@ -349,7 +349,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | GET | `/api/data/<onglet>/` | Colonnes (dans l'ordre) et lignes d'une table |
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données ; 502 si aucun n'a pu être enregistré |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
-| GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
+| GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
 | GET | `/api/sheet-config/tabs/` | Onglets du document : `{ mode, tabs, selected }`, dans les deux modes |
 
 Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "code_stable", "params": {…}}` (`backend/googlesheet/errors.py`) : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google). Le site affiche le message dans la langue choisie à partir de `code` et `params` (rubrique `apiErrors` de `frontend/src/i18n/*.json`) ; `error` reste en français pour la ligne de commande. Un formulaire invalide (`400`) ajoute `fields` (messages par champ) et `field_codes` (codes par champ). Le résultat de chaque onglet d'une synchronisation porte aussi `code` et `params`.
