@@ -1,5 +1,5 @@
 <!--
-  Page « Stratégie CTO » (/strategie) : tes actions regroupées de plusieurs façons, en anneaux à deux niveaux
+  Page « Stratégie CTO » (/strategie) : tes actions regroupées de plusieurs façons :
   une carte du monde des pays en premier (colonne Area, components/charts/WorldMapCard.vue), puis les anneaux
   (secteur, moat, localisation, note S&P, business, place de cotation, instruments).
   Tables lues : portfolio (obligatoire) et stock (facultative : elle fournit les attributs absents de portfolio).
