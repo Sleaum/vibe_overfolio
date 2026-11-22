@@ -24,7 +24,7 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import VChart from 'vue-echarts'
 import '../../lib/echartsSetup.js'
 import { useReducedMotion } from '../../composables/useReducedMotion.js'
@@ -42,11 +42,13 @@ const props = defineProps({
 })
 
 const reducedMotion = useReducedMotion()
+// Dans le rapport PDF (page /rapport) : pas d'animation, le graphique est complet dès qu'il est dessiné
+const inReport = inject('report', false)
 
 const { isDark } = useTheme()
 
 const finalOption = computed(() => {
   const option = isDark.value ? toDark(props.option) : props.option
-  return reducedMotion.value ? { ...option, animation: false } : option
+  return reducedMotion.value || inReport ? { ...option, animation: false } : option
 })
 </script>

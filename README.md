@@ -429,6 +429,7 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3, ECharts et vue-i18n. Il ne
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone |
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Une bulle par placement : montant détenu et variation du prix unitaire sur 1 mois, 3 mois et 1 an |
 | `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
+| `/rapport` | `views/ReportPage.vue` | Bouton **PDF** de l'en-tête : tout le site en un PDF. Les pages Flow, Snapshot, Envelopes, Strategy, Volatility, Budget et Simulation à la suite, chacune sur une nouvelle page, avec les réglages en cours (brut ou net, clair ou sombre, langue). Quand tout est chargé, la fenêtre d'impression s'ouvre : choisir « Enregistrer au format PDF ». Voir « Le PDF » |
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `components/charts/WorldMapCard.vue`, `lib/strategy.js`, `lib/charts/sunburst.js` et `lib/charts/worldMap.js` | Strategy : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments) et une carte du monde des pays (colonne `Area`), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
@@ -551,6 +552,14 @@ La page `/strategie` reprend la page « Strategy » de Looker Studio : sept anne
 - **Carte du monde.** Sous les anneaux, chaque pays est coloré selon le montant des actions dont la colonne `Area` désigne ce pays (la même colonne que l'anneau Localisation), avec une bulle à sa taille au centre du pays, pour que les petits pays restent visibles. Au survol : le montant, la part et les actions du pays ; la liste des pays et une vue Tableau sont dessous. Elle suit le menu « Enveloppe ». Une valeur qui n'est pas un pays (`world`, `europe`) est listée sous la carte. Les écritures reconnues (`usa`, `pays-bas`, `taïwan`, `korea`…) sont dans `frontend/src/lib/countries.js` : ajouter une écriture dans `aliases`, ou un pays avec son centre. Les frontières viennent du paquet `world-atlas` (110m, licence ISC), converties par `topojson-client`, et ne sont chargées qu'à l'ouverture de Strategy (`lib/charts/worldMap.js`, `components/charts/WorldMapCard.vue`). Le nom des pays est affiché dans la langue active (`countryName` de `lib/format.js`).
 - **Noms sur les anneaux.** Comme sur la page Envelopes, chaque catégorie a son nom au centre, et chaque détail assez large pour être lisible a le sien sur l'anneau extérieur (`withLabels` de `lib/charts/sunburst.js`). Les autres se lisent au survol, dans la légende et dans la vue Tableau.
 - Pour accepter un autre nom de colonne, l'ajouter dans la liste `ATTRIBUTES` de `strategy.js`.
+
+### Le PDF
+
+Le bouton **PDF** de l'en-tête (entre Simulation et la langue) ouvre la page `/rapport` (`frontend/src/views/ReportPage.vue`) :
+
+- elle affiche à la suite Flow, Snapshot, Envelopes, Strategy, Volatility, Budget et Simulation, avec les réglages en cours : montants brut ou net, mode clair ou sombre, langue. Les filtres propres à une page (année de Flow, enveloppe de Strategy) restent ceux par défaut ;
+- elle attend que tout soit chargé (plus aucun élément `role="status"` dans les pages), puis ouvre la fenêtre d'impression du navigateur : choisir « Enregistrer au format PDF ». Rien n'est envoyé au serveur, aucune bibliothèque n'est ajoutée ;
+- mise en page (`assets/tailwind.css`, `@media print`) : A4 paysage, couleurs gardées (y compris le mode sombre), chaque page du site commence une nouvelle page, une carte n'est jamais coupée en deux. L'en-tête et le pied de page ne sont pas imprimés. Les graphiques du rapport ne sont pas animés (`provide('report')`, lu par `BaseChart.vue`).
 
 ### La simulation
 
