@@ -296,7 +296,8 @@
       "priceBefore": "Prix unitaire avant",
       "priceNow": "Prix unitaire maintenant",
       "investment": "Placement",
-      "type": "Type"
+      "type": "Type",
+      "missing": "Pas encore détenu le {date}, donc sans variation : {names}. | Pas encore détenus le {date}, donc sans variation : {names}."
     },
     "debts": {
       "title": "Tes dettes",
