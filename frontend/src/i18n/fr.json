@@ -11,7 +11,9 @@
     "main": "Navigation principale",
     "mainMobile": "Navigation principale (mobile)",
     "openMenu": "Ouvrir le menu",
-    "closeMenu": "Fermer le menu"
+    "closeMenu": "Fermer le menu",
+    "pdf": "PDF",
+    "pdfTitle": "Tout le site en PDF"
   },
   "theme": {
     "toDark": "Passer en mode sombre",
@@ -38,7 +40,8 @@
     "envelopes": "Enveloppes",
     "volatility": "Volatilité",
     "simulation": "Simulation",
-    "notFound": "Page introuvable"
+    "notFound": "Page introuvable",
+    "report": "Rapport PDF"
   },
   "apiErrors": {
     "unreachable": "Impossible de joindre le serveur. Vérifie que l’application est démarrée.",
@@ -839,5 +842,23 @@
     "unplaced": "Pas sur la carte (ce n’est pas un pays) : {list}.",
     "source": "Pays lu dans la colonne Area, la même que l’anneau « Localisation ». Plus un pays est foncé et sa bulle grande, plus tu y as investi.",
     "a11y": "Carte du monde de {count} pays pour {total}. Le plus gros : {biggest}, {share}."
+  },
+  "report": {
+    "title": "Overfolio : rapport du {date}",
+    "settings": "Réglages : montants {amounts}, mode {theme}, langue {language}.",
+    "amounts": {
+      "gross": "bruts",
+      "net": "nets"
+    },
+    "theme": {
+      "light": "clair",
+      "dark": "sombre"
+    },
+    "preparing": "Préparation du PDF : chargement de toutes les pages ({done}/{total})…",
+    "ready": "Prêt. Dans la fenêtre d’impression, choisis « Enregistrer au format PDF ».",
+    "timeout": "Certaines pages ont mis trop de temps à charger : le PDF peut être incomplet.",
+    "print": "Enregistrer en PDF",
+    "back": "Retour",
+    "hint": "Les réglages de chaque page (année de Flow, enveloppe de Strategy…) sont ceux par défaut."
   }
 }

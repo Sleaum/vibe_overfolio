@@ -30,6 +30,28 @@
     outline-offset: 2px;
   }
 
+  /* Impression (bouton PDF, page /rapport) : A4 paysage, couleurs du thème gardées (y compris le mode sombre),
+     sans marge blanche autour : la page /rapport met elle-même sa marge */
+  @media print {
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    html,
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Une carte (graphique, repère, bloc de détail) n'est jamais coupée entre deux pages du PDF */
+    .shadow-soft,
+    figure,
+    table {
+      break-inside: avoid;
+    }
+  }
+
   ::selection {
     background-color: theme('colors.accent-wash');
     color: theme('colors.ink');
