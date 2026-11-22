@@ -31,46 +31,48 @@ overfolio/
 │   ├── vite.config.ts              # build ; plugins « theme » (index.html, contrôle des couleurs) et « langues » (contrôle des traductions)
 │   ├── tailwind.config.js          # classes de couleur et variables CSS générées depuis lib/theme.js, typographie, ombres
 │   └── src/
-│       ├── App.vue                 # en-tête, page affichée, pied de page
+│       ├── App.vue                 # en-tête, page affichée, pied de page, bandeau de l'export PDF
 │       ├── router/index.ts         # routes (pages chargées à la demande)
 │       ├── assets/tailwind.css     # base : focus clavier, animations réduites, colonne de contenu (aucune couleur)
 │       ├── views/                  # une page par route
 │       │   ├── HeroSection.vue     #   /                   présentation et vente
 │       │   ├── SourcePage.vue      #   /sheet              onglets de la base, bouton Tout actualiser
-│       │   ├── GraphiquesLayout.vue #  /graphiques         menu à gauche (6 entrées), page choisie à droite
+│       │   ├── GraphiquesLayout.vue #  /graphiques         bouton Brut / Net, menu à gauche (6 entrées), page choisie à droite
 │       │   ├── GraphiquePage.vue   #   /graphiques/<nom>   un graphique
 │       │   ├── PortfolioFlowPage.vue #  /portfolio-flow    l'historique mois par mois
 │       │   ├── SnapshotPage.vue    #   /portfolio-snapshot  le patrimoine d'aujourd'hui
-│       │   ├── StrategyPage.vue    #   /strategie          les actions en anneaux à deux niveaux
+│       │   ├── StrategyPage.vue    #   /strategie          les actions : carte du monde, puis anneaux à deux niveaux
 │       │   ├── EnvelopesPage.vue   #   /enveloppes         les enveloppes de placement (CTO, PEA, PER, PEE)
 │       │   ├── VolatilityPage.vue  #   /volatilite         variation du prix de chaque placement
 │       │   ├── SimulationPage.vue  #   /simulation         simulation de Monte-Carlo du patrimoine
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
 │       │   └── NewPage.vue         #   /newpage            connexion
 │       ├── components/
-│       │   ├── Header.vue, Footer.vue
+│       │   ├── Header.vue, Footer.vue   # en-tête : menus, bouton PDF, langue, clair / sombre
+│       │   ├── PdfProgress.vue     # bandeau de progression de l'export PDF (absent du PDF)
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
 │       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
 │       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue)
 │       │   ├── landing/            # sections de la page de présentation
-│       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard
+│       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
 │       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes),
 │       │                           #   menu.js (noms des menus, toujours en anglais)
 │       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
 │       └── lib/
 │           ├── api.js              # appels /api/data/...
-│           ├── aggregate.js, dates.js, format.js   # calculs et formats français
+│           ├── aggregate.js, dates.js, format.js   # calculs ; nombres, dates et noms de pays dans la langue active
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
 │           ├── countries.js        # pays de la carte du monde (Strategy) : écritures de la colonne Area, centres
 │           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation, brut / net
 │           ├── amounts.js          # bouton Brut / Net de Charts : montants bruts, nets ou dettes seules
+│           ├── pdfExport.js        # bouton PDF : tout le site en un PDF, une page web = une page PDF
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
 │           ├── chartDark.js        # passe un graphique en sombre
 │           ├── simulation.js, simulation.worker.js         # calculs de la page Simulation
 │           ├── snapshot.js         # calculs de la page Snapshot
 │           ├── strategy.js         # calculs de la page Strategy
 │           ├── sample.js           # données FICTIVES de la page de présentation
-│           └── charts/             # une spécification par graphique, index.js (liste et cartes) ; aides : sunburst, assetDonut, evolution
+│           └── charts/             # une spécification par graphique, index.js (liste et cartes) ; aides : sunburst, worldMap, assetDonut, evolution
 ├── nginx/
 │   └── default.conf
 ├── .env                            # secrets, NE PAS COMMITER
@@ -133,7 +135,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 | `GOOGLE_SHEET_DOC_NAME` | `overfolio` | Nom du document, utilisé seulement si `GOOGLE_SHEET_ID` est vide |
 | `ALLOWED_SHEET_DOCS` | vide | Liste blanche des documents lisibles via `/api/sheet` (séparés par des virgules). Vide : aucune restriction |
 | `SHEET_CACHE_SECONDS` | `60` | Cache de `/api/sheet` (0 pour le désactiver) |
-| `SHEET_SYNC_TABS` | `portfolio,inout,stock,budget,_history` | Onglets recopiés en base |
+| `SHEET_SYNC_TABS` | `portfolio,inout,stock,budget,_history` | Onglets recopiés en base (modifiables sur la page GoogleSheet, au-dessus de Tout actualiser) |
 | `SYNC_COOLDOWN_SECONDS` | `10` | Délai minimal entre deux synchronisations d'une même table |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Noms et adresses par lesquels on ouvre le site. Pour y accéder depuis un téléphone du même Wi-Fi, ajouter l'adresse IP locale du PC (`ipconfig` sous Windows), par exemple `localhost,127.0.0.1,192.168.1.20`, puis ouvrir `http://192.168.1.20` sur le téléphone |
 
@@ -190,6 +192,7 @@ docker compose up --build -d
 | http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Tout actualiser). L'ancienne adresse `/source` fonctionne toujours |
 | http://localhost/graphiques | Rubrique Charts. Menu à gauche : Flow, Snapshot, Envelopes, Strategy, Volatility et Budget ; la page choisie s'affiche à droite (Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
 | http://localhost/simulation | Simulation de Monte-Carlo du patrimoine (page à part, lien « Simulation » de l'en-tête) |
+| http://localhost/newpage | Future page de connexion (factice pour l'instant) |
 | http://localhost/admin/ | Admin Django |
 
 Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx.
@@ -199,9 +202,11 @@ Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx
 1. **Brancher le Google Sheet** : page GoogleSheet (`/sheet`), bloc « Connexion à Google Sheets » (ou `.env`, voir « Google Sheets »).
 2. **Copier les données en base** : bouton **Tout actualiser** de la même page (ou `./init.sh --sync`). Les graphiques lisent la base, pas le Google Sheet : sans cette étape, ils restent vides. Recommencer après chaque mise à jour de la feuille, ou automatiser (« Synchronisation automatique »).
 3. **Lire les graphiques** : rubrique **Charts**, menu à gauche (Flow, Snapshot, Envelopes, Strategy, Volatility, Budget). Chaque graphique a une vue Tableau et une page d'explication (source des chiffres).
-4. **Projeter** : page **Simulation**, réglages dans la page.
-5. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur.
-6. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Tout le site suit la langue : textes, graphiques, messages d'erreur, nombres et dates (voir « Langues »).
+4. **Brut ou net** : le bouton **Brut / Net** en haut du menu de Charts choisit les montants de Flow, Snapshot et Envelopes : tes actifs seuls, ou actifs moins dettes (voir « Brut ou net »).
+5. **Projeter** : page **Simulation**, réglages dans la page.
+6. **Exporter en PDF** : bouton **PDF** de l'en-tête. Tout le site, une page web par page PDF, avec tes réglages du moment (voir « Le PDF »).
+7. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur.
+8. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Tout le site suit la langue : textes, graphiques, messages d'erreur, nombres et dates (voir « Langues »).
 
 ### Créer un compte administrateur
 
@@ -211,12 +216,12 @@ docker compose exec backend python manage.py createsuperuser
 
 ## Google Sheets
 
-Sur la page **GoogleSheet**, le bloc « Connexion à Google Sheets » commence par le **mode de connexion**, trois cartes à choix unique ; seuls les champs du mode choisi s'affichent :
+Sur la page **GoogleSheet**, le bloc « Connexion à Google Sheets » commence par le **mode de connexion**, trois cartes à choix unique ; seuls les champs du mode choisi s'affichent. Les onglets à synchroniser ne sont pas dans ce formulaire (voir « Onglets » ci-dessous) :
 
 | Carte | Champs affichés |
 |---|---|
-| **1. Lien public** | lien du Google Sheet, onglets à synchroniser (+ onglets proposés). Pas de nom de document : l'identifiant vient du lien |
-| **2. Compte de service** | « Trouver le document par » **Lien** ou **Nom** (un seul des deux champs affiché ; enregistrer par nom vide le lien, sinon il serait utilisé à la place), onglets, compte de service (import du fichier JSON, champs, champs avancés). Le lien est plus sûr : la recherche par nom demande l'API Drive et prend le premier document de ce nom |
+| **1. Lien public** | lien du Google Sheet. Pas de nom de document : l'identifiant vient du lien |
+| **2. Compte de service** | « Trouver le document par » **Lien** ou **Nom** (un seul des deux champs affiché ; enregistrer par nom vide le lien, sinon il serait utilisé à la place), compte de service (import du fichier JSON, champs, champs avancés). Le lien est plus sûr : la recherche par nom demande l'API Drive et prend le premier document de ce nom |
 | **3. Compte Google** | présentation de la connexion standard « Se connecter avec Google » (sélecteur de fichiers de Google, feuille privée). **Pas encore branchée** : elle arrivera avec les comptes Overfolio |
 
 Enregistrer en mode 1 retire le compte de service enregistré (après confirmation). Cocher la carte 2 alors qu'aucun compte n'est en vigueur recharge le compte de service de la **base** s'il y en a un, sinon celui du **`.env`** (message « Compte de service chargé depuis… ») ; la clé privée n'est jamais envoyée au navigateur, elle est reprise à l'enregistrement, et celle du `.env` seulement pour le même e-mail de compte. Côté serveur, le mode en vigueur se déduit des valeurs enregistrées (`access_mode()` dans `backend/googlesheet/config.py`) :
@@ -262,9 +267,9 @@ Onglets utilisés :
 
 | Onglet | Contenu | Utilisé par |
 |---|---|---|
-| `portfolio` | Positions actuelles (en-tête en ligne 2, la ligne 1 est une synthèse) | Snapshot, Strategy |
-| `_history` | Historique des relevés (et tes objectifs : lignes avec seulement une date et un montant) | Flow, Envelopes, Volatility, variations de Snapshot |
-| `inout` | Entrées et sorties d'argent (colonnes date, in, out, tax) | Graphique Entrées, sorties et impôts de Flow |
+| `portfolio` | Positions actuelles (en-tête en ligne 2, la ligne 1 est une synthèse) | Snapshot, Strategy (anneaux et carte du monde), Envelopes, point de départ de Simulation |
+| `_history` | Historique des relevés (et tes objectifs : lignes avec seulement une date et un montant) | Flow, Envelopes, Volatility, variations de Snapshot, objectif de Simulation |
+| `inout` | Entrées et sorties d'argent (colonnes date, in, out, tax) | Graphique Entrées, sorties et impôts de Flow, versement proposé par Simulation |
 | `budget` | Budget : de quelle source vers quelle destination | Flux du budget |
 | `stock` | Valeurs suivies | Strategy (secteur, moat, note…), page GoogleSheet |
 
@@ -334,7 +339,7 @@ Chemin 1 : lecture en direct (toujours à jour, cache 60 s)
 
 Chemin 2 : lecture de la base (rapide, à jour après synchronisation)
   Navigateur ──► /api/data/<onglet>/ ──► PostgreSQL
-  utilisé par : la page GoogleSheet et les pages de graphiques
+  utilisé par : la page GoogleSheet, les pages de Charts et la page Simulation
 
 Synchronisation Google Sheets ──► PostgreSQL
   - commande : python manage.py sync_sheets
@@ -417,19 +422,21 @@ Sous WSL, le service cron doit être démarré (`sudo service cron start`), et l
 
 Le front est en Vue 3 (`<script setup>`), Tailwind 3, ECharts et vue-i18n. Il ne lit que la base, par `/api/data/...` : l'API et le backend ne sont pas concernés par l'interface.
 
+Bibliothèques chargées à la demande seulement : `world-atlas` et `topojson-client` (frontières des pays, page Strategy), `html2canvas` et `jspdf` (bouton PDF).
+
 ### Pages
 
 | Adresse | Fichier | Contenu |
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, questions fréquentes |
 | `/sheet` | `views/SourcePage.vue` | Connexion (`SheetSettings.vue`), onglets à synchroniser (`SyncTabs.vue`), menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
-| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : menu en colonne à gauche (liste `MENU` de `lib/charts/index.js` : Flow, Snapshot, Envelopes, Strategy, Volatility, Budget), page choisie à droite. `/graphiques` ouvre Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
+| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : en haut à gauche le bouton Brut / Net (`lib/amounts.js`), puis le menu en colonne (liste `MENU` de `lib/charts/index.js` : Flow, Snapshot, Envelopes, Strategy, Volatility, Budget), page choisie à droite. `/graphiques` ouvre Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
 | `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Flow, Envelopes ou Volatility (leur fil d'Ariane passe par leur page) |
-| `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les 6 graphiques de Flow sur une seule page, avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
-| `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone |
+| `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les graphiques de Flow sur une seule page (« Tes dettes » en plus en mode Brut), avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
+| `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone. Montants bruts ou nets selon le bouton Brut / Net |
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Une bulle par placement : montant détenu et variation du prix unitaire sur 1 mois, 3 mois et 1 an |
 | `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
-| `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
+| `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type ; en mode Brut, la liste « Tes dettes ». Voir « Snapshot » |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `components/charts/WorldMapCard.vue`, `lib/strategy.js`, `lib/charts/sunburst.js` et `lib/charts/worldMap.js` | Strategy : une carte du monde des pays de tes actions (colonne `Area`), puis tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
 | `/newpage` | `views/NewPage.vue` | Connexion, au style du site (carte à filet fin, bleu d'accent, clair ou sombre). La connexion est encore une simulation : rien n'est envoyé au serveur |
@@ -477,12 +484,12 @@ La classe `dark` sur `<html>` décide de tout : les composants n'utilisent que d
 
 ### Les graphiques
 
-Quatorze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de Flow, Envelopes et Volatility. Chacun est un fichier de `frontend/src/lib/charts/`. Les noms de colonnes doivent être ceux de la table ; la casse, les accents et les espaces sont ignorés.
+Quinze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de Flow, Envelopes et Volatility. Chacun est un fichier de `frontend/src/lib/charts/`. Les noms de colonnes doivent être ceux de la table ; la casse, les accents et les espaces sont ignorés.
 
 | `<nom>` dans l'adresse | Table | Colonnes lues |
 |---|---|---|
 | `flux-budget` | `budget` | `Source`, `Destination`, `Valeur`. Lignes supérieures à 0, doublons additionnés |
-| `patrimoine-devises` | `_history` | `Date` et une colonne de montants par devise dont le nom contient `CHF`, `EUR` ou `USD` (par exemple `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées |
+| `patrimoine-devises` | `_history` | `Date` et une colonne de montants par devise dont le nom contient `CHF`, `EUR` ou `USD` (par exemple `EUR` ou `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées. Brut ou net selon le bouton Brut / Net |
 | `repartition-mensuelle` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Barres à 100 % par mois |
 | `evolution-par-actif` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Une courbe par type d'actif |
 | `dettes-par-actif` | `_history` | `Date`, `Asset`, `Liabilities Master Currency` (ou `EUR` négatif). Tes dettes en positif, une courbe par type d'actif. Sur la page Flow, seulement en mode Brut |
@@ -532,7 +539,7 @@ Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en 
 
 ### Strategy
 
-La page `/strategie` reprend la page « Strategy » de Looker Studio : sept anneaux à deux niveaux (graphiques « sunburst » d'ECharts, sans bibliothèque en plus). L'anneau intérieur donne les catégories, l'anneau extérieur leur détail, en nuances de la même couleur. Tous les calculs sont dans `frontend/src/lib/strategy.js`.
+La page `/strategie` reprend la page « Strategy » de Looker Studio : une carte du monde, puis sept anneaux à deux niveaux (graphiques « sunburst » d'ECharts, sans bibliothèque en plus). L'anneau intérieur donne les catégories, l'anneau extérieur leur détail, en nuances de la même couleur. Tous les calculs sont dans `frontend/src/lib/strategy.js`.
 
 | Anneau | Intérieur | Extérieur | Colonnes cherchées (la première trouvée est lue) |
 |---|---|---|---|
@@ -572,7 +579,7 @@ La page `/simulation` (lien de l'en-tête, à part de la rubrique Graphiques) ti
 - **Valeurs proposées** : le versement mensuel est la moyenne des 12 derniers mois complets de `inout` (`in - out - tax`). L'objectif est la prochaine ligne d'objectif de `_history`. Les hypothèses par type d'actif (rendement, volatilité, lien avec les actions) sont des ordres de grandeur de long terme, dans `DEFAULT_ASSUMPTIONS` de `lib/simulation.js`.
 - **Modèle** : rendements mensuels log-normaux, chocs de Student à 5 degrés de liberté (krachs plus fréquents qu'avec une loi normale) et corrélation par un facteur « marché actions ». Les versements sont répartis au prorata des actifs cochés, et les frais sont prélevés sur les actifs financiers. La dette baisse du capital remboursé chaque mois.
 - **Limites** : ni impôt à la sortie ni rééquilibrage. Les résultats sont reproductibles : une graine fixe donne le même résultat pour les mêmes hypothèses.
-- Tout se règle dans la page, et les réglages sont gardés par le navigateur (`localStorage`). Le calcul tourne dans un Web Worker, en 0,3 s environ.
+- Tout se règle dans la page, et les réglages sont gardés par le navigateur (préférence `simulation` de `lib/preferences.js`). Le calcul tourne dans un Web Worker, en 0,3 s environ.
 
 ### Ajouter un graphique
 
@@ -653,6 +660,7 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 | objectif / tendance | goal / trend | เป้าหมาย / แนวโน้ม |
 | médiane / trajectoire | median / path | ค่ามัธยฐาน / เส้นทาง |
 | Autres / Non renseigné | Others / Not specified | อื่น ๆ / ไม่ระบุ |
+| pays / carte du monde | country / world map | ประเทศ / แผนที่โลก |
 
 ## Commandes utiles
 
@@ -715,6 +723,7 @@ docker compose exec db psql -U overfoliouser -d overfoliodb
 - Le mode « lien public » exige une feuille lisible par quiconque a son lien : elle contient l'intégralité du patrimoine. Pour une feuille privée, utilise un compte de service et partage-la seulement avec `CLIENT_EMAIL`.
 - Passer à `DEBUG=False` et restreindre `ALLOWED_HOSTS` en production.
 - Les routes `/api/sheet`, `/api/data/` et `/api/sheet-config/` sont publiques : les restreindre avant toute exposition sur Internet.
+- Le PDF du bouton PDF est fabriqué dans le navigateur et contient tout ton patrimoine : rien n'est envoyé au serveur, mais le fichier téléchargé est à garder comme une donnée sensible.
 
 ## Notes pour la production
 
