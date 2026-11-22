@@ -1,0 +1,26 @@
+# Secrets : ne jamais commiter (voir « Sécurité » dans le README)
+.env
+.env.*
+!.env.example
+env
+backend/overfolio/.env
+keysave
+keysave.pub
+id_rsa*
+id_ed25519*
+id_ecdsa*
+*.pem
+*.key
+# Fichier JSON du compte de service Google
+*service-account*.json
+credentials*.json
+
+# Python
+__pycache__/
+*.pyc
+
+# Node (le frontend a aussi son propre .gitignore)
+node_modules/
+
+# Journal de la synchronisation automatique (cron)
+sync.log
