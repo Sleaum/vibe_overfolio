@@ -826,5 +826,18 @@
       "debt": "Montants : tes dettes, en valeur positive."
     },
     "dropped": "Écarté car ses dettes dépassent ses actifs : {names}. | Écartés car leurs dettes dépassent leurs actifs : {names}."
+  },
+  "strategyMap": {
+    "title": "Carte du monde",
+    "countryCount": "{count} pays | {count} pays",
+    "loading": "Chargement de la carte…",
+    "loadError": "La carte n’a pas pu être chargée.",
+    "noCountry": "Aucune valeur de la colonne Area n’est un pays : rien à placer sur la carte.",
+    "countries": "Pays, du plus gros au plus petit",
+    "country": "Pays",
+    "notACountry": "pas un pays",
+    "unplaced": "Pas sur la carte (ce n’est pas un pays) : {list}.",
+    "source": "Pays lu dans la colonne Area, la même que l’anneau « Localisation ». Plus un pays est foncé et sa bulle grande, plus tu y as investi.",
+    "a11y": "Carte du monde de {count} pays pour {total}. Le plus gros : {biggest}, {share}."
   }
 }
