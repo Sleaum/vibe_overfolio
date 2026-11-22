@@ -61,6 +61,7 @@ overfolio/
 │           ├── api.js              # appels /api/data/...
 │           ├── aggregate.js, dates.js, format.js   # calculs et formats français
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
+│           ├── countries.js        # pays de la carte du monde (Strategy) : écritures de la colonne Area, centres
 │           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation, brut / net
 │           ├── amounts.js          # bouton Brut / Net de Charts : montants bruts, nets ou dettes seules
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
@@ -429,7 +430,7 @@ Le front est en Vue 3 (`<script setup>`), Tailwind 3, ECharts et vue-i18n. Il ne
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Une bulle par placement : montant détenu et variation du prix unitaire sur 1 mois, 3 mois et 1 an |
 | `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type |
-| `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `lib/strategy.js` et `lib/charts/sunburst.js` | Strategy : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
+| `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `components/charts/WorldMapCard.vue`, `lib/strategy.js`, `lib/charts/sunburst.js` et `lib/charts/worldMap.js` | Strategy : tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments) et une carte du monde des pays (colonne `Area`), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
 | `/newpage` | `views/NewPage.vue` | Connexion, au style du site (carte à filet fin, bleu d'accent, clair ou sombre). La connexion est encore une simulation : rien n'est envoyé au serveur |
 
@@ -527,7 +528,7 @@ La page `/portfolio-snapshot` lit la table `portfolio` (et `_history` pour deux 
 | Cette année, Ce mois-ci | Variation du total (brut ou net, selon le bouton) de `_history` entre le dernier relevé avant le 1er janvier (ou le 1er du mois) et le dernier relevé jusqu'à la date des positions. Elle inclut tes versements et retraits : ce n'est pas un rendement. Sans assez de relevés, elle affiche « – » |
 | Détail par type d'actif | Un bloc par valeur de `Asset`, avec des barres pour chaque découpage dont la colonne existe : Sous-type (`Sub Asset`), Instrument (`Instrument`), Enveloppe (`Envelope`, `Enveloppe`, sinon `Account`), Courtier (`Broker`), Zone (`Area`). Les 6 plus gros sont affichés, le reste est regroupé en « Autres ». Le détail montre toujours les actifs du type ; en net, l'en-tête du type donne son montant net et les dettes retirées |
 
-Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en bas les colonnes réellement lues pour chaque découpage, ce qui permet de vérifier d'un coup d'œil. Pour accepter un autre nom de colonne, ajouter ce nom dans la liste `DIMENSIONS` de `snapshot.js`. La carte du monde de Looker Studio est remplacée par une liste de zones : une carte demanderait un fichier de fonds de carte, donc une nouvelle ressource.
+Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en bas les colonnes réellement lues pour chaque découpage, ce qui permet de vérifier d'un coup d'œil. Pour accepter un autre nom de colonne, ajouter ce nom dans la liste `DIMENSIONS` de `snapshot.js`. Sur Snapshot, les zones restent une liste ; la carte du monde est sur la page Strategy.
 
 ### Strategy
 
@@ -547,6 +548,7 @@ La page `/strategie` reprend la page « Strategy » de Looker Studio : sept anne
 - **Où sont les attributs ?** Chaque attribut est cherché d'abord dans `portfolio`, puis dans la table `stock`, rattachée ligne à ligne par `Ticker` (sinon `Instrument`, sinon `Name`). Un anneau dont la colonne n'existe nulle part n'est pas affiché : la page l'écrit dans « Anneaux non affichés », avec le nom de colonne attendu. Le bloc « Colonnes lues dans la feuille », en bas de la page, montre d’où vient chaque anneau.
 - **Enveloppe.** Le menu « Enveloppe » filtre tous les anneaux à la fois. Il propose « Toutes les enveloppes », « PEA et CTO » (choix par défaut quand les deux existent), puis chaque enveloppe. C'est la lecture des filtres « action / peacto / cto » des graphiques de Looker Studio : si ta feuille les définit autrement, le menu est le seul endroit à adapter (`buildScopes` dans `strategy.js`).
 - **Couleurs.** Les 8 plus grosses catégories prennent les couleurs de la palette dans l'ordre ; le reste est regroupé en « Autres (n) » (gris), « Non renseigné » est toujours en dernier (gris clair). L'anneau extérieur montre au plus 6 détails par catégorie puis « Autres (n) » ; la vue Tableau liste tout. Les notes S&P suivent l'échelle (AAA, AA+, AA…) au lieu de la taille.
+- **Carte du monde.** Sous les anneaux, chaque pays est coloré selon le montant des actions dont la colonne `Area` désigne ce pays (la même colonne que l'anneau Localisation), avec une bulle à sa taille au centre du pays, pour que les petits pays restent visibles. Au survol : le montant, la part et les actions du pays ; la liste des pays et une vue Tableau sont dessous. Elle suit le menu « Enveloppe ». Une valeur qui n'est pas un pays (`world`, `europe`) est listée sous la carte. Les écritures reconnues (`usa`, `pays-bas`, `taïwan`, `korea`…) sont dans `frontend/src/lib/countries.js` : ajouter une écriture dans `aliases`, ou un pays avec son centre. Les frontières viennent du paquet `world-atlas` (110m, licence ISC), converties par `topojson-client`, et ne sont chargées qu'à l'ouverture de Strategy (`lib/charts/worldMap.js`, `components/charts/WorldMapCard.vue`). Le nom des pays est affiché dans la langue active (`countryName` de `lib/format.js`).
 - **Noms sur les anneaux.** Comme sur la page Envelopes, chaque catégorie a son nom au centre, et chaque détail assez large pour être lisible a le sien sur l'anneau extérieur (`withLabels` de `lib/charts/sunburst.js`). Les autres se lisent au survol, dans la légende et dans la vue Tableau.
 - Pour accepter un autre nom de colonne, l'ajouter dans la liste `ATTRIBUTES` de `strategy.js`.
 
@@ -569,7 +571,7 @@ La page `/simulation` (lien de l'en-tête, à part de la rubrique Graphiques) ti
 
 Couleurs : n'en écrire aucune en dur, les prendre dans `lib/palette.js` (`SERIES`, `INK`, `GRID`…), sinon elles ne passent pas en mode sombre. Le build le signale ; une couleur voulue fixe (texte blanc sur une couleur de série) porte le commentaire « couleur fixe ».
 
-Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) doit être enregistré dans `lib/echartsSetup.js` (actuellement : barres, courbes, secteurs, Sankey, nuage de points, anneaux à deux niveaux, ligne de repère).
+Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) doit être enregistré dans `lib/echartsSetup.js` (actuellement : barres, courbes, secteurs, Sankey, nuage de points, anneaux à deux niveaux, carte, ligne de repère).
 
 ### Apparence
 

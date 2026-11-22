@@ -1,6 +1,7 @@
 <!--
   Page « Stratégie CTO » (/strategie) : tes actions regroupées de plusieurs façons, en anneaux à deux niveaux
-  (secteur, moat, localisation, note S&P, business, place de cotation, instruments).
+  (secteur, moat, localisation, note S&P, business, place de cotation, instruments), puis une carte du monde des pays
+  (colonne Area, components/charts/WorldMapCard.vue).
   Tables lues : portfolio (obligatoire) et stock (facultative : elle fournit les attributs absents de portfolio).
   Calculs dans lib/strategy.js ; le choix d'enveloppe (PEA et CTO, CTO seul…) filtre toutes les cartes à la fois.
 -->
@@ -80,6 +81,8 @@
           <StrategyCard :chart="chart" class="h-full" />
         </li>
       </ul>
+      <!-- Carte du monde : pays de la colonne Area, même choix d'enveloppe que les anneaux -->
+      <WorldMapCard v-if="model.map" class="mt-6" :map="model.map" />
 
       <section v-if="model.skipped.length" class="mt-8 rounded-xl border border-line bg-wash p-5 sm:p-6" aria-labelledby="titre-absents">
         <h2 id="titre-absents" class="text-h3 text-ink">{{ t('strategyPage.skippedTitle') }}</h2>
@@ -116,6 +119,7 @@ import { useI18n } from 'vue-i18n'
 import { computed, ref } from 'vue'
 import AppButton from '../components/ui/AppButton.vue'
 import StrategyCard from '../components/charts/StrategyCard.vue'
+import WorldMapCard from '../components/charts/WorldMapCard.vue'
 import { useTable } from '../composables/useTable.js'
 import { DataError } from '../lib/aggregate.js'
 import { buildStrategy } from '../lib/strategy.js'

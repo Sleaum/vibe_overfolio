@@ -6,8 +6,9 @@
 // un attribut introuvable n'empêche pas les autres anneaux de s'afficher, il est simplement signalé.
 
 import { DataError, findColumn, latestDate, requireColumns, rowsOf, toLabel, toNumber } from './aggregate.js'
-import { capitalize, euro, formatDateLong, percent } from './format.js'
+import { capitalize, countryName, euro, formatDateLong, percent } from './format.js'
 import { CONTEXT, SERIES } from './palette.js'
+import { countryCode } from './countries.js'
 import { t } from '../i18n/index.js'
 
 /** Les six attributs d'une action ; le premier nom de `names` est celui affiché quand la colonne manque. */
@@ -291,6 +292,46 @@ function inScope(scope, envelope) {
  * @param stock     table `stock` (ou null) : fournit les attributs absents de portfolio
  * @param scope     'all' | 'peacto' | 'env:<enveloppe>' | undefined (= choix par défaut)
  */
+/**
+ * Carte du monde : montant par pays d'après la colonne Area (la même que l'anneau « Localisation »), avec les actions
+ * de chaque pays. Une valeur qui n'est pas un pays (« world », « europe »…) va dans `unplaced`.
+ * Renvoie { total, countries: [{ code, name, value, share, items: [{ name, value }] }], unplaced: [{ name, value, share }] }.
+ */
+function buildWorldMap(rows, valueColumn, areaOf, instrumentOf) {
+  const countries = new Map()
+  const unplaced = new Map()
+  let total = 0
+  const add = (items, name, value) => {
+    const key = lower(name)
+    const item = items.get(key) ?? { name, value: 0 }
+    item.value += value
+    items.set(key, item)
+  }
+  for (const row of rows) {
+    const value = toNumber(row[valueColumn])
+    if (!(value > 0)) continue
+    total += value
+    const area = areaOf(row)
+    const code = countryCode(area)
+    if (!code) {
+      add(unplaced, capitalize(area || UNKNOWN()), value)
+      continue
+    }
+    const country = countries.get(code) ?? { code, name: countryName(code), value: 0, items: new Map() }
+    country.value += value
+    add(country.items, (instrumentOf && instrumentOf(row)) || UNKNOWN(), value)
+    countries.set(code, country)
+  }
+  const byValue = (a, b) => b.value - a.value
+  return {
+    total,
+    countries: [...countries.values()]
+      .map((country) => ({ ...country, share: country.value / total, items: [...country.items.values()].sort(byValue) }))
+      .sort(byValue),
+    unplaced: [...unplaced.values()].map((item) => ({ ...item, share: item.value / total })).sort(byValue),
+  }
+}
+
 export function buildStrategy(portfolio, stock = null, scope = undefined) {
   const cols = requireColumns(portfolio, { value: VALUE_NAMES })
   const allRows = rowsOf(portfolio)
@@ -425,6 +466,8 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
     scope: current,
     scopeLabel: scopes.find((s) => s.value === current)?.label ?? '',
     charts,
+    // Carte du monde (colonne Area) : null sans cette colonne
+    map: getters.area ? buildWorldMap(scoped, cols.value, getters.area, instrumentOf) : null,
     skipped,
     usedColumns: used,
     notes,

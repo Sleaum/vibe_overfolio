@@ -148,6 +148,15 @@ export function formatDateTime(isoDateTime) {
 }
 
 /** "public equity" -> "Public equity". */
+/** Nom d'un pays dans la langue active, d'après son code ISO à 2 lettres (« US » -> « États-Unis »). */
+export function countryName(code) {
+  try {
+    return new Intl.DisplayNames([intlLocale()], { type: 'region' }).of(code) ?? code
+  } catch {
+    return code
+  }
+}
+
 export function capitalize(text) {
   const s = String(text ?? '').trim()
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
