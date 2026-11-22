@@ -248,3 +248,38 @@ class ClearCredentialsTests(TestCase):
         self.assertEqual(body["mode"], "public_link")
         self.assertFalse(body["private_key_set"])
         self.assertEqual(SheetConfig.objects.get().private_key, "")
+
+
+@mock.patch.dict("os.environ", ENV, clear=False)
+class AccountToLoadTests(TestCase):
+    """Mode 2 choisi sur la page : le compte de service proposé vient de la base, sinon du .env."""
+
+    def test_env_account_is_offered_after_switching_to_public_link(self):
+        values = self.client.get("/api/sheet-config/").json()["values"]
+        body = self.client.put("/api/sheet-config/", json.dumps({**values, "clear_credentials": True}), content_type="application/json").json()
+        self.assertEqual(body["mode"], "public_link")
+        self.assertEqual(body["account"]["source"], "env")
+        self.assertEqual(body["account"]["values"]["client_email"], ENV["CLIENT_EMAIL"])
+        self.assertTrue(body["account"]["private_key_set"])
+        self.assertNotIn("private_key", body["account"]["values"])
+        # Retour au mode 2 avec le compte du .env, clé laissée vide : la clé du .env est reprise
+        again = {**body["values"], **body["account"]["values"], "private_key": ""}
+        response = self.client.put("/api/sheet-config/", json.dumps(again), content_type="application/json")
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()["mode"], "service_account")
+        self.assertIn("PRIVATE KEY", SheetConfig.objects.get().private_key)
+
+    def test_saved_account_is_offered_first(self):
+        values = self.client.get("/api/sheet-config/").json()["values"]
+        mine = {**values, "client_email": "autre@projet.iam.gserviceaccount.com", "project_id": "autre"}
+        body = self.client.put("/api/sheet-config/", json.dumps(mine), content_type="application/json").json()
+        self.assertEqual(body["account"]["source"], "page")
+        self.assertEqual(body["account"]["values"]["client_email"], "autre@projet.iam.gserviceaccount.com")
+
+    def test_env_key_is_not_given_to_another_account(self):
+        values = self.client.get("/api/sheet-config/").json()["values"]
+        self.client.put("/api/sheet-config/", json.dumps({**values, "clear_credentials": True}), content_type="application/json")
+        other = {**values, "client_email": "autre@projet.iam.gserviceaccount.com", "private_key": ""}
+        response = self.client.put("/api/sheet-config/", json.dumps(other), content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["field_codes"].get("private_key"), "required")

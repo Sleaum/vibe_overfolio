@@ -118,6 +118,9 @@
         <p class="mt-2 text-sm text-ink-3">
           {{ t('sheetSettings.accountHelp') }}
         </p>
+        <p v-if="accountLoadedFrom" class="mt-2 text-sm font-medium text-ink" role="status">
+          {{ t(`sheetSettings.accountLoaded.${accountLoadedFrom}`) }}
+        </p>
         <p v-if="importMessage" class="mt-2 text-sm" :class="importError ? 'text-danger' : 'text-success'" role="status">
           {{ importMessage }}
         </p>
@@ -233,7 +236,7 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import AppButton from './ui/AppButton.vue'
 import { getSheetConfig, getSheetTabs, resetSheetConfig, saveSheetConfig } from '../lib/api.js'
 import { formatDateTime } from '../lib/format.js'
@@ -262,6 +265,21 @@ const DOC_FIELDS = [
 // Modes de connexion (cartes à choix unique en haut du formulaire)
 const METHODS = ['public_link', 'service_account', 'google']
 const method = ref('public_link')
+
+// Mode 2 choisi alors qu'aucun compte n'est en vigueur : on charge celui de la base, sinon celui du .env
+// (config.account, préparé par le serveur ; la clé privée n'est jamais envoyée, elle est reprise à l'enregistrement)
+const accountLoadedFrom = ref('') // '' | 'page' | 'env' | 'none'
+watch(method, (next) => {
+  if (next !== 'service_account' || !config.value || config.value.mode === 'service_account') return
+  if (ACCOUNT_FIELDS.some((field) => form[field.name].trim())) return
+  const account = config.value.account
+  if (!account?.source) {
+    accountLoadedFrom.value = 'none'
+    return
+  }
+  for (const [name, value] of Object.entries(account.values)) form[name] = value ?? ''
+  accountLoadedFrom.value = account.source
+})
 // Mode 1 : seuls le lien et les onglets ; le nom du document ne sert qu'avec un compte de service
 const docFields = computed(() => DOC_FIELDS.filter((field) => method.value === 'service_account' || field.name !== 'doc_name'))
 
@@ -297,9 +315,21 @@ const importMessage = ref('')
 const importError = ref(false)
 const fileInput = ref(null)
 
-const keySet = computed(() => !!config.value?.private_key_set)
+// Compte de service chargé (base ou .env) : sa clé est en place tant que l'e-mail reste le même
+const loadedAccount = computed(() =>
+  config.value?.mode !== 'service_account' && accountLoadedFrom.value && accountLoadedFrom.value !== 'none'
+    ? config.value.account
+    : null,
+)
+const keySet = computed(() =>
+  loadedAccount.value
+    ? loadedAccount.value.private_key_set && form.client_email.trim() === loadedAccount.value.values.client_email
+    : !!config.value?.private_key_set,
+)
 const keySource = computed(() =>
-  config.value?.source === 'page' ? t('sheetSettings.keySourcePage') : t('sheetSettings.keySourceEnv'),
+  (loadedAccount.value?.source ?? config.value?.source) === 'page'
+    ? t('sheetSettings.keySourcePage')
+    : t('sheetSettings.keySourceEnv'),
 )
 const updatedLabel = computed(() => (config.value?.updated_at ? formatDateTime(config.value.updated_at) : ''))
 
@@ -321,6 +351,7 @@ function inputClass(name) {
 function fill(next) {
   if (!next) return
   method.value = next.mode === 'service_account' ? 'service_account' : 'public_link'
+  accountLoadedFrom.value = ''
   for (const name of FIELD_NAMES) form[name] = next.values[name] ?? ''
   form.private_key = ''
   errors.value = {}
