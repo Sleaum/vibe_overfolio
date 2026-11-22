@@ -26,7 +26,7 @@ overfolio/
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
 ├── frontend/
-│   ├── Dockerfile                  # stage "build" (Vite)
+│   ├── Dockerfile                  # stage "build" (Node 24, npm ci, Vite)
 │   ├── index.html                  # page HTML ; pose le mode sombre avant l'affichage
 │   ├── vite.config.ts              # build ; plugins « theme » (index.html, contrôle des couleurs) et « langues » (contrôle des traductions)
 │   ├── tailwind.config.js          # classes de couleur et variables CSS générées depuis lib/theme.js, typographie, ombres
@@ -687,6 +687,9 @@ docker compose exec db psql -U overfoliouser -d overfoliodb
 
 # Failles connues dans les paquets Python du backend (versions de backend/requirements.txt)
 pipx run pip-audit -r backend/requirements.txt
+
+# Failles connues et versions dépassées des paquets du frontend (versions de package-lock.json)
+cd frontend && npm audit && npm outdated
 ```
 
 ## Dépannage
@@ -726,6 +729,7 @@ pipx run pip-audit -r backend/requirements.txt
 - Le mode « lien public » exige une feuille lisible par quiconque a son lien : elle contient l'intégralité du patrimoine. Pour une feuille privée, utilise un compte de service et partage-la seulement avec `CLIENT_EMAIL`.
 - Passer à `DEBUG=False` et restreindre `ALLOWED_HOSTS` en production.
 - Paquets du backend : toutes les versions sont fixées dans `backend/requirements.txt` (Django 5.2, version à support long jusqu'en avril 2028). Vérifier régulièrement les failles connues avec `pip-audit` (voir « Commandes utiles »), puis monter les versions et reconstruire l'image (`./init.sh`).
+- Paquets du frontend : les versions installées sont celles de `frontend/package-lock.json` (l'image les installe avec `npm ci`). Vérifier avec `npm audit` ; `npm audit fix` corrige ce qui ne demande pas de changer de version majeure. Après une mise à jour, refaire `npm run build` et tester le bouton PDF et quelques graphiques.
 - Les routes `/api/sheet`, `/api/data/` et `/api/sheet-config/` sont publiques : les restreindre avant toute exposition sur Internet.
 - Le PDF du bouton PDF est fabriqué dans le navigateur et contient tout ton patrimoine : rien n'est envoyé au serveur, mais le fichier téléchargé est à garder comme une donnée sensible.
 
