@@ -67,6 +67,11 @@
       <!-- Document (modes 1 et 2) -->
       <fieldset v-if="method !== 'google'" class="mt-8">
         <legend class="text-sm font-semibold uppercase tracking-wide text-ink-2">{{ t('sheetSettings.document') }}</legend>
+        <!-- Mode 2 : le document se trouve par son lien OU par son nom (jamais les deux : le lien l'emporterait) -->
+        <div v-if="method === 'service_account'" class="mt-4 flex flex-wrap items-center gap-3">
+          <span class="text-sm font-medium text-ink">{{ t('sheetSettings.lookup.label') }}</span>
+          <SegmentedControl v-model="lookup" :options="LOOKUPS" :label="t('sheetSettings.lookup.label')" />
+        </div>
         <div class="mt-4 grid gap-5 md:grid-cols-2">
           <div v-for="field in docFields" :key="field.name" :class="field.wide ? 'md:col-span-2' : ''">
             <label :for="`cfg-${field.name}`" class="block text-sm font-medium text-ink">{{ t(`sheetSettings.fields.${field.name}`) }}</label>
@@ -238,6 +243,7 @@
 import { useI18n } from 'vue-i18n'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import AppButton from './ui/AppButton.vue'
+import SegmentedControl from './ui/SegmentedControl.vue'
 import { getSheetConfig, getSheetTabs, resetSheetConfig, saveSheetConfig } from '../lib/api.js'
 import { formatDateTime } from '../lib/format.js'
 
@@ -281,7 +287,19 @@ watch(method, (next) => {
   accountLoadedFrom.value = account.source
 })
 // Mode 1 : seuls le lien et les onglets ; le nom du document ne sert qu'avec un compte de service
-const docFields = computed(() => DOC_FIELDS.filter((field) => method.value === 'service_account' || field.name !== 'doc_name'))
+// Mode 2 : document trouvé par son lien ou par son nom ; mode 1 : toujours le lien
+const lookup = ref('link') // 'link' | 'name'
+const LOOKUPS = [
+  { value: 'link', label: t('sheetSettings.lookup.link') },
+  { value: 'name', label: t('sheetSettings.lookup.name') },
+]
+const byName = computed(() => method.value === 'service_account' && lookup.value === 'name')
+// Champs du bloc Document : le lien OU le nom (pleine largeur), puis les onglets
+const docFields = computed(() =>
+  DOC_FIELDS.filter((field) => (field.name === 'doc_name' ? byName.value : field.name === 'sheet_id' ? !byName.value : true)).map(
+    (field) => (field.name === 'doc_name' ? { ...field, wide: true } : field),
+  ),
+)
 
 const ACCOUNT_FIELDS = [
   { name: 'client_email', type: 'email' },
@@ -337,6 +355,7 @@ const dirty = computed(
   () =>
     !!config.value &&
     (method.value !== (config.value.mode === 'service_account' ? 'service_account' : 'public_link') ||
+      lookup.value !== (config.value.values.sheet_id ? 'link' : 'name') ||
       form.private_key.trim() !== '' ||
       FIELD_NAMES.some((name) => form[name] !== (config.value.values[name] ?? ''))),
 )
@@ -351,6 +370,7 @@ function inputClass(name) {
 function fill(next) {
   if (!next) return
   method.value = next.mode === 'service_account' ? 'service_account' : 'public_link'
+  lookup.value = next.values.sheet_id ? 'link' : 'name'
   accountLoadedFrom.value = ''
   for (const name of FIELD_NAMES) form[name] = next.values[name] ?? ''
   form.private_key = ''
@@ -401,7 +421,9 @@ async function save() {
     return
   }
   try {
-    config.value = await saveSheetConfig(publicLink ? { ...form, clear_credentials: true } : { ...form })
+    // Par nom : le lien est vidé, sinon il serait utilisé à la place du nom
+    const payload = byName.value ? { ...form, sheet_id: '' } : { ...form }
+    config.value = await saveSheetConfig(publicLink ? { ...payload, clear_credentials: true } : payload)
     fill(config.value)
     showNotice(t('sheetSettings.savedNotice'))
     emit('saved', config.value)

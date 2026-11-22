@@ -631,7 +631,7 @@
     },
     "help": {
       "sheet_id": "Colle l’adresse de la feuille (ou seulement la partie entre /d/ et /edit).",
-      "doc_name": "Utilisé seulement si le lien est vide (demande alors l’API Google Drive).",
+      "doc_name": "Nom exact du Google Sheet, partagé avec le compte de service. Demande l’API Google Drive, et le premier document de ce nom est pris : le lien est plus sûr.",
       "sync_tabs": "Noms exacts des onglets, séparés par des virgules."
     },
     "mode": {
@@ -671,6 +671,11 @@
       "page": "Compte de service chargé depuis la base (enregistré sur cette page). Clique sur Enregistrer pour l’utiliser.",
       "env": "Compte de service chargé depuis le fichier .env. Clique sur Enregistrer pour l’utiliser.",
       "none": "Aucun compte de service dans la base ni dans le .env : importe le fichier JSON ou remplis les champs."
+    },
+    "lookup": {
+      "label": "Trouver le document par",
+      "link": "Lien",
+      "name": "Nom"
     }
   },
   "simulationPage": {
