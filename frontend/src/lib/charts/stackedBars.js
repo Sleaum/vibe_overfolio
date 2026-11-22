@@ -3,7 +3,7 @@
 
 import { axisLabelStyle, baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { euro, percent } from '../format.js'
-import { AXIS, FONT, INK, SURFACE } from '../palette.js'
+import { AXIS, FONT, HOVER_SHADE, INK, SURFACE } from '../palette.js'
 
 const TOTAL = 'Total'
 
@@ -17,7 +17,7 @@ export function stackedOption(groups, series, values) {
     legend: legendTop(series.map((serie) => serie.label)),
     tooltip: tooltipBox({
       trigger: 'axis',
-      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(31, 35, 40, 0.04)' } },
+      axisPointer: { type: 'shadow', shadowStyle: { color: HOVER_SHADE } },
       formatter: (params) => {
         const first = [].concat(params)[0]
         const index = first?.dataIndex

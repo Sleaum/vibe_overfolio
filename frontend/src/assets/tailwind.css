@@ -3,51 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  /* Couleurs du site, en « R G B » (lues par tailwind.config.js). Mode sombre : classe « dark » sur <html>. */
-  :root {
-    color-scheme: light;
-    --c-paper: 255 255 255;
-    --c-wash: 246 247 248;
-    --c-ink: 31 35 40;
-    --c-ink-2: 75 81 89;
-    --c-ink-3: 93 100 108;
-    --c-line: 228 230 233;
-    --c-line-strong: 207 211 216;
-    --c-accent: 28 92 171;
-    --c-accent-hover: 24 79 149;
-    --c-accent-wash: 238 244 252;
-    --c-accent-ring: 42 120 214;
-    --c-on-accent: 255 255 255;
-    --c-danger: 180 35 24;
-    --c-danger-wash: 254 243 242;
-    --c-danger-line: 254 205 202;
-    --c-success: 6 118 71;
-    --c-success-wash: 236 253 243;
-    --c-success-line: 171 239 198;
-  }
-
-  html.dark {
-    color-scheme: dark;
-    --c-paper: 22 25 29;
-    --c-wash: 15 17 20;
-    --c-ink: 230 232 235;
-    --c-ink-2: 180 186 194;
-    --c-ink-3: 154 161 170;
-    --c-line: 43 48 54;
-    --c-line-strong: 61 67 75;
-    --c-accent: 106 166 238;
-    --c-accent-hover: 139 186 242;
-    --c-accent-wash: 23 38 58;
-    --c-accent-ring: 106 166 238;
-    --c-on-accent: 13 17 23;
-    --c-danger: 249 112 102;
-    --c-danger-wash: 43 22 20;
-    --c-danger-line: 92 38 32;
-    --c-success: 71 205 137;
-    --c-success-wash: 15 36 25;
-    --c-success-line: 29 77 51;
-  }
-
   html {
     -webkit-text-size-adjust: 100%;
     /* Les liens d'ancre natifs s'arrêtent sous l'en-tête fixe */
@@ -71,13 +26,13 @@
 
   /* Focus clavier toujours visible, jamais au clic souris */
   :focus-visible {
-    outline: 2px solid theme('colors.accent.ring');
+    outline: 2px solid theme('colors.accent-ring');
     outline-offset: 2px;
   }
 
   ::selection {
-    background-color: theme('colors.accent.wash');
-    color: theme('colors.ink.DEFAULT');
+    background-color: theme('colors.accent-wash');
+    color: theme('colors.ink');
   }
 
   /* Animations et transitions coupées pour les personnes qui le demandent */

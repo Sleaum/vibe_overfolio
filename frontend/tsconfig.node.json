@@ -12,6 +12,7 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
+    "allowJs": true,          /* vite.config.ts lit src/lib/theme.js */
 
     /* Linting */
     "strict": true,

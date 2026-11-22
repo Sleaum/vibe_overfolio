@@ -1,3 +1,5 @@
+import { CHART_COLORS, COLORS } from './theme.js'
+
 // Palette des graphiques : identique sur tout le site, dans un ordre fixe (jamais permuté, jamais cyclique).
 // Les 8 teintes passent le contrôle daltonisme du skill dataviz (écart ΔE ≥ 8 entre voisines, fond blanc).
 // Trois teintes (turquoise, jaune, rose) sont plus claires que 3:1 sur blanc : chaque graphique a donc
@@ -17,25 +19,27 @@ export const SERIES = [
 // Série de contexte (courbes secondaires, « Autres »)
 export const CONTEXT = '#898781'
 
-// Surfaces et encres des graphiques (mêmes valeurs que tailwind.config.js)
-export const SURFACE = '#ffffff'
-export const INK = '#1f2328'
-export const INK_2 = '#4b5159'
-export const GRID = '#e4e6e9'
-export const AXIS = '#cfd3d8'
+// Surfaces, encres et ombres des graphiques : valeurs claires de lib/theme.js (seule source).
+// Les graphiques sont toujours construits avec ces valeurs ; BaseChart.vue les remplace par DARK en mode sombre.
+export const SURFACE = COLORS.paper.light
+export const INK = COLORS.ink.light
+export const INK_2 = COLORS['ink-2'].light
+export const GRID = COLORS.line.light
+export const AXIS = COLORS['line-strong'].light
+export const HOVER_SHADE = CHART_COLORS.hoverShade.light
+export const TOOLTIP_SHADOW = CHART_COLORS.tooltipShadow.light
 
-// Mode sombre : chaque couleur claire ci-dessus est remplacée par son équivalent sombre (BaseChart.vue,
-// lib/chartTheme.js). Les graphiques sont toujours construits en clair ; seules ces valeurs exactes changent.
-// Pour un texte blanc posé sur une couleur de série, écrire '#fff' (et non '#ffffff') : il reste blanc.
-export const DARK = {
-  [SURFACE]: '#16191d', // fond des cartes (paper sombre)
-  [INK]: '#e6e8eb',
-  [INK_2]: '#b4bac2',
-  [GRID]: '#2b3036',
-  [AXIS]: '#3d434b',
-  'rgba(31, 35, 40, 0.04)': 'rgba(255, 255, 255, 0.06)', // ombre de survol des barres
-  'rgba(31,35,40,0.22)': 'rgba(0,0,0,0.55)', // ombre des infobulles
-}
+// Mode sombre : chaque valeur claire ci-dessus → sa valeur sombre (lib/chartDark.js)
+const pair = ({ light, dark }) => [light, dark]
+export const DARK = Object.fromEntries([
+  pair(COLORS.paper),
+  pair(COLORS.ink),
+  pair(COLORS['ink-2']),
+  pair(COLORS.line),
+  pair(COLORS['line-strong']),
+  pair(CHART_COLORS.hoverShade),
+  pair(CHART_COLORS.tooltipShadow),
+])
 
 export const FONT =
   'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'

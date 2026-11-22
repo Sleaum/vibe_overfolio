@@ -33,41 +33,26 @@
       </nav>
 
       <div class="flex items-center gap-1 md:ml-2">
-      <!-- Mode clair / sombre (mobile et ordinateur) -->
-      <button
-        type="button"
-        class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 transition-colors hover:bg-wash hover:text-ink"
-        :aria-label="isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
-        :title="isDark ? 'Mode clair' : 'Mode sombre'"
-        @click="toggleTheme"
-      >
-        <!-- Soleil en mode sombre (pour revenir au clair), lune en mode clair -->
-        <svg v-if="isDark" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-        </svg>
-        <svg v-else viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      </button>
+        <!-- Mode clair / sombre (mobile et ordinateur) -->
+        <ThemeToggle />
 
-      <!-- Bouton burger (mobile) -->
-      <button
-        ref="burger"
-        type="button"
-        class="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink hover:bg-wash md:hidden"
-        aria-controls="menu-mobile"
-        :aria-expanded="open"
-        :aria-label="open ? 'Fermer le menu' : 'Ouvrir le menu'"
-        @click="open = !open"
-      >
-        <svg v-if="!open" viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-          <path d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
-        <svg v-else viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-          <path d="M6 6l12 12M18 6L6 18" />
-        </svg>
-      </button>
+        <!-- Bouton burger (mobile) -->
+        <button
+          ref="burger"
+          type="button"
+          class="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink hover:bg-wash md:hidden"
+          aria-controls="menu-mobile"
+          :aria-expanded="open"
+          :aria-label="open ? 'Fermer le menu' : 'Ouvrir le menu'"
+          @click="open = !open"
+        >
+          <svg v-if="!open" viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -97,9 +82,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { useTheme } from '../composables/useTheme.js'
-
-const { isDark, toggle: toggleTheme } = useTheme()
+import ThemeToggle from './ui/ThemeToggle.vue'
 
 // Les chemins existants restent valides : /sheet (alias /source) et /graphiques (alias /echart)
 // `under` : adresses qui font partie de la rubrique (la page d'un graphique est sous /graphiques/…)
