@@ -1,7 +1,7 @@
 <!--
   Page « Stratégie CTO » (/strategie) : tes actions regroupées de plusieurs façons, en anneaux à deux niveaux
-  (secteur, moat, localisation, note S&P, business, place de cotation, instruments), puis une carte du monde des pays
-  (colonne Area, components/charts/WorldMapCard.vue).
+  une carte du monde des pays en premier (colonne Area, components/charts/WorldMapCard.vue), puis les anneaux
+  (secteur, moat, localisation, note S&P, business, place de cotation, instruments).
   Tables lues : portfolio (obligatoire) et stock (facultative : elle fournit les attributs absents de portfolio).
   Calculs dans lib/strategy.js ; le choix d'enveloppe (PEA et CTO, CTO seul…) filtre toutes les cartes à la fois.
 -->
@@ -76,13 +76,13 @@
         </div>
       </div>
 
-      <ul class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <!-- Carte du monde en premier : pays de la colonne Area, même choix d'enveloppe que les anneaux -->
+      <WorldMapCard v-if="model.map" class="mt-8" :map="model.map" />
+      <ul class="grid grid-cols-1 gap-6 lg:grid-cols-2" :class="model.map ? 'mt-6' : 'mt-8'">
         <li v-for="chart in model.charts" :key="chart.key" class="min-w-0">
           <StrategyCard :chart="chart" class="h-full" />
         </li>
       </ul>
-      <!-- Carte du monde : pays de la colonne Area, même choix d'enveloppe que les anneaux -->
-      <WorldMapCard v-if="model.map" class="mt-6" :map="model.map" />
 
       <section v-if="model.skipped.length" class="mt-8 rounded-xl border border-line bg-wash p-5 sm:p-6" aria-labelledby="titre-absents">
         <h2 id="titre-absents" class="text-h3 text-ink">{{ t('strategyPage.skippedTitle') }}</h2>
