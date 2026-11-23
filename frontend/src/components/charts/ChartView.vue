@@ -191,7 +191,7 @@ const VIEWS = [
 const values = reactive(Object.fromEntries((props.spec.controls ?? []).map((c) => [c.key, c.default])))
 const view = ref('chart')
 
-const { data, error, reload } = useTable(() => props.spec.table)
+const { data, error, reload } = useTable(() => props.spec.table, { projection: Boolean(props.spec.projection) })
 
 // Réglages affichés une fois les colonnes connues. Une option liée à une colonne absente de la table est masquée,
 // et un réglage qui n'a plus qu'un choix disparaît (il ne servirait à rien).

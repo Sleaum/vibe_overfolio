@@ -110,9 +110,15 @@ async function request(url, { fieldLabel, ...options } = {}) {
 
 export const listTables = () => request('/api/data/')
 
-// currency : devise d'affichage (lib/displayCurrency.js) ; absente = montants en euros
-export const getTable = (name, currency = '') =>
-  request(`/api/data/${encodeURIComponent(name)}/${currency ? `?currency=${encodeURIComponent(currency)}` : ''}`)
+// currency : devise d'affichage (lib/displayCurrency.js) ; absente = montants en euros.
+// projection : history avec en plus le mois prochain, tiré de portfolio (graphiques de Flow).
+export function getTable(name, currency = '', { projection = false } = {}) {
+  const query = new URLSearchParams()
+  if (currency) query.set('currency', currency)
+  if (projection) query.set('projection', '1')
+  const search = query.toString()
+  return request(`/api/data/${encodeURIComponent(name)}/${search ? `?${search}` : ''}`)
+}
 
 // Devises proposées pour l'affichage, avec leur dernier taux : { date, currencies: [{ code, rate }] }
 export const getCurrencies = () => request('/api/fx/currencies/')

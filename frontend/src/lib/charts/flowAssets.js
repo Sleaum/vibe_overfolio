@@ -60,6 +60,7 @@ export default {
     return t('charts.assets.summary')
   },
   table: 'history',
+  projection: true, // + le mois prochain, tiré de portfolio (googlesheet/projection.py)
   minWidth: 720,
   get explain() {
     return tList('charts.assets.explain')

@@ -31,6 +31,9 @@
     "convertedNote": "Montants convertis de {from} en {to} au taux de la BCE du jour de chaque ligne.",
     "unconvertedNote": "{count} ligne sans taux de la BCE pour son jour n’est pas comptée en {to} ; relance « Tout actualiser » sur la page GoogleSheet plus tard. | {count} lignes sans taux de la BCE pour leur jour ne sont pas comptées en {to} ; relance « Tout actualiser » sur la page GoogleSheet plus tard."
   },
+  "projection": {
+    "note": "Relevé du {date} : tes positions actuelles (onglet portfolio, au {positions})."
+  },
   "footer": {
     "tagline": "Ton Google Sheet, mis en graphiques : la répartition et l’évolution de ton patrimoine.",
     "pages": "Pages",

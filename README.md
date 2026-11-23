@@ -23,6 +23,7 @@ overfolio/
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
 │   │   ├── sync.py                 # copie des onglets vers la base, puis devises recalculées
 │   │   ├── currencies.py           # devises calculées avec les taux BCE (history, portfolio dans une autre devise)
+│   │   ├── projection.py           # mois prochain de history pour Flow : positions de portfolio, datées du 1er du mois suivant
 │   │   ├── admin.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
@@ -338,8 +339,8 @@ Onglets utilisés :
 
 | Onglet | Contenu | Utilisé par |
 |---|---|---|
-| `portfolio` | Positions actuelles (en-tête en ligne 2, la ligne 1 est une synthèse) | Snapshot, Strategy (anneaux et carte du monde), Envelopes, point de départ de Simulation |
-| `history` | Historique des relevés (et tes objectifs : lignes avec seulement une date et un montant). S'appelait `_history` avant : voir la note sous ce tableau | Flow, Envelopes, Volatility, variations de Snapshot, objectif de Simulation |
+| `portfolio` | Positions actuelles (en-tête en ligne 2, la ligne 1 est une synthèse) | Snapshot, Strategy (anneaux et carte du monde), Envelopes, point de départ de Simulation, mois prochain de Flow |
+| `history` | Historique des relevés (et tes objectifs : lignes avec seulement une date et un montant). Les lignes du mois prochain, recopiées de `portfolio`, ne sont plus nécessaires : le site les tire de `portfolio` (voir « Le mois prochain dans Flow »). S'appelait `_history` avant : voir la note sous ce tableau | Flow, Envelopes, Volatility, variations de Snapshot, objectif de Simulation |
 | `inout` | Entrées et sorties d'argent (colonnes date, in, out, tax) | Graphique Entrées, sorties et impôts de Flow, versement proposé par Simulation |
 | `budget` | Budget : de quelle source vers quelle destination | Flux du budget |
 | `stock` | Valeurs suivies | Strategy (secteur, moat, note…), page GoogleSheet |
@@ -472,7 +473,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 |---|---|---|
 | GET | `/api/sheet?doc_name=&sheet_name=&header_row=&refresh=1` | Lit un onglet dans Google Sheets (cache 60 s, `refresh=1` pour le contourner) |
 | GET | `/api/data/` | Liste des tables en base (nom, nombre de lignes, date de synchronisation) : celles du compte connecté, sinon celles du site. Il en va de même pour toutes les routes `/api/data/` et `/api/sheet-config/`. En-tête facultatif `X-Sheet-Scope: account|site` sur les requêtes qui modifient : 401 `session_expired` ou 409 `scope_changed` si la session ne correspond plus |
-| GET | `/api/data/<onglet>/?currency=THB` | Colonnes (dans l'ordre) et lignes d'une table, avec ce que le site calcule (voir « Devises et taux de change ») : montants dans la devise demandée (`currency`, EUR par défaut ; 400 `invalid_currency` si le code n'est pas une devise de la BCE), `display_currency` (devise des montants de la réponse), `currency` (devise des montants dans la feuille), `unconverted_rows` (lignes dont les montants sont vidés faute de taux), `computed_columns` (colonnes de devises ajoutées par le site), `currencies_available` (devises proposées par « Patrimoine par devise »), `rates_applied_at` |
+| GET | `/api/data/<onglet>/?currency=THB&projection=1` | Colonnes (dans l'ordre) et lignes d'une table, avec ce que le site calcule (voir « Devises et taux de change ») : montants dans la devise demandée (`currency`, EUR par défaut ; 400 `invalid_currency` si le code n'est pas une devise de la BCE), `display_currency` (devise des montants de la réponse), `currency` (devise des montants dans la feuille), `unconverted_rows` (lignes dont les montants sont vidés faute de taux), `computed_columns` (colonnes de devises ajoutées par le site), `currencies_available` (devises proposées par « Patrimoine par devise »), `rates_applied_at`. `projection=1` (pour `history`, graphiques de Flow) : ajoute le mois prochain tiré de `portfolio` ; `projection` dans la réponse : `{ date, rows, unconverted, source_date }`, ou `null` si rien n'est ajouté (voir « Le mois prochain dans Flow »). |
 | GET | `/api/fx/currencies/` | Devises proposées dans l'en-tête : `{ date, currencies: [{ code, rate }] }`, l'euro puis celles cotées par la BCE le dernier jour publié, avec ce taux (unités pour 1 EUR). Communes à tous |
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas. `fx` : taux BCE mis à jour et devises recalculées (`rates_latest`, `error` : `fx_unreachable` ou `fx_invalid`, `tables`) |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
@@ -773,6 +774,16 @@ Quinze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de F
 
 Les graphiques de `patrimoine-devises` à `patrimoine-tendance` forment la page `/portfolio-flow`. Ils prennent, pour chaque mois, le **dernier relevé** du mois (plusieurs relevés par mois ne s'additionnent pas). Une date isolée, à plus de 6 mois des autres (un objectif en 2039, un vieux relevé), est écartée des graphiques mensuels, et la page le signale ; le graphique `patrimoine-tendance` garde toutes les dates et affiche les objectifs à part.
 
+#### Le mois prochain dans Flow
+
+Les graphiques de `history` de la page Flow (et leur page `/graphiques/<nom>`) montrent aussi le **mois prochain** : tes positions actuelles. Le serveur recopie chaque ligne de `portfolio` dans les colonnes de `history`, datée du **1er du mois qui suit la date des positions** (la plus récente de `portfolio`) : positions du 23 novembre → relevé du 1er décembre (`backend/googlesheet/projection.py`, `GET /api/data/history/?projection=1`). Rien n'est écrit en base ; la page GoogleSheet montre `history` telle quelle.
+
+- Colonnes reprises par leur nom (sans tenir compte de la casse ni des accents) ; une colonne de `history` absente de `portfolio` reste vide. Une ligne de `portfolio` sans `Asset` ni `Instrument` n'est pas reprise (dans `history`, ce serait un objectif).
+- Montants en euros, comme le reste de `history` : un `portfolio` dans une autre devise (case M1) est converti au taux du jour des positions. Les colonnes de devise (« Patrimoine par devise », colonnes `EUR`, `USD`… encore présentes dans la feuille) sont calculées comme pour les autres relevés.
+- **Pas de doublon** : si `history` a déjà des relevés ce mois-là (lignes recopiées à la main pas encore effacées, ou vrai relevé), la feuille fait foi et rien n'est ajouté.
+- Sous chaque graphique, une phrase le signale : « Relevé du 1er décembre 2026 : tes positions actuelles (onglet portfolio, au 23 novembre 2026). » Avec le filtre d'une année qui ne contient pas ce mois, elle disparaît.
+- Pour l'ajouter à un autre graphique qui lit `history`, sa spécification déclare `projection: true` (Envelopes et Volatility ne le font pas).
+
 Les anciens graphiques à part (évolution du patrimoine, répartition par type d'actif, par zone, par compte, plus grosses positions) ont été retirés : Snapshot et Strategy couvrent la répartition. Le fichier `lib/charts/evolution.js` reste, mais seulement comme courbe de l'aperçu de la page d'accueil.
 
 Les totaux utilisent uniquement `Assets Master Currency` (et `Liabilities Master Currency`) : `Currency Price` est la devise de cotation et `Equity` mélange plusieurs devises, donc aucun des deux ne sert à additionner.
@@ -1012,6 +1023,7 @@ cd frontend && npm audit && npm outdated
 | « Onglet 'history' introuvable » après la mise à jour | L'onglet s'appelle encore `_history` dans la feuille | Le renommer `history` dans Google Sheets, puis Tout actualiser |
 | Page GoogleSheet : « Les taux de change de la BCE n'ont pas pu être relus » | Le backend n'accède pas à `www.ecb.europa.eu` (réseau, pare-feu) | Les taux déjà en base servent ; vérifier l'accès Internet du backend, puis `update_fx_rates --recompute` |
 | Phrase en rouge « lignes sans taux de la BCE pour leur jour ne sont pas comptées » | Pas de taux en base pour ces jours (première synchronisation sans accès à la BCE, ou date antérieure à la devise) | Rétablir l'accès à la BCE, puis Tout actualiser |
+| Flow n'affiche pas le mois prochain | `history` a déjà des relevés ce mois-là (lignes recopiées de `portfolio` encore dans la feuille), ou `portfolio` n'a pas de ligne avec `Asset` ou `Instrument` | Effacer ces lignes de `history`, puis Tout actualiser |
 | Le menu de devise de l'en-tête ne propose que EUR | Aucun taux en base | Tout actualiser (ou `update_fx_rates`), puis recharger la page |
 | « Patrimoine par devise » sans USD, CHF ni THB | Aucun taux en base, ou relevés sans `Assets Master Currency` ni `EUR` | `update_fx_rates --recompute`, vérifier les colonnes de `history` |
 | `git push` : mot de passe refusé | GitHub n'accepte plus les mots de passe | Clé SSH ou token d'accès personnel |

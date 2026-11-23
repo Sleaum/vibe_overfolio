@@ -55,6 +55,7 @@ export default {
     return t('charts.currency.summary')
   },
   table: 'history',
+  projection: true, // + le mois prochain, tiré de portfolio (googlesheet/projection.py)
   minWidth: 720,
   get explain() {
     return tList('charts.currency.explain')
