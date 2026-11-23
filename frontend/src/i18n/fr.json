@@ -81,7 +81,14 @@
     "public_export_too_big": "Feuille trop volumineuse pour être téléchargée.",
     "public_export_unreadable": "Fichier exporté illisible : {detail}",
     "no_access_configured": "Aucun accès configuré : colle le lien d’une feuille partagée par lien, ou renseigne un compte de service.",
-    "invalid_asset_colors": "Couleurs des actifs non valables."
+    "invalid_asset_colors": "Couleurs des actifs non valables.",
+    "google_not_configured": "La connexion avec Google n’est pas configurée sur ce serveur.",
+    "google_denied": "Tu as annulé la connexion chez Google.",
+    "google_state_invalid": "La demande de connexion a expiré ou n’est pas valable. Réessaie.",
+    "google_token_failed": "Google a refusé la connexion. Réessaie dans un instant.",
+    "google_token_invalid": "Impossible de vérifier ton identité auprès de Google.",
+    "google_email_unverified": "L’adresse e-mail de ce compte Google n’est pas vérifiée.",
+    "invalid_theme": "Mode d’affichage non valable."
   },
   "data": {
     "unknown": "Non renseigné",
@@ -783,23 +790,21 @@
     }
   },
   "login": {
-    "lead": "Accède à ton espace personnel",
-    "email": "Adresse e-mail",
-    "password": "Mot de passe",
-    "hidePassword": "Masquer le mot de passe",
-    "showPassword": "Afficher le mot de passe",
-    "remember": "Se souvenir de moi",
-    "forgot": "Mot de passe oublié ?",
-    "signingIn": "Connexion en cours…",
-    "signIn": "Se connecter",
-    "or": "ou",
+    "lead": "Connecte-toi avec ton compte Google pour retrouver tes réglages sur tous tes appareils.",
     "google": "Continuer avec Google",
-    "noAccount": "Pas encore de compte ?",
-    "signUp": "S’inscrire",
-    "fillAll": "Remplis tous les champs.",
-    "success": "Connexion réussie !",
-    "error": "Erreur de connexion.",
-    "googleTodo": "La connexion avec Google n’est pas encore disponible."
+    "notConfigured": "La connexion avec Google n’est pas encore configurée sur ce serveur. Le site reste utilisable sans compte.",
+    "saved": "Une fois connecté, tes couleurs et ton mode clair ou sombre sont enregistrés sur ton compte.",
+    "privacy": "Overfolio reçoit seulement ton nom, ton adresse e-mail et ta photo de profil Google. Aucun mot de passe n’est demandé ni enregistré.",
+    "connected": "Tu es connecté avec {email}.",
+    "openCharts": "Ouvrir Charts",
+    "failed": "La connexion n’a pas abouti",
+    "error": "Erreur de connexion."
+  },
+  "account": {
+    "signIn": "Connexion",
+    "menu": "Ton compte ({email})",
+    "signOut": "Se déconnecter",
+    "synced": "Tes couleurs et ton mode d’affichage sont enregistrés sur ton compte."
   },
   "syncTabs": {
     "label": "Onglets à synchroniser",

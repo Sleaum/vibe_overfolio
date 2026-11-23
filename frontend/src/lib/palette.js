@@ -1,7 +1,7 @@
 import { CHART_COLORS, COLORS } from './theme.js'
 
 import { ref } from 'vue'
-import { getProfile, saveProfileAssetColors } from './api.js'
+import { saveProfileAssetColors } from './api.js'
 import { readPreference, writePreference } from './preferences.js'
 
 // Couleurs des graphiques, dans l'esprit des couleurs Google :
@@ -131,38 +131,32 @@ function validChoices(value) {
 
 /**
  * Couleurs choisies dans le menu de Charts : { 'crypto': '#f9ab00', … } (clé = type en minuscules).
- * Gardées en base, sur le profil (GET /api/profile/, PUT /api/profile/asset-colors/) ; chargées au démarrage
- * par loadAssetColors(). Réactif : les graphiques se recalculent quand une couleur change.
+ * Gardées en base, sur le profil (GET /api/profile/, PUT /api/profile/asset-colors/) : celui du compte connecté,
+ * sinon celui du site. Chargées au démarrage et à chaque connexion ou déconnexion (lib/profile.js).
+ * Réactif : les graphiques se recalculent quand une couleur change.
  */
 export const assetColorChoices = ref({})
 
 /** Dernière erreur d'enregistrement ou de chargement des couleurs (message déjà traduit), sinon ''. */
 export const assetColorError = ref('')
 
-let loading = null
+// Numéro du dernier changement : un enregistrement refusé ne revient en arrière que s'il est toujours le dernier
+let version = 0
 
 /**
- * Charge les couleurs du profil (une seule fois). Les couleurs gardées par le navigateur avant le passage en base
- * sont recopiées sur le profil s'il n'en a pas encore, puis effacées du navigateur.
+ * Couleurs du profil reçu (GET /api/profile/, chargé par lib/profile.js). Les couleurs gardées par le navigateur
+ * avant le passage en base sont recopiées sur le profil s'il n'en a pas encore, puis effacées du navigateur.
  */
-export function loadAssetColors() {
-  loading ??= (async () => {
-    try {
-      const profile = await getProfile()
-      let choices = validChoices(profile.asset_colors)
-      const legacy = readLegacyChoices()
-      if (!Object.keys(choices).length && Object.keys(legacy).length) {
-        choices = validChoices((await saveProfileAssetColors(legacy)).asset_colors)
-      }
-      if (Object.keys(legacy).length) writePreference('assetColors', null)
-      assetColorChoices.value = choices
-      assetColorError.value = ''
-    } catch (error) {
-      assetColorError.value = error.message
-      loading = null // nouvel essai au prochain appel
-    }
-  })()
-  return loading
+export async function applyProfileAssetColors(profile) {
+  let choices = validChoices(profile?.asset_colors)
+  const legacy = readLegacyChoices()
+  if (!Object.keys(choices).length && Object.keys(legacy).length) {
+    choices = validChoices((await saveProfileAssetColors(legacy)).asset_colors)
+  }
+  if (Object.keys(legacy).length) writePreference('assetColors', null)
+  version++ // un enregistrement encore en cours ne remettra pas les couleurs d'avant
+  assetColorChoices.value = choices
+  assetColorError.value = ''
 }
 
 function readLegacyChoices() {
@@ -175,7 +169,6 @@ function readLegacyChoices() {
 
 // Enregistrements les uns après les autres : le dernier choix est toujours celui qui reste en base
 let saving = Promise.resolve()
-let version = 0
 
 function saveChoices(next) {
   const previous = assetColorChoices.value

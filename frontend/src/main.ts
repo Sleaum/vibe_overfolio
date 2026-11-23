@@ -6,7 +6,7 @@ import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import router from './router'
 import { i18n } from './i18n/index.js'
-import { loadAssetColors } from './lib/palette.js'
+import { startSession } from './lib/profile.js'
 
 import {
   CanvasRenderer
@@ -36,6 +36,7 @@ app.use(router)
 app.use(i18n)
 app.mount('#app')
 
-// Couleurs des types d'actifs, gardées sur le profil en base : les graphiques se recolorent dès leur arrivée
-loadAssetColors()
+// Connexion (compte Google) puis réglages du profil en base : couleurs des types d'actifs, et mode clair / sombre
+// pour un compte connecté. Les graphiques se recolorent dès leur arrivée.
+startSession()
 

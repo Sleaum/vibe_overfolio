@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/sheet', include('googlesheet.urls')),
     path('api/data/', include('googlesheet.data_urls')),
     path('api/profile/', include('profiles.urls')),
+    path('api/auth/', include('accounts.urls')),
 ]

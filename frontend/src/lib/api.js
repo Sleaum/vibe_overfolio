@@ -8,9 +8,15 @@
 //   PUT    /api/sheet-config/       -> enregistre les paramètres saisis
 //   DELETE /api/sheet-config/       -> revient aux valeurs du .env
 //   GET    /api/sheet-config/tabs/  -> onglets du document : { mode, tabs[], selected[] }
-//   GET    /api/profile/            -> réglages gardés en base : { asset_colors: { type: '#rrggbb' }, updated_at }
+//   GET    /api/profile/            -> réglages gardés en base : { asset_colors: { type: '#rrggbb' }, theme, updated_at }
+//   PUT    /api/profile/            { theme } -> mode clair / sombre du profil ('light', 'dark', '' = système)
 //   PUT    /api/profile/asset-colors/ { asset_colors } -> remplace les couleurs des types d'actifs ({} = par défaut)
 //   (mode : 'service_account' = compte de service, 'public_link' = lien seul, 'none' = rien de configuré)
+//   GET    /api/auth/me/            -> { configured, authenticated, user?: { email, name, picture }, first_login? }
+//   POST   /api/auth/logout/        -> déconnexion
+//   GET    /api/auth/google/start/?next=/page : connexion avec Google (navigation, pas fetch : voir lib/auth.js)
+//   Avec une session ouverte, toute requête qui modifie (POST, PUT, DELETE) porte l'en-tête X-CSRFToken
+//   (valeur du cookie csrftoken, posé par /api/auth/me/) ; sans lui, Django répond 403.
 //   Erreurs : { "error": "message en français", "code": "code_stable", "params": {…}, "fields"?: { champ: message },
 //             "field_codes"?: { champ: code } } avec le code 400, 404, 429 (trop rapproché) ou 502.
 //   Le message affiché est traduit à partir de `code` (i18n, rubrique apiErrors) ; code inconnu : le message du serveur.
@@ -42,13 +48,24 @@ export class ApiError extends Error {
   }
 }
 
+/** Jeton CSRF de Django (cookie csrftoken, lisible par le site). */
+function csrfToken() {
+  const match = typeof document !== 'undefined' ? document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/) : null
+  return match ? decodeURIComponent(match[1]) : ''
+}
+
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+
 // `fieldLabel(champ)` : nom affiché d'un champ de formulaire, pour traduire les erreurs par champ
 async function request(url, { fieldLabel, ...options } = {}) {
+  const method = (options.method || 'GET').toUpperCase()
+  const csrf = SAFE_METHODS.has(method) ? {} : { 'X-CSRFToken': csrfToken() }
   let response
   try {
     response = await fetch(url, {
+      credentials: 'same-origin', // cookie de session
       ...options,
-      headers: { Accept: 'application/json', ...(options.headers || {}) },
+      headers: { Accept: 'application/json', ...csrf, ...(options.headers || {}) },
     })
   } catch {
     throw new ApiError(t('apiErrors.unreachable'), 0)
@@ -115,3 +132,15 @@ export const saveProfileAssetColors = (assetColors) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ asset_colors: assetColors }),
   })
+
+export const saveProfileTheme = (theme) =>
+  request('/api/profile/', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ theme }),
+  })
+
+// Connexion (session Django, compte Google)
+export const getSession = () => request('/api/auth/me/')
+
+export const logoutSession = () => request('/api/auth/logout/', { method: 'POST' })

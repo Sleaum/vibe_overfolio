@@ -81,7 +81,14 @@
     "public_export_too_big": "The sheet is too large to download.",
     "public_export_unreadable": "Unreadable exported file: {detail}",
     "no_access_configured": "No access set up: paste the link of a sheet shared by link, or fill in a service account.",
-    "invalid_asset_colors": "Invalid asset colours."
+    "invalid_asset_colors": "Invalid asset colours.",
+    "google_not_configured": "Google sign-in is not set up on this server.",
+    "google_denied": "You cancelled the sign-in at Google.",
+    "google_state_invalid": "The sign-in request expired or is not valid. Please try again.",
+    "google_token_failed": "Google refused the sign-in. Please try again in a moment.",
+    "google_token_invalid": "Your identity could not be verified with Google.",
+    "google_email_unverified": "The email address of this Google account is not verified.",
+    "invalid_theme": "Invalid display mode."
   },
   "data": {
     "unknown": "Not specified",
@@ -783,23 +790,21 @@
     }
   },
   "login": {
-    "lead": "Access your personal space",
-    "email": "Email address",
-    "password": "Password",
-    "hidePassword": "Hide password",
-    "showPassword": "Show password",
-    "remember": "Remember me",
-    "forgot": "Forgot your password?",
-    "signingIn": "Signing in…",
-    "signIn": "Sign in",
-    "or": "or",
+    "lead": "Sign in with your Google account to get your settings back on all your devices.",
     "google": "Continue with Google",
-    "noAccount": "No account yet?",
-    "signUp": "Sign up",
-    "fillAll": "Fill in all the fields.",
-    "success": "Signed in!",
-    "error": "Sign-in error.",
-    "googleTodo": "Sign-in with Google isn’t available yet."
+    "notConfigured": "Google sign-in is not set up on this server yet. You can still use the site without an account.",
+    "saved": "Once signed in, your colours and your light or dark mode are saved to your account.",
+    "privacy": "Overfolio only receives your name, email address and Google profile picture. No password is asked for or stored.",
+    "connected": "You are signed in as {email}.",
+    "openCharts": "Open Charts",
+    "failed": "Sign-in did not go through",
+    "error": "Sign-in error."
+  },
+  "account": {
+    "signIn": "Sign in",
+    "menu": "Your account ({email})",
+    "signOut": "Sign out",
+    "synced": "Your colours and display mode are saved to your account."
   },
   "syncTabs": {
     "label": "Tabs to sync",

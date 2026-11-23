@@ -2,7 +2,7 @@ import os
 
 from django.core.cache import cache
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
 from . import config
@@ -68,7 +68,6 @@ def table_detail(request, name):
 
 
 @api_view(["POST"])
-@authentication_classes([])  # pas de session : évite le rejet CSRF si l'admin est connecté
 @permission_classes([AllowAny])
 def table_sync(request, name):
     """
@@ -101,7 +100,6 @@ def table_sync(request, name):
 
 
 @api_view(["POST"])
-@authentication_classes([])  # pas de session : évite le rejet CSRF si l'admin est connecté
 @permission_classes([AllowAny])
 def sync_all(request):
     """
@@ -139,7 +137,6 @@ def sync_all(request):
 
 
 @api_view(["GET", "PUT", "DELETE"])
-@authentication_classes([])  # pas de session : évite le rejet CSRF si l'admin est connecté
 @permission_classes([AllowAny])
 def sheet_config(request):
     """
@@ -164,7 +161,6 @@ def sheet_config(request):
 
 
 @api_view(["GET", "PUT"])
-@authentication_classes([])  # pas de session : évite le rejet CSRF si l'admin est connecté
 @permission_classes([AllowAny])
 def sheet_tabs(request):
     """

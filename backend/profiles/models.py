@@ -20,11 +20,27 @@ class Profile(models.Model):
     )
     # Couleur choisie par type d'actif : {"crypto": "#f9ab00", …} (type en minuscules)
     asset_colors = models.JSONField(default=dict, blank=True)
+    # Mode clair ou sombre choisi avec le bouton de l'en-tête ; vide = suivre le réglage du système
+    theme = models.CharField(max_length=10, blank=True, default="", choices=[("light", "clair"), ("dark", "sombre")])
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "profil"
         verbose_name_plural = "profils"
+
+    @classmethod
+    def site_profile(cls):
+        """Profil du site (sans utilisateur) : celui des visiteurs non connectés."""
+        return cls.objects.filter(user__isnull=True).order_by("pk").first() or cls.objects.create()
+
+    @classmethod
+    def copy_site_profile(cls, user):
+        """Profil d'un nouveau compte : reprend une fois les réglages du profil du site."""
+        site = cls.site_profile()
+        profile, _ = cls.objects.update_or_create(
+            user=user, defaults={"asset_colors": dict(site.asset_colors or {}), "theme": site.theme}
+        )
+        return profile
 
     def __str__(self):
         return f"Profil de {self.user}" if self.user_id else "Profil du site"

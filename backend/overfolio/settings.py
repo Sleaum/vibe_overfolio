@@ -20,7 +20,8 @@ if not SECRET_KEY:
 DEBUG = True
 
 USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "htps")
+# nginx transmet X-Forwarded-Proto : derrière HTTPS, Django sait que la requête est sécurisée
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Noms et adresses acceptés, séparés par des virgules (.env). Pour ouvrir le site depuis un téléphone du même
 # réseau, ajouter l'adresse IP locale du PC, par exemple : ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.20
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'googlesheet',
     'profiles',
+    'accounts',
     'corsheaders',
 ]
 
@@ -69,14 +71,6 @@ TEMPLATES = [
     },
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-    ],
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-    ]
-}
 
 WSGI_APPLICATION = 'overfolio.wsgi.application'
 
@@ -127,16 +121,38 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# REST Framework
+# REST Framework (une seule définition : une seconde écrasait la première)
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Pour simplifier le dev
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
     ],
+    # Lecteurs (parsers) par défaut de DRF : JSON, formulaire, multipart (comportement inchangé)
+    # API publique : sans connexion, le site marche comme avant (profil et données du site)
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    # Session Django (connexion avec Google) : avec une session ouverte, les requêtes qui modifient
+    # exigent le jeton CSRF (en-tête X-CSRFToken, envoyé par frontend/src/lib/api.js)
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
     ],
 }
+
+# Session et CSRF (connexion avec Google)
+# COOKIE_SECURE=True en production (site servi en HTTPS) : cookies envoyés seulement en HTTPS
+COOKIE_SECURE = os.getenv('COOKIE_SECURE', 'False').strip().lower() in ('1', 'true', 'yes', 'on')
+SESSION_COOKIE_SECURE = COOKIE_SECURE
+CSRF_COOKIE_SECURE = COOKIE_SECURE
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'  # Lax : le cookie suit le retour de Google (navigation de premier niveau)
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 jours
+# Origines acceptées pour les requêtes qui modifient (le proxy de Vite change l'hôte : son origine doit y être)
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv('CSRF_TRUSTED_ORIGINS', ','.join(CORS_ALLOWED_ORIGINS)).split(',')
+    if origin.strip()
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
