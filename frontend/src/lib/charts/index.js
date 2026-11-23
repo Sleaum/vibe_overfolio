@@ -1,11 +1,13 @@
 // Registre des graphiques et du menu de la rubrique Graphiques.
 //
 // - GROUPS : les pages qui réunissent plusieurs graphiques (Portfolio Flow, Enveloppes, Volatilité), chacun dans une carte.
-// - CHARTS : tous les graphiques qui ont leur propre page /graphiques/<slug> (Flux du budget et ceux des GROUPS).
+// - allCharts() : tous les graphiques qui ont leur propre page /graphiques/<slug> (Flux du budget et ceux des GROUPS).
+//   Ceux de Volatility suivent les périodes choisies sur la page (lib/volatilityWindows.js) ; l'adresse d'une autre
+//   période (volatilite-6-mois) s'ouvre aussi.
 // - MENU : les entrées du menu de gauche (GraphiquesLayout.vue), dans l'ordre d'affichage ; /graphiques ouvre la première.
 //   Leur nom est toujours en anglais (i18n/menu.js), non traduit.
 // Pour ajouter un graphique : créer un fichier de spécification (voir budgetFlow.js), puis l'ajouter à un groupe
-// (il apparaît sur la page du groupe) ou à CHARTS avec une entrée dans MENU.
+// (il apparaît sur la page du groupe) ou à STATIC_CHARTS avec une entrée dans MENU.
 
 import budgetFlow from './budgetFlow.js'
 import { ENVELOPE_CHARTS } from './envelopes.js'
@@ -16,23 +18,39 @@ import flowDebts from './flowDebts.js'
 import flowTrend from './flowTrend.js'
 import flowVariation from './flowVariation.js'
 import inout from './inout.js'
-import { VOLATILITY_CHARTS } from './volatility.js'
+import { monthsOfSlug, volatilityChart, volatilityCharts } from './volatility.js'
+import { volatilityMonths } from '../volatilityWindows.js'
 import { t } from '../../i18n/index.js'
 import { MENU_NAMES } from '../../i18n/menu.js'
 
 // Les graphiques « Portfolio Flow » sont regroupés sur la page /portfolio-flow
 // (« Tes dettes » ne s'y affiche qu'en mode Brut du bouton Brut / Net)
 export const FLOW_CHARTS = [flowCurrency, flowAllocation, flowAssets, flowDebts, flowVariation, inout, flowTrend]
-export { ENVELOPE_CHARTS, VOLATILITY_CHARTS }
+export { ENVELOPE_CHARTS }
+
+/** Graphiques de Volatility des périodes choisies (réactif : à lire dans un computed). */
+export const volatilityChartList = () => volatilityCharts(volatilityMonths.value)
 
 const PORTFOLIO_FLOW = { key: 'portfolio-flow', titleKey: 'pages.flow', to: '/portfolio-flow', charts: FLOW_CHARTS }
 const ENVELOPES = { key: 'enveloppes', titleKey: 'pages.envelopes', to: '/enveloppes', charts: ENVELOPE_CHARTS }
-const VOLATILITY = { key: 'volatilite', titleKey: 'pages.volatility', to: '/volatilite', charts: VOLATILITY_CHARTS }
+const VOLATILITY = {
+  key: 'volatilite',
+  titleKey: 'pages.volatility',
+  to: '/volatilite',
+  get charts() {
+    return volatilityChartList()
+  },
+  has: (slug) => monthsOfSlug(slug) !== null, // toute période, même non choisie
+}
 export const GROUPS = [PORTFOLIO_FLOW, ENVELOPES, VOLATILITY]
 
-export const CHARTS = [budgetFlow, ...GROUPS.flatMap((group) => group.charts)]
+const STATIC_CHARTS = [budgetFlow]
 
-const groupOf = (slug) => GROUPS.find((group) => group.charts.some((chart) => chart.slug === slug)) ?? null
+/** Tous les graphiques qui ont leur page (Volatility : périodes choisies). */
+export const allCharts = () => [...STATIC_CHARTS, ...GROUPS.flatMap((group) => group.charts)]
+
+const groupOf = (slug) =>
+  GROUPS.find((group) => group.has?.(slug) || group.charts.some((chart) => chart.slug === slug)) ?? null
 
 /** Entrées du menu de la rubrique Graphiques, dans l'ordre de l'ancien rapport Data Studio. */
 export const MENU = [
@@ -82,14 +100,15 @@ export function menuKeyFor(route) {
   return MENU.find((item) => typeof item.to === 'string' && item.to === route.path)?.key ?? null
 }
 
-export const getChart = (slug) => CHARTS.find((chart) => chart.slug === slug) ?? null
+export const getChart = (slug) => {
+  const months = monthsOfSlug(slug)
+  return months !== null ? volatilityChart(months) : (allCharts().find((chart) => chart.slug === slug) ?? null)
+}
 
-// Les liens « précédent » et « suivant » ne vont que d'un graphique à ses voisins de la même page
-const SETS = [[budgetFlow], ...GROUPS.map((group) => group.charts)]
-
-/** Graphiques voisins, pour les liens « précédent » et « suivant ». */
+/** Graphiques voisins, pour les liens « précédent » et « suivant » (seulement entre graphiques d'une même page). */
 export function neighbours(slug) {
-  const set = SETS.find((list) => list.some((chart) => chart.slug === slug)) ?? []
+  const sets = [STATIC_CHARTS, ...GROUPS.map((group) => group.charts)]
+  const set = sets.find((list) => list.some((chart) => chart.slug === slug)) ?? []
   const index = set.findIndex((chart) => chart.slug === slug)
   return {
     previous: index > 0 ? set[index - 1] : null,

@@ -91,3 +91,20 @@ class DisplayCurrencyTests(TestCase):
         for value in ("XYZ", "EURO", 12, None):
             response = self.put({"display_currency": value})
             self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_currency"))
+
+
+class VolatilityMonthsTests(TestCase):
+    def put(self, body):
+        return self.client.put("/api/profile/", json.dumps(body), content_type="application/json")
+
+    def test_volatility_months(self):
+        self.assertEqual(self.client.get("/api/profile/").json()["volatility_months"], [])
+        self.put({"theme": "dark", "display_currency": "THB"})
+        response = self.put({"volatility_months": [12, 1, 6, 6]})
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual((body["volatility_months"], body["theme"], body["display_currency"]), ([1, 6, 12], "dark", "THB"))
+        self.assertEqual(self.put({"volatility_months": []}).json()["volatility_months"], [])  # retour aux périodes par défaut
+        for value in ([0], [241], ["3"], [1.5], [True], "1,3", list(range(1, 14))):
+            response = self.put({"volatility_months": value})
+            self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_volatility_months"), value)

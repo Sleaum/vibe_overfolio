@@ -27,6 +27,9 @@ class Profile(models.Model):
     # Devise d'affichage des pages Charts et Simulation (menu de l'en-tête) : code ISO ; vide = euro.
     # Gardée ici pour un compte connecté ; un visiteur la garde dans son navigateur (lib/preferences.js).
     display_currency = models.CharField(max_length=3, blank=True, default="")
+    # Périodes de la page Volatility, en mois : [1, 3, 12…] ; vide = 1 mois, 3 mois et 1 an.
+    # Gardées ici pour un compte connecté ; un visiteur les garde dans son navigateur (lib/preferences.js).
+    volatility_months = models.JSONField(default=list, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

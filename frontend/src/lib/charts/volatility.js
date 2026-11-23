@@ -26,6 +26,7 @@ import { envelopeLabel } from './envelopes.js'
 import { AXIS, GRID, INK_2, SURFACE, assignAssetColors } from '../palette.js'
 import { compactNumber, signedPercent } from './flowData.js'
 import { t } from '../../i18n/index.js'
+import { MAX_MONTHS } from '../volatilityWindows.js'
 
 const NOT_QUOTED = new Set(['fiat', 'real estate', 'depreciating', 'exotic', 'cash', 'liquidités'])
 
@@ -243,12 +244,31 @@ export function bubbleOption(lines) {
   }
 }
 
-function volatilitySpec({ months, slug }) {
-  const period = () => t(`charts.volatility.period.${months}`)
+/** Durée lisible : 1 mois, 6 mois, 1 an, 2 ans, 18 mois… */
+export function periodLabel(months) {
+  return months % 12 === 0
+    ? t('charts.volatility.years', { count: months / 12 }, months / 12)
+    : t('charts.volatility.months', { count: months }, months)
+}
+
+/** Adresse du graphique : volatilite-1-an (12 mois, comme avant), volatilite-6-mois… */
+export const volatilitySlug = (months) => (months === 12 ? 'volatilite-1-an' : `volatilite-${months}-mois`)
+
+/** Nombre de mois d'une adresse de graphique de Volatility, ou null. */
+export function monthsOfSlug(slug) {
+  const match = String(slug).match(/^volatilite-(\d+)-(mois|ans?)$/)
+  if (!match) return null
+  const months = Number(match[1]) * (match[2] === 'mois' ? 1 : 12)
+  return months >= 1 && months <= MAX_MONTHS ? months : null
+}
+
+function volatilitySpec(months) {
+  const period = () => periodLabel(months)
   return {
-    slug,
+    slug: volatilitySlug(months),
+    months,
     get title() {
-      return t(`charts.volatility.title.${months}`)
+      return t('charts.volatility.title', { period: period() })
     },
     get summary() {
       return t('charts.volatility.summary', { period: period() })
@@ -327,8 +347,14 @@ function volatilitySpec({ months, slug }) {
   }
 }
 
-export const VOLATILITY_CHARTS = [
-  volatilitySpec({ months: 1, slug: 'volatilite-1-mois' }),
-  volatilitySpec({ months: 3, slug: 'volatilite-3-mois' }),
-  volatilitySpec({ months: 12, slug: 'volatilite-1-an' }),
-]
+// Une spécification par durée, gardée : le même objet d'un affichage à l'autre
+const specs = new Map()
+
+/** Graphique de Volatility pour `months` mois. */
+export function volatilityChart(months) {
+  if (!specs.has(months)) specs.set(months, volatilitySpec(months))
+  return specs.get(months)
+}
+
+/** Graphiques des périodes choisies (lib/volatilityWindows.js), de la plus courte à la plus longue. */
+export const volatilityCharts = (months) => months.map(volatilityChart)
