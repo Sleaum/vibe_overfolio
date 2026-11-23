@@ -80,7 +80,8 @@
     "public_sheet_not_found": "Feuille introuvable : vérifie le lien du document.",
     "public_export_too_big": "Feuille trop volumineuse pour être téléchargée.",
     "public_export_unreadable": "Fichier exporté illisible : {detail}",
-    "no_access_configured": "Aucun accès configuré : colle le lien d’une feuille partagée par lien, ou renseigne un compte de service."
+    "no_access_configured": "Aucun accès configuré : colle le lien d’une feuille partagée par lien, ou renseigne un compte de service.",
+    "invalid_asset_colors": "Couleurs des actifs non valables."
   },
   "data": {
     "unknown": "Non renseigné",
@@ -831,7 +832,7 @@
   },
   "assetColors": {
     "title": "Couleurs des actifs",
-    "help": "Clique sur un type d’actif pour changer sa couleur. Si la couleur est déjà prise, les deux types échangent leurs couleurs.",
+    "help": "Clique sur un type d’actif pour changer sa couleur. Si la couleur est déjà prise, les deux types échangent leurs couleurs. Tes choix sont enregistrés sur ton profil.",
     "choose": "Couleur de {name}",
     "reset": "Couleurs par défaut",
     "light": "{color} clair",

@@ -29,6 +29,7 @@ Ce fichier est lu au début de chaque session sur ce dépôt. Le README décrit 
 ## Préférences
 
 - Toute préférence gardée par le navigateur passe par `frontend/src/lib/preferences.js` (liste `PREFERENCES`) : jamais d'appel direct à `localStorage`. C'est ce qui permettra de les ranger sur le compte plus tard.
+- Les réglages à retrouver sur tous les appareils vont dans le **profil en base** (`backend/profiles`, `GET /api/profile/`) : c'est déjà le cas des couleurs des types d'actifs. Un seul profil tant qu'il n'y a pas de comptes, un par utilisateur ensuite (`current_profile`).
 
 ## Fonctions à venir : à prévoir dès maintenant
 
