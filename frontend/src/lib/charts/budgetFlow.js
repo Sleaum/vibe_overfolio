@@ -4,7 +4,7 @@ import { buildFlow, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { t, tList } from '../../i18n/index.js'
 import { euro, formatDateTime } from '../format.js'
-import { FONT, INK, SERIES, SURFACE } from '../palette.js'
+import { BLUE, FONT, INK, SURFACE } from '../palette.js'
 
 export function sankeyOption(nodes, links) {
   return {
@@ -14,10 +14,10 @@ export function sankeyOption(nodes, links) {
       formatter: (p) => {
         if (p.dataType === 'edge') {
           return tooltipHtml(`${p.data.source} → ${p.data.target}`, [
-            { color: SERIES[0], label: t('chart.amount'), value: euro(p.data.value), strong: true },
+            { color: BLUE, label: t('chart.amount'), value: euro(p.data.value), strong: true },
           ])
         }
-        return tooltipHtml(p.name, [{ color: SERIES[0], label: t('charts.budget.flowTotal'), value: euro(p.value), strong: true }])
+        return tooltipHtml(p.name, [{ color: BLUE, label: t('charts.budget.flowTotal'), value: euro(p.value), strong: true }])
       },
     }),
     series: [
@@ -32,7 +32,7 @@ export function sankeyOption(nodes, links) {
         nodeAlign: 'justify',
         draggable: false,
         emphasis: { focus: 'adjacency' },
-        data: nodes.map((name) => ({ name, itemStyle: { color: SERIES[0], borderColor: SURFACE, borderWidth: 1 } })),
+        data: nodes.map((name) => ({ name, itemStyle: { color: BLUE, borderColor: SURFACE, borderWidth: 1 } })),
         links,
         lineStyle: { color: 'source', opacity: 0.25, curveness: 0.5 },
         label: { color: INK, fontSize: 13, fontFamily: FONT },

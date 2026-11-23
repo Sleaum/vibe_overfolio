@@ -3,13 +3,12 @@
 
 import { axisLabelStyle, baseOption, legendTop, tooltipBox, tooltipHtml, valueAxis } from '../chartTheme.js'
 import { axisEuroFormatter, euro } from '../format.js'
-import { AXIS, SERIES } from '../palette.js'
+import { AXIS, BLUE, NAVY } from '../palette.js'
 import { t } from '../../i18n/index.js'
 
-const BLUE = SERIES[0]
-const OUTER = 'rgba(42, 120, 214, 0.14)' // couleur fixe : bleu des séries
-const INNER = 'rgba(42, 120, 214, 0.30)' // couleur fixe : bleu des séries
-const LEGEND = { [OUTER]: 'rgba(42, 120, 214, 0.3)', [INNER]: 'rgba(42, 120, 214, 0.6)' } // couleur fixe : bleu des séries
+const OUTER = 'rgba(26, 115, 232, 0.14)' // couleur fixe : bleu des séries
+const INNER = 'rgba(26, 115, 232, 0.30)' // couleur fixe : bleu des séries
+const LEGEND = { [OUTER]: 'rgba(26, 115, 232, 0.3)', [INNER]: 'rgba(26, 115, 232, 0.6)' } // couleur fixe : bleu des séries
 
 /** points : [{ label, values: [p10, p25, p50, p75, p90] }] ; goal : { label, amount } | null. */
 export function fanOption(points, goal) {
@@ -49,7 +48,7 @@ export function fanOption(points, goal) {
           { label: t('simulation.p25'), value: euro(p25) },
           { label: t('simulation.p10'), value: euro(p10) },
         ]
-        if (goal && goal.label === point.label) rows.push({ color: SERIES[1], label: t('simulation.goal'), value: euro(goal.amount), strong: true })
+        if (goal && goal.label === point.label) rows.push({ color: NAVY, label: t('simulation.goal'), value: euro(goal.amount), strong: true })
         return tooltipHtml(point.label, rows)
       },
     }),
@@ -87,7 +86,7 @@ export function fanOption(points, goal) {
               data: labels.map((label) => (label === goal.label ? goal.amount : null)),
               symbol: 'diamond',
               symbolSize: 14,
-              itemStyle: { color: SERIES[1] },
+              itemStyle: { color: NAVY },
               z: 6,
             },
           ]

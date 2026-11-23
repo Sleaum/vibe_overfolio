@@ -8,7 +8,7 @@ import { registerMap } from 'echarts/core'
 import { baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { countryCenter, geoName } from '../countries.js'
 import { euro, percent } from '../format.js'
-import { GRID, INK_2, SERIES, SURFACE } from '../palette.js'
+import { BLUE, GRID, INK_2, NAVY, SURFACE } from '../palette.js'
 import { tint } from '../strategy.js'
 import { t } from '../../i18n/index.js'
 
@@ -74,7 +74,7 @@ export function worldMapOption(model) {
         const shown = country.items.slice(0, MAX_ROWS)
         const rest = country.items.slice(MAX_ROWS)
         const rows = [
-          { color: SERIES[0], label: t('chart.amount'), value: euro(country.value), strong: true },
+          { color: BLUE, label: t('chart.amount'), value: euro(country.value), strong: true },
           { label: t('chart.shareOfTotal'), value: percent(country.share) },
           ...shown.map((item) => ({ label: item.name, value: euro(item.value) })),
         ]
@@ -90,7 +90,7 @@ export function worldMapOption(model) {
       seriesIndex: 0,
       min: 0,
       max: scale(max),
-      inRange: { color: [tint(SERIES[0], 0.6), SERIES[0]] },
+      inRange: { color: [tint(BLUE, 0.6), BLUE] },
     },
     // Fond de carte commun aux deux séries ; pays sans action : gris très clair, filet de la couleur du fond
     geo: {
@@ -112,8 +112,8 @@ export function worldMapOption(model) {
       {
         type: 'scatter',
         coordinateSystem: 'geo',
-        // Bulles orange : elles se détachent des pays bleus, même du plus foncé
-        itemStyle: { color: SERIES[1], opacity: 0.9, borderColor: SURFACE, borderWidth: 1 },
+        // Bulles bleu nuit, bordées de blanc : elles se détachent des pays bleus
+        itemStyle: { color: NAVY, opacity: 0.9, borderColor: SURFACE, borderWidth: 1 },
         label: {
           show: true,
           position: 'right',

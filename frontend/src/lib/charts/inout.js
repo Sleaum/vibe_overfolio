@@ -3,7 +3,7 @@
 import { buildInOut, findColumn, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
 import { axisEuroFormatter, euro, formatMonthKey } from '../format.js'
-import { HOVER_SHADE, SERIES } from '../palette.js'
+import { BLUE, HOVER_SHADE, NEGATIVE, NEGATIVE_2 } from '../palette.js'
 import { dataSubtitle } from './common.js'
 import { t, tList } from '../../i18n/index.js'
 
@@ -32,10 +32,10 @@ export function inoutOption(months, { hasTax }) {
         const month = months[first?.dataIndex]
         if (!month) return ''
         const rows = [
-          { color: SERIES[0], label: t('charts.inout.in'), value: euro(month.inflow) },
-          { color: SERIES[1], label: t('charts.inout.out'), value: euro(month.outflow) },
+          { color: BLUE, label: t('charts.inout.in'), value: euro(month.inflow) },
+          { color: NEGATIVE, label: t('charts.inout.out'), value: euro(month.outflow) },
         ]
-        if (hasTax) rows.push({ color: SERIES[3], label: t('charts.inout.tax'), value: euro(month.tax) })
+        if (hasTax) rows.push({ color: NEGATIVE_2, label: t('charts.inout.tax'), value: euro(month.tax) })
         rows.push({ label: t('charts.inout.monthBalance'), value: euro(month.inflow - month.outflow - month.tax), strong: true })
         return tooltipHtml(formatMonthKey(month.key), rows)
       },
@@ -44,9 +44,9 @@ export function inoutOption(months, { hasTax }) {
     yAxis: valueAxis(axisEuroFormatter(max)),
     dataZoom: zoom ? [zoomSlider()] : undefined,
     series: [
-      bar(t('charts.inout.in'), SERIES[0], months.map((month) => Math.round(month.inflow))),
-      bar(t('charts.inout.out'), SERIES[1], months.map((month) => Math.round(month.outflow))),
-      ...(hasTax ? [bar(t('charts.inout.tax'), SERIES[3], months.map((month) => Math.round(month.tax)))] : []),
+      bar(t('charts.inout.in'), BLUE, months.map((month) => Math.round(month.inflow))),
+      bar(t('charts.inout.out'), NEGATIVE, months.map((month) => Math.round(month.outflow))),
+      ...(hasTax ? [bar(t('charts.inout.tax'), NEGATIVE_2, months.map((month) => Math.round(month.tax)))] : []),
     ],
   }
 }

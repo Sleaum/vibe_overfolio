@@ -4,12 +4,12 @@
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { axisLabelStyle, baseOption, categoryAxis, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
 import { axisPercent, euro, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
-import { AXIS, HOVER_SHADE, SERIES } from '../palette.js'
+import { AXIS, BLUE, HOVER_SHADE, NEGATIVE } from '../palette.js'
 import { monthEnds, monthsSubtitle, signedPercent, skippedNote, totalsByDate } from './flowData.js'
 import { t, tList } from '../../i18n/index.js'
 
-const UP = SERIES[0]
-const DOWN = SERIES[1]
+const UP = BLUE
+const DOWN = NEGATIVE
 
 export function variationOption(changes) {
   const zoom = changes.length > 30

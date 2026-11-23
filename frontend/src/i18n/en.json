@@ -829,6 +829,23 @@
     },
     "dropped": "Left out because its debts exceed its assets: {names}. | Left out because their debts exceed their assets: {names}."
   },
+  "assetColors": {
+    "title": "Asset colours",
+    "help": "Click an asset type to change its colour. If the colour is already taken, the two types swap colours.",
+    "choose": "Colour of {name}",
+    "reset": "Default colours",
+    "light": "Light {color}",
+    "swatch": {
+      "blue": "Blue",
+      "red": "Red",
+      "yellow": "Yellow",
+      "green": "Green",
+      "orange": "Orange",
+      "pink": "Pink",
+      "purple": "Purple",
+      "cyan": "Cyan"
+    }
+  },
   "strategyMap": {
     "title": "World map",
     "countryCount": "{count} country | {count} countries",

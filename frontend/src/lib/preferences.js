@@ -9,6 +9,7 @@ export const PREFERENCES = {
   locale: 'overfolio-locale', // code de langue (i18n/index.js) ; absente = langue du navigateur
   simulation: 'overfolio.simulation.v1', // réglages de la page Simulation (JSON)
   amounts: 'overfolio-amounts', // 'gross' | 'net' : bouton Brut / Net de Charts (lib/amounts.js)
+  assetColors: 'overfolio-asset-colors', // couleurs choisies par type d'actif, menu de Charts (JSON, lib/palette.js)
 }
 
 /** Valeur enregistrée, ou null (absente, ou stockage indisponible en navigation privée). */

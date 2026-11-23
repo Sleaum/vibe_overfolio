@@ -829,6 +829,23 @@
     },
     "dropped": "Écarté car ses dettes dépassent ses actifs : {names}. | Écartés car leurs dettes dépassent leurs actifs : {names}."
   },
+  "assetColors": {
+    "title": "Couleurs des actifs",
+    "help": "Clique sur un type d’actif pour changer sa couleur. Si la couleur est déjà prise, les deux types échangent leurs couleurs.",
+    "choose": "Couleur de {name}",
+    "reset": "Couleurs par défaut",
+    "light": "{color} clair",
+    "swatch": {
+      "blue": "Bleu",
+      "red": "Rouge",
+      "yellow": "Jaune",
+      "green": "Vert",
+      "orange": "Orange",
+      "pink": "Rose",
+      "purple": "Violet",
+      "cyan": "Cyan"
+    }
+  },
   "strategyMap": {
     "title": "Carte du monde",
     "countryCount": "{count} pays | {count} pays",
