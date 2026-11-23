@@ -2,7 +2,7 @@
   Menu de Charts : couleurs des types d'actifs, choisies type par type dans les teintes de lib/palette.js (ASSET_SWATCHES).
   Liste : les types habituels (ASSET_ORDER) puis ceux trouvés dans la table `portfolio`.
   Un clic sur un type ouvre ses teintes ; si la teinte est déjà prise, les deux types échangent leurs couleurs.
-  Le choix est gardé par le navigateur (lib/preferences.js) et tous les graphiques se recalculent aussitôt.
+  Le choix est enregistré en base, sur le profil (lib/palette.js → /api/profile/), et tous les graphiques se recalculent aussitôt.
   Sur grand écran le bloc est ouvert ; sur petit écran il est replié sous les onglets.
 -->
 <template>
@@ -46,6 +46,7 @@
       </li>
     </ul>
 
+    <p v-if="assetColorError" class="mt-3 max-w-xs text-xs text-danger" role="alert">{{ assetColorError }}</p>
     <p class="mt-3 max-w-xs text-xs text-ink-3">{{ t('assetColors.help') }}</p>
     <button
       v-if="hasChoices"
@@ -67,6 +68,7 @@ import {
   ASSET_ORDER,
   ASSET_SWATCHES,
   assetColorChoices,
+  assetColorError,
   assignAssetColors,
   resetAssetColors,
   setAssetColor,

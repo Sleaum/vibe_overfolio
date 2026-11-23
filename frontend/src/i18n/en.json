@@ -80,7 +80,8 @@
     "public_sheet_not_found": "Sheet not found: check the document link.",
     "public_export_too_big": "The sheet is too large to download.",
     "public_export_unreadable": "Unreadable exported file: {detail}",
-    "no_access_configured": "No access set up: paste the link of a sheet shared by link, or fill in a service account."
+    "no_access_configured": "No access set up: paste the link of a sheet shared by link, or fill in a service account.",
+    "invalid_asset_colors": "Invalid asset colours."
   },
   "data": {
     "unknown": "Not specified",
@@ -831,7 +832,7 @@
   },
   "assetColors": {
     "title": "Asset colours",
-    "help": "Click an asset type to change its colour. If the colour is already taken, the two types swap colours.",
+    "help": "Click an asset type to change its colour. If the colour is already taken, the two types swap colours. Your choices are saved to your profile.",
     "choose": "Colour of {name}",
     "reset": "Default colours",
     "light": "Light {color}",

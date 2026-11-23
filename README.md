@@ -25,6 +25,11 @@ overfolio/
 │   │   ├── admin.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
+│   ├── profiles/                   # app : profil gardé en base (couleurs des actifs), prêt pour les comptes
+│   │   ├── models.py               # Profile (utilisateur facultatif, asset_colors)
+│   │   ├── views.py, urls.py       # /api/profile/
+│   │   ├── admin.py, tests.py
+│   │   └── migrations/
 ├── frontend/
 │   ├── Dockerfile                  # stage "build" (Node 24, npm ci, Vite)
 │   ├── index.html                  # page HTML ; pose le mode sombre avant l'affichage
@@ -63,7 +68,7 @@ overfolio/
 │           ├── aggregate.js, dates.js, format.js   # calculs ; nombres, dates et noms de pays dans la langue active
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
 │           ├── countries.js        # pays de la carte du monde (Strategy) : écritures de la colonne Area, centres
-│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation, brut / net, couleurs des actifs
+│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation, brut / net
 │           ├── amounts.js          # bouton Brut / Net de Charts : montants bruts, nets ou dettes seules
 │           ├── pdfExport.js        # bouton PDF : tout le site en un PDF, une page web = une page PDF
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
@@ -341,6 +346,10 @@ Chemin 2 : lecture de la base (rapide, à jour après synchronisation)
   Navigateur ──► /api/data/<onglet>/ ──► PostgreSQL
   utilisé par : la page GoogleSheet, les pages de Charts et la page Simulation
 
+Profil (réglages gardés en base, pas dans le navigateur)
+  Navigateur ◄──► /api/profile/ ◄──► PostgreSQL (table profiles_profile)
+  utilisé par : les couleurs des actifs (menu de Charts)
+
 Synchronisation Google Sheets ──► PostgreSQL
   - commande : python manage.py sync_sheets
   - bouton « Tout actualiser » de la page GoogleSheet (tous les onglets de la liste)
@@ -359,6 +368,8 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
+| GET | `/api/profile/` | Profil gardé en base : `{ asset_colors: { type: "#rrggbb" }, updated_at }` (créé vide au premier appel) |
+| PUT | `/api/profile/asset-colors/` | `{"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut). Types mis en minuscules ; 400 `invalid_asset_colors` si une couleur n'est pas au format `#rrggbb`, si un type est vide ou dépasse 100 caractères, ou au-delà de 200 types |
 | GET, PUT | `/api/sheet-config/tabs/` | `GET` : onglets du document, `{ mode, tabs, selected }`, dans les deux modes. `PUT {"sync_tabs": "portfolio, budget"}` : enregistre seulement la liste des onglets à synchroniser et renvoie les paramètres comme `/api/sheet-config/` (400 `sync_tabs_required` si la liste est vide) |
 
 Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "code_stable", "params": {…}}` (`backend/googlesheet/errors.py`) : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google). Le site affiche le message dans la langue choisie à partir de `code` et `params` (rubrique `apiErrors` de `frontend/src/i18n/*.json`) ; `error` reste en français pour la ligne de commande. Un formulaire invalide (`400`) ajoute `fields` (messages par champ) et `field_codes` (codes par champ). Le résultat de chaque onglet d'une synchronisation porte aussi `code` et `params`.
@@ -596,7 +607,8 @@ Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) 
 
 Toutes dans `frontend/src/lib/palette.js`, dans l'esprit des couleurs Google :
 
-- **Types d'actifs** (colonne `Asset`) : une teinte vive par type, la même dans tous les graphiques (anneau, barres empilées, volatilité, Snapshot). Les teintes proposées sont `ASSET_SWATCHES` : 8 teintes Google (bleu, rouge, jaune, vert, orange, rose, violet, cyan), en vif et en clair. Par défaut : public equity bleu, real estate orange, fiat vert, crypto jaune, commodity cyan, managed futures violet, exotic rose, depreciating rouge ; un autre type prend une teinte restée libre. Dans le menu de Charts, « Couleurs des actifs » liste les types habituels et ceux de la feuille (table `portfolio`) : un clic sur un type ouvre ses teintes. Si la teinte est déjà prise, les deux types échangent leurs couleurs. Le choix est gardé par le navigateur (préférence `assetColors` de `lib/preferences.js`) et les graphiques se recalculent aussitôt ; « Couleurs par défaut » efface le choix.
+- **Types d'actifs** (colonne `Asset`) : une teinte vive par type, la même dans tous les graphiques (anneau, barres empilées, volatilité, Snapshot). Les teintes proposées sont `ASSET_SWATCHES` : 8 teintes Google (bleu, rouge, jaune, vert, orange, rose, violet, cyan), en vif et en clair. Par défaut : public equity bleu, real estate orange, fiat vert, crypto jaune, commodity cyan, managed futures violet, exotic rose, depreciating rouge ; un autre type prend une teinte restée libre. Dans le menu de Charts, « Couleurs des actifs » liste les types habituels et ceux de la feuille (table `portfolio`) : un clic sur un type ouvre ses teintes. Si la teinte est déjà prise, les deux types échangent leurs couleurs. Le choix est **enregistré en base, sur le profil** (`GET /api/profile/`, `PUT /api/profile/asset-colors/`, app `backend/profiles`) : il se retrouve sur tous les navigateurs et appareils. Les couleurs sont chargées au démarrage (`loadAssetColors` dans `lib/palette.js`), affichées tout de suite à chaque clic, et remises comme avant avec un message si l'enregistrement échoue. « Couleurs par défaut » efface le choix. Les couleurs gardées par le navigateur avant ce changement sont recopiées une fois sur le profil, puis effacées du navigateur.
+- **Profil et comptes** : tant qu'il n'y a pas de comptes, un seul profil existe (sans utilisateur) et vaut pour tout le site. Le modèle `Profile` a déjà un champ `user` : une fois la connexion branchée (page `/newpage`, compte Google ou autre), chaque utilisateur connecté aura son propre profil (`current_profile` dans `backend/profiles/views.py`), sans changer l'API.
 - **Tout le reste** (devises, enveloppes, catégories de Strategy, courbes du patrimoine, simulation, carte, budget) : des nuances de bleu (`BLUES`, du bleu nuit au bleu pâle). `blues(n)` donne `n` nuances bien séparées, la plus foncée pour la plus grosse catégorie ; `BLUE` est le bleu principal, `NAVY` le repère posé sur du bleu (tendance, objectif).
 - **Montants négatifs** (baisse d'un mois sur l'autre, sorties d'argent, dettes) : rouge `NEGATIVE`, et orange `NEGATIVE_2` pour un second montant négatif (impôts).
 - « Autres » reste gris (`CONTEXT`), « Non renseigné » gris clair.
@@ -730,7 +742,7 @@ cd frontend && npm audit && npm outdated
 
 ## À venir
 
-- **Comptes et connexion.** La page `/newpage` est la future page de connexion ; elle est factice pour l'instant (aucun compte vérifié, rien n'est envoyé au serveur). Une fois branchée (comptes Django, session), l'API sera réservée aux utilisateurs connectés, ce qui permettra d'exposer le site sur Internet. Les nouvelles fonctions sont écrites en le prévoyant (voir `CLAUDE.md`).
+- **Comptes et connexion.** La page `/newpage` est la future page de connexion ; elle est factice pour l'instant (aucun compte vérifié, rien n'est envoyé au serveur). Une fois branchée (comptes Django, session), l'API sera réservée aux utilisateurs connectés, ce qui permettra d'exposer le site sur Internet. Le profil en base (`backend/profiles`, couleurs des actifs) est déjà prévu pour un profil par utilisateur. Les nouvelles fonctions sont écrites en le prévoyant (voir `CLAUDE.md`).
 
 ## Sécurité
 

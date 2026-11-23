@@ -1,6 +1,7 @@
 import { CHART_COLORS, COLORS } from './theme.js'
 
 import { ref } from 'vue'
+import { getProfile, saveProfileAssetColors } from './api.js'
 import { readPreference, writePreference } from './preferences.js'
 
 // Couleurs des graphiques, dans l'esprit des couleurs Google :
@@ -119,26 +120,77 @@ const ASSET_DEFAULTS = {
 const keyOf = (name) => String(name ?? '').trim().toLowerCase()
 const SWATCH_COLORS = new Set(ASSET_SWATCHES.map((s) => s.color))
 
-function readChoices() {
+/** Garde seulement les couleurs proposées : { type en minuscules: couleur }. */
+function validChoices(value) {
+  return Object.fromEntries(
+    Object.entries(value && typeof value === 'object' ? value : {})
+      .map(([name, color]) => [keyOf(name), String(color).toLowerCase()])
+      .filter(([name, color]) => name && SWATCH_COLORS.has(color)),
+  )
+}
+
+/**
+ * Couleurs choisies dans le menu de Charts : { 'crypto': '#f9ab00', … } (clé = type en minuscules).
+ * Gardées en base, sur le profil (GET /api/profile/, PUT /api/profile/asset-colors/) ; chargées au démarrage
+ * par loadAssetColors(). Réactif : les graphiques se recalculent quand une couleur change.
+ */
+export const assetColorChoices = ref({})
+
+/** Dernière erreur d'enregistrement ou de chargement des couleurs (message déjà traduit), sinon ''. */
+export const assetColorError = ref('')
+
+let loading = null
+
+/**
+ * Charge les couleurs du profil (une seule fois). Les couleurs gardées par le navigateur avant le passage en base
+ * sont recopiées sur le profil s'il n'en a pas encore, puis effacées du navigateur.
+ */
+export function loadAssetColors() {
+  loading ??= (async () => {
+    try {
+      const profile = await getProfile()
+      let choices = validChoices(profile.asset_colors)
+      const legacy = readLegacyChoices()
+      if (!Object.keys(choices).length && Object.keys(legacy).length) {
+        choices = validChoices((await saveProfileAssetColors(legacy)).asset_colors)
+      }
+      if (Object.keys(legacy).length) writePreference('assetColors', null)
+      assetColorChoices.value = choices
+      assetColorError.value = ''
+    } catch (error) {
+      assetColorError.value = error.message
+      loading = null // nouvel essai au prochain appel
+    }
+  })()
+  return loading
+}
+
+function readLegacyChoices() {
   try {
-    const saved = JSON.parse(readPreference('assetColors') ?? '{}')
-    return Object.fromEntries(
-      Object.entries(saved && typeof saved === 'object' ? saved : {}).filter(([, color]) => SWATCH_COLORS.has(color)),
-    )
+    return validChoices(JSON.parse(readPreference('assetColors') ?? '{}'))
   } catch {
     return {}
   }
 }
 
-/**
- * Couleurs choisies dans le menu de Charts : { 'crypto': '#f9ab00', … } (clé = type en minuscules).
- * Réactif : les graphiques se recalculent quand une couleur change.
- */
-export const assetColorChoices = ref(readChoices())
+// Enregistrements les uns après les autres : le dernier choix est toujours celui qui reste en base
+let saving = Promise.resolve()
+let version = 0
 
 function saveChoices(next) {
-  assetColorChoices.value = next
-  writePreference('assetColors', Object.keys(next).length ? JSON.stringify(next) : null)
+  const previous = assetColorChoices.value
+  const mine = ++version
+  assetColorChoices.value = next // affiché tout de suite, annulé si le serveur refuse
+  saving = saving.then(async () => {
+    try {
+      await saveProfileAssetColors(next)
+      assetColorError.value = ''
+    } catch (error) {
+      if (version === mine) assetColorChoices.value = previous // sauf si un autre choix a suivi
+      assetColorError.value = error.message
+    }
+  })
+  return saving
 }
 
 /**

@@ -8,6 +8,8 @@
 //   PUT    /api/sheet-config/       -> enregistre les paramètres saisis
 //   DELETE /api/sheet-config/       -> revient aux valeurs du .env
 //   GET    /api/sheet-config/tabs/  -> onglets du document : { mode, tabs[], selected[] }
+//   GET    /api/profile/            -> réglages gardés en base : { asset_colors: { type: '#rrggbb' }, updated_at }
+//   PUT    /api/profile/asset-colors/ { asset_colors } -> remplace les couleurs des types d'actifs ({} = par défaut)
 //   (mode : 'service_account' = compte de service, 'public_link' = lien seul, 'none' = rien de configuré)
 //   Erreurs : { "error": "message en français", "code": "code_stable", "params": {…}, "fields"?: { champ: message },
 //             "field_codes"?: { champ: code } } avec le code 400, 404, 429 (trop rapproché) ou 502.
@@ -102,4 +104,14 @@ export const saveSyncTabs = (syncTabs) =>
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sync_tabs: syncTabs }),
+  })
+
+// Profil gardé en base (un seul pour le site tant qu'il n'y a pas de comptes)
+export const getProfile = () => request('/api/profile/')
+
+export const saveProfileAssetColors = (assetColors) =>
+  request('/api/profile/asset-colors/', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ asset_colors: assetColors }),
   })
