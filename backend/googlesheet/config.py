@@ -23,7 +23,7 @@ from typing import Dict, List, Optional
 
 from .models import SheetConfig
 
-DEFAULT_TABS = ["portfolio", "inout", "stock", "budget", "_history"]
+DEFAULT_TABS = ["portfolio", "inout", "stock", "budget", "history"]
 DEFAULT_DOC_NAME = "overfolio"
 
 # Champ du modèle -> variable du .env

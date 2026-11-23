@@ -162,7 +162,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 | `GOOGLE_SHEET_DOC_NAME` | `overfolio` | Nom du document, utilisé seulement si `GOOGLE_SHEET_ID` est vide |
 | `ALLOWED_SHEET_DOCS` | vide | Liste blanche des documents lisibles via `/api/sheet` (séparés par des virgules). Vide : aucune restriction |
 | `SHEET_CACHE_SECONDS` | `60` | Cache de `/api/sheet` (0 pour le désactiver) |
-| `SHEET_SYNC_TABS` | `portfolio,inout,stock,budget,_history` | Onglets recopiés en base (modifiables sur la page GoogleSheet, au-dessus de Tout actualiser) |
+| `SHEET_SYNC_TABS` | `portfolio,inout,stock,budget,history` | Onglets recopiés en base (modifiables sur la page GoogleSheet, au-dessus de Tout actualiser) |
 | `SYNC_COOLDOWN_SECONDS` | `10` | Délai minimal entre deux synchronisations d'une même table |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | vide | Client OAuth « Application Web » de Google Cloud, pour la connexion avec Google (voir « Connexion avec Google »). Vides : bouton grisé, site utilisable sans compte |
 | `GOOGLE_OAUTH_REDIRECT_URI` | vide | Adresse de retour après Google, **identique** à celle déclarée dans Google Cloud : `http://localhost/api/auth/google/callback/` (Docker), `http://localhost:5173/api/auth/google/callback/` (Vite en développement), `https://ton-domaine/api/auth/google/callback/` (production) |
@@ -326,10 +326,12 @@ Onglets utilisés :
 | Onglet | Contenu | Utilisé par |
 |---|---|---|
 | `portfolio` | Positions actuelles (en-tête en ligne 2, la ligne 1 est une synthèse) | Snapshot, Strategy (anneaux et carte du monde), Envelopes, point de départ de Simulation |
-| `_history` | Historique des relevés (et tes objectifs : lignes avec seulement une date et un montant) | Flow, Envelopes, Volatility, variations de Snapshot, objectif de Simulation |
+| `history` | Historique des relevés (et tes objectifs : lignes avec seulement une date et un montant). S'appelait `_history` avant : voir la note sous ce tableau | Flow, Envelopes, Volatility, variations de Snapshot, objectif de Simulation |
 | `inout` | Entrées et sorties d'argent (colonnes date, in, out, tax) | Graphique Entrées, sorties et impôts de Flow, versement proposé par Simulation |
 | `budget` | Budget : de quelle source vers quelle destination | Flux du budget |
 | `stock` | Valeurs suivies | Strategy (secteur, moat, note…), page GoogleSheet |
+
+> **Ancien nom `_history`** : l'onglet d'historique s'appelle désormais `history`. Renomme l'onglet `_history` en `history` dans ta feuille Google. À la mise à jour, la base suit seule (migration `googlesheet 0005`) : les tables `_history` déjà synchronisées deviennent `history`, et `_history` est remplacé par `history` dans les listes d'onglets à synchroniser enregistrées. Seule la feuille est à renommer. Si tu as `SHEET_SYNC_TABS` dans `.env`, remplace-y aussi `_history` par `history`.
 
 La lecture détecte seule la ligne d'en-tête. Les nombres sont lus en valeurs brutes (pas de format régional ni de symbole monétaire).
 
@@ -584,7 +586,7 @@ docker compose exec -T backend python manage.py sync_sheets --dry-run
 docker compose exec -T backend python manage.py sync_sheets
 
 # Quelques onglets seulement
-docker compose exec -T backend python manage.py sync_sheets --tabs portfolio,_history
+docker compose exec -T backend python manage.py sync_sheets --tabs portfolio,history
 
 # Forcer la ligne d'en-tête d'un onglet (si elle est mal détectée)
 docker compose exec -T backend python manage.py sync_sheets --header-row budget=2
@@ -673,17 +675,17 @@ Quinze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de F
 | `<nom>` dans l'adresse | Table | Colonnes lues |
 |---|---|---|
 | `flux-budget` | `budget` | `Source`, `Destination`, `Valeur`. Lignes supérieures à 0, doublons additionnés |
-| `patrimoine-devises` | `_history` | `Date` et une colonne de montants par devise dont le nom contient `CHF`, `EUR` ou `USD` (par exemple `EUR` ou `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées. Brut ou net selon le bouton Brut / Net |
-| `repartition-mensuelle` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Barres à 100 % par mois |
-| `evolution-par-actif` | `_history` | `Date`, `Asset`, `Assets Master Currency`. Une courbe par type d'actif |
-| `dettes-par-actif` | `_history` | `Date`, `Asset`, `Liabilities Master Currency` (ou `EUR` négatif). Tes dettes en positif, une courbe par type d'actif. Sur la page Flow, seulement en mode Brut |
-| `variation-mensuelle` | `_history` | `Date`, `Assets Master Currency`. Variation en % du total d'un mois à l'autre |
+| `patrimoine-devises` | `history` | `Date` et une colonne de montants par devise dont le nom contient `CHF`, `EUR` ou `USD` (par exemple `EUR` ou `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées. Brut ou net selon le bouton Brut / Net |
+| `repartition-mensuelle` | `history` | `Date`, `Asset`, `Assets Master Currency`. Barres à 100 % par mois |
+| `evolution-par-actif` | `history` | `Date`, `Asset`, `Assets Master Currency`. Une courbe par type d'actif |
+| `dettes-par-actif` | `history` | `Date`, `Asset`, `Liabilities Master Currency` (ou `EUR` négatif). Tes dettes en positif, une courbe par type d'actif. Sur la page Flow, seulement en mode Brut |
+| `variation-mensuelle` | `history` | `Date`, `Assets Master Currency`. Variation en % du total d'un mois à l'autre |
 | `entrees-sorties` | `inout` | `date`, `in`, `out`, `tax` (facultative). Barres par mois ; sorties et impôts saisis en négatif comptés en valeur absolue |
-| `patrimoine-tendance` | `_history` | `Date` et la colonne en euros (`EUR`, sinon `Assets Master Currency`). Barres par relevé, droite de tendance prolongée jusqu'au dernier objectif, et objectifs (lignes sans `Asset` ni `Instrument`) |
+| `patrimoine-tendance` | `history` | `Date` et la colonne en euros (`EUR`, sinon `Assets Master Currency`). Barres par relevé, droite de tendance prolongée jusqu'au dernier objectif, et objectifs (lignes sans `Asset` ni `Instrument`) |
 | `enveloppes-instruments` | `portfolio` | `Envelope` (ou `Account`), `Instrument`, `Assets Master Currency`, `Asset` |
-| `enveloppes-evolution` | `_history` | `Date`, `Envelope`, `Asset`, `Assets Master Currency` |
+| `enveloppes-evolution` | `history` | `Date`, `Envelope`, `Asset`, `Assets Master Currency` |
 | `enveloppes-types`, `enveloppes-zones` | `portfolio` | `Envelope`, `Sub Asset` (ou `Area`), `Assets Master Currency` |
-| `volatilite-1-mois`, `volatilite-3-mois`, `volatilite-1-an` | `_history` | `Date`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Asset`, `Envelope`, `Broker`). Prix unitaire = montant ÷ quantité ; liquidités, immobilier, biens qui se déprécient et objets écartés. Chaque bulle porte son nom (avec l'enveloppe quand le même instrument est dans plusieurs enveloppes) ; les noms de bulles presque superposées sont écartés. Une ligne pas encore détenue à la date de référence est nommée dans la note |
+| `volatilite-1-mois`, `volatilite-3-mois`, `volatilite-1-an` | `history` | `Date`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Asset`, `Envelope`, `Broker`). Prix unitaire = montant ÷ quantité ; liquidités, immobilier, biens qui se déprécient et objets écartés. Chaque bulle porte son nom (avec l'enveloppe quand le même instrument est dans plusieurs enveloppes) ; les noms de bulles presque superposées sont écartés. Une ligne pas encore détenue à la date de référence est nommée dans la note |
 
 Les graphiques de `patrimoine-devises` à `patrimoine-tendance` forment la page `/portfolio-flow`. Ils prennent, pour chaque mois, le **dernier relevé** du mois (plusieurs relevés par mois ne s'additionnent pas). Une date isolée, à plus de 6 mois des autres (un objectif en 2039, un vieux relevé), est écartée des graphiques mensuels, et la page le signale ; le graphique `patrimoine-tendance` garde toutes les dates et affiche les objectifs à part.
 
@@ -708,7 +710,7 @@ Si une colonne manque, la page du graphique le dit en clair et renvoie vers la p
 
 ### Snapshot
 
-La page `/portfolio-snapshot` lit la table `portfolio` (et `_history` pour deux chiffres). Tous les calculs sont dans `frontend/src/lib/snapshot.js`.
+La page `/portfolio-snapshot` lit la table `portfolio` (et `history` pour deux chiffres). Tous les calculs sont dans `frontend/src/lib/snapshot.js`.
 
 | Élément | Calcul |
 |---|---|
@@ -716,7 +718,7 @@ La page `/portfolio-snapshot` lit la table `portfolio` (et `_history` pour deux 
 | Patrimoine net | Brut + somme des `Liabilities Master Currency` (les dettes sont négatives). Sans cette colonne, net = brut. Ne dépend pas du bouton Brut / Net |
 | Anneau, montants par type | Selon le bouton Brut / Net (voir « Brut ou net »). En net, un type négatif est écarté et signalé |
 | Tes dettes | Mode Brut : les dettes par instrument, en positif, avec leur part du total des dettes |
-| Cette année, Ce mois-ci | Variation du total (brut ou net, selon le bouton) de `_history` entre le dernier relevé avant le 1er janvier (ou le 1er du mois) et le dernier relevé jusqu'à la date des positions. Elle inclut tes versements et retraits : ce n'est pas un rendement. Sans assez de relevés, elle affiche « – » |
+| Cette année, Ce mois-ci | Variation du total (brut ou net, selon le bouton) de `history` entre le dernier relevé avant le 1er janvier (ou le 1er du mois) et le dernier relevé jusqu'à la date des positions. Elle inclut tes versements et retraits : ce n'est pas un rendement. Sans assez de relevés, elle affiche « – » |
 | Détail par type d'actif | Un bloc par valeur de `Asset`, avec des barres pour chaque découpage dont la colonne existe : Sous-type (`Sub Asset`), Instrument (`Instrument`), Enveloppe (`Envelope`, `Enveloppe`, sinon `Account`), Courtier (`Broker`), Zone (`Area`). Les 6 plus gros sont affichés, le reste est regroupé en « Autres ». Le détail montre toujours les actifs du type ; en net, l'en-tête du type donne son montant net et les dettes retirées |
 
 Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en bas les colonnes réellement lues pour chaque découpage, ce qui permet de vérifier d'un coup d'œil. Pour accepter un autre nom de colonne, ajouter ce nom dans la liste `DIMENSIONS` de `snapshot.js`. Sur Snapshot, les zones restent une liste ; la carte du monde est sur la page Strategy.
@@ -760,7 +762,7 @@ Le PDF est fait d'images : le texte n'y est pas sélectionnable. Compter une qua
 La page `/simulation` (lien de l'en-tête, à part de la rubrique Graphiques) tire 5 000 trajectoires mois par mois jusqu'à la date de l'objectif. Elle affiche la médiane, les fourchettes 25-75 % et 10-90 %, et la part des trajectoires qui atteignent l'objectif à sa date.
 
 - **Point de départ** : la table `portfolio` (montants par `Asset` au dernier relevé, et dette totale tirée de `Liabilities Master Currency`).
-- **Valeurs proposées** : le versement mensuel est la moyenne des 12 derniers mois complets de `inout` (`in - out - tax`). L'objectif est la prochaine ligne d'objectif de `_history`. Les hypothèses par type d'actif (rendement, volatilité, lien avec les actions) sont des ordres de grandeur de long terme, dans `DEFAULT_ASSUMPTIONS` de `lib/simulation.js`.
+- **Valeurs proposées** : le versement mensuel est la moyenne des 12 derniers mois complets de `inout` (`in - out - tax`). L'objectif est la prochaine ligne d'objectif de `history`. Les hypothèses par type d'actif (rendement, volatilité, lien avec les actions) sont des ordres de grandeur de long terme, dans `DEFAULT_ASSUMPTIONS` de `lib/simulation.js`.
 - **Modèle** : rendements mensuels log-normaux, chocs de Student à 5 degrés de liberté (krachs plus fréquents qu'avec une loi normale) et corrélation par un facteur « marché actions ». Les versements sont répartis au prorata des actifs cochés, et les frais sont prélevés sur les actifs financiers. La dette baisse du capital remboursé chaque mois.
 - **Limites** : ni impôt à la sortie ni rééquilibrage. Les résultats sont reproductibles : une graine fixe donne le même résultat pour les mêmes hypothèses.
 - Tout se règle dans la page, et les réglages sont gardés par le navigateur (préférence `simulation` de `lib/preferences.js`). Le calcul tourne dans un Web Worker, en 0,3 s environ.
@@ -921,6 +923,7 @@ cd frontend && npm audit && npm outdated
 | Le sélecteur de Google ne s'ouvre pas, ou affiche « The API developer key is invalid » | Clé API absente, non limitée à l'API Google Picker, ou site non autorisé dans ses restrictions | Vérifier `GOOGLE_PICKER_API_KEY` et les restrictions de la clé (sites `http://localhost/*`…) ; activer l'API Google Picker |
 | Synchronisation en mode 3 : « Feuille introuvable ou plus autorisée » | Feuille supprimée, ou choisie par un autre compte | « Choisir une autre feuille » dans la carte 3 |
 | `google_not_authorized` après un changement de `FIELD_ENCRYPTION_KEY` | Les jetons gardés ne se déchiffrent plus | Autoriser de nouveau l'accès (carte 3) |
+| « Onglet 'history' introuvable » après la mise à jour | L'onglet s'appelle encore `_history` dans la feuille | Le renommer `history` dans Google Sheets, puis Tout actualiser |
 | `git push` : mot de passe refusé | GitHub n'accepte plus les mots de passe | Clé SSH ou token d'accès personnel |
 
 > Les identifiants PostgreSQL ne sont lus qu'à la **première initialisation** du volume. Si tu les modifies dans `.env`, recrée le volume (`docker compose down -v`).

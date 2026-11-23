@@ -184,7 +184,7 @@ export const envelopeHistory = {
   get summary() {
     return t('charts.envelopeHistory.summary')
   },
-  table: '_history',
+  table: 'history',
   minWidth: 720,
   get explain() {
     return tList('charts.envelopeHistory.explain')

@@ -1,5 +1,5 @@
 // Portfolio Flow : patrimoine en euros à chaque relevé (barres), sa tendance (droite des moindres carrés) et tes objectifs.
-// Table `_history` : une colonne « EUR » si elle existe, sinon Assets Master Currency.
+// Table `history` : une colonne « EUR » si elle existe, sinon Assets Master Currency.
 // Une ligne sans type d'actif ni instrument (seulement une date et un montant) est un objectif, pas un relevé :
 // elle est tracée à part (points reliés en pointillés) et n'entre ni dans les barres ni dans la tendance.
 
@@ -157,7 +157,7 @@ export default {
   get summary() {
     return t('charts.trend.summary')
   },
-  table: '_history',
+  table: 'history',
   minWidth: 720,
   get explain() {
     return tList('charts.trend.explain')
@@ -173,7 +173,7 @@ export default {
     if (!valueColumn) {
       throw new DataError(
         t('charts.trend.noColumn', {
-          table: table?.name ?? '_history',
+          table: table?.name ?? 'history',
           available: (table?.columns ?? []).join(', ') || t('data.none'),
         }),
       )

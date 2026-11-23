@@ -1,5 +1,5 @@
 // Portfolio Flow 2 : répartition du patrimoine par type d'actif, en % de chaque mois (barres empilées à 100 %).
-// Table `_history`, colonnes Date, Asset et Assets Master Currency.
+// Table `history`, colonnes Date, Asset et Assets Master Currency.
 
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
@@ -67,7 +67,7 @@ export default {
   get summary() {
     return t('charts.allocation.summary')
   },
-  table: '_history',
+  table: 'history',
   minWidth: 720,
   get explain() {
     return tList('charts.allocation.explain')
@@ -79,7 +79,7 @@ export default {
   build(table) {
     const cols = requireColumns(table, { date: ['Date'], asset: ['Asset'], value: ['Assets Master Currency'] })
     const model = assetMonthly(rowsOf(table), cols.date, cols.asset, cols.value)
-    if (!model.months.length) return { empty: t('errors.noPositive', { table: '_history' }) }
+    if (!model.months.length) return { empty: t('errors.noPositive', { table: 'history' }) }
 
     const last = model.months.length - 1
     const biggest = model.series

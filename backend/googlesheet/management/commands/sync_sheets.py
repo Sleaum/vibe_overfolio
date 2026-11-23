@@ -6,7 +6,7 @@ from googlesheet.sync import DEFAULT_TABS, sync_sheets
 
 
 class Command(BaseCommand):
-    help = "Recopie les onglets du Google Sheet (portfolio, inout, stock, budget, _history) en base de données."
+    help = "Recopie les onglets du Google Sheet (portfolio, inout, stock, budget, history) en base de données."
 
     def add_arguments(self, parser):
         parser.add_argument(

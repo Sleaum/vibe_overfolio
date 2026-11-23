@@ -4,7 +4,7 @@
 import { t } from '../i18n/index.js'
 import { formatDateNumeric } from './format.js'
 
-/** 25 relevés mensuels, de novembre 2024 à novembre 2026, au format de la table `_history`. */
+/** 25 relevés mensuels, de novembre 2024 à novembre 2026, au format de la table `history`. */
 export function sampleHistory() {
   const wobble = [0, 1.2, -0.6, 1.9, 0.4, -1.4, 1.1, 0.8, -0.9, 1.6, 0.3, -0.5]
   const rows = []
@@ -17,7 +17,7 @@ export function sampleHistory() {
     })
   }
   return {
-    name: '_history',
+    name: 'history',
     columns: ['Date', 'Assets Master Currency', 'Liabilities Master Currency'],
     rows,
     synced_at: null,
