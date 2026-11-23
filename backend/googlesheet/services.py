@@ -45,11 +45,11 @@ class SheetAPIError(SheetError):
     status = 502
 
 
-def get_credentials() -> dict:
-    """Identifiants du compte de service : ceux saisis sur la page GoogleSheet, sinon ceux du .env."""
+def get_credentials(owner=None) -> dict:
+    """Identifiants du compte de service : ceux saisis sur la page GoogleSheet, sinon ceux du .env (site seulement)."""
     from . import config  # import différé : config dépend des modèles
 
-    return config.credentials()
+    return config.credentials(owner)
 
 
 def _fingerprint(credentials: dict) -> str:
@@ -57,11 +57,11 @@ def _fingerprint(credentials: dict) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def get_client() -> gspread.client.Client:
+def get_client(owner=None) -> gspread.client.Client:
     """Client gspread réutilisé tant que les identifiants ne changent pas."""
     global _client, _client_fingerprint
 
-    credentials = get_credentials()
+    credentials = get_credentials(owner)
     fingerprint = _fingerprint(credentials)
     if _client is not None and fingerprint == _client_fingerprint:
         return _client
@@ -274,7 +274,31 @@ def worksheet_titles(spreadsheet) -> List[str]:
         raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
 
 
-def open_spreadsheet(doc_name: str):
+def open_google_account_spreadsheet(owner, sheet_id: str):
+    """Mode 3 : feuille choisie dans le sélecteur de Google, lue avec le compte Google de la personne (drive.file)."""
+    from accounts import drive  # import différé
+
+    try:
+        client = gspread.authorize(drive.fresh_credentials(owner))
+    except drive.DriveError as exc:
+        error = SheetConfigError(str(exc), exc.code)
+        error.status = exc.status
+        raise error
+    try:
+        return client.open_by_key(sheet_id)
+    except gspread.exceptions.SpreadsheetNotFound:
+        raise SheetNotFound(
+            "Feuille introuvable ou plus autorisée : choisis-la de nouveau dans le sélecteur de Google.",
+            "google_sheet_not_found",
+        )
+    except gspread.exceptions.APIError as exc:
+        logger.warning("Erreur API Google Sheets (compte Google) : %s", exc.__class__.__name__)
+        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}", "google_api_error", detail=str(exc))
+    except RequestException as exc:
+        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
+
+
+def open_spreadsheet(doc_name: str, owner=None):
     """
     Ouvre le document, selon le mode choisi par config.access_mode() :
 
@@ -283,24 +307,29 @@ def open_spreadsheet(doc_name: str):
       (doc_name, ce qui demande l'API Drive).
     - « public_link » (solution 1) : pas de compte de service, seulement le lien d'une feuille partagée
       « Tous les utilisateurs disposant du lien » : export Excel de toute la feuille.
+    - « google » (solution 3, compte connecté) : feuille choisie dans le sélecteur de Google, lue avec son compte.
+
+    owner : None = configuration du site, sinon celle du compte connecté.
     """
     from . import config
 
-    mode = config.access_mode()
+    mode = config.access_mode(owner=owner)
+    if mode == "google":
+        return open_google_account_spreadsheet(owner, config.sheet_id(owner))
     if mode == "public_link":
-        return open_public_spreadsheet(config.sheet_id())
+        return open_public_spreadsheet(config.sheet_id(owner))
     if mode == "none":
         raise SheetConfigError(
             "Aucun accès configuré : colle le lien d'une feuille partagée par lien, ou renseigne un compte de service.",
             "no_access_configured",
         )
 
-    client = get_client()
-    sheet_id = config.sheet_id()
+    client = get_client(owner)
+    sheet_id = config.sheet_id(owner)
     try:
         return client.open_by_key(sheet_id) if sheet_id else client.open(doc_name)
     except gspread.exceptions.SpreadsheetNotFound:
-        email = get_credentials().get("client_email") or "le compte de service"
+        email = get_credentials(owner).get("client_email") or "le compte de service"
         what = "l'identifiant du document" if sheet_id else f"le nom '{doc_name}'"
         raise SheetNotFound(
             f"Feuille introuvable (vérifie {what}) ou non partagée avec {email}.",

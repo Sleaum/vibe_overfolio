@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 __all__ = ["DEFAULT_TABS", "configured_tabs", "sync_sheets", "TabResult"]
 
 
-def configured_tabs() -> List[str]:
-    """Onglets à synchroniser : ceux saisis sur la page GoogleSheet, sinon SHEET_SYNC_TABS, sinon la liste par défaut."""
-    return config.sync_tabs()
+def configured_tabs(owner=None) -> List[str]:
+    """Onglets à synchroniser : ceux saisis sur la page GoogleSheet, sinon SHEET_SYNC_TABS (site), sinon la liste par défaut."""
+    return config.sync_tabs(owner)
 
 
 @dataclass
@@ -45,15 +45,16 @@ class SyncResults(list):
         self.removed = []
 
 
-def document_source(doc_name: str) -> str:
+def document_source(doc_name: str, owner=None) -> str:
     """Clé du document configuré : son identifiant, sinon « nom:<nom> » (recherche par nom)."""
-    sheet_id = config.sheet_id()
+    sheet_id = config.sheet_id(owner)
     return sheet_id if sheet_id else f"nom:{doc_name}"
 
 
-def _save_table(tab: str, header_row: int, columns: List[str], rows: List[dict], source: str = "") -> None:
-    """Remplace d'un seul bloc le contenu d'un onglet : tout est écrit, ou rien."""
+def _save_table(tab: str, header_row: int, columns: List[str], rows: List[dict], source: str = "", owner=None) -> None:
+    """Remplace d'un seul bloc le contenu d'un onglet (de ce propriétaire) : tout est écrit, ou rien."""
     table, _ = SheetTable.objects.update_or_create(
+        user=owner,
         name=tab,
         defaults={
             "source": source,
@@ -76,6 +77,7 @@ def sync_sheets(
     header_rows: Optional[Dict[str, int]] = None,
     dry_run: bool = False,
     allow_empty: bool = False,
+    owner=None,
 ) -> List[TabResult]:
     """
     Lit chaque onglet dans Google Sheets puis le recopie en base.
@@ -87,11 +89,12 @@ def sync_sheets(
     - Lève SheetError si le document lui-même est inaccessible (rien n'est alors modifié en base).
     - Les tables venues d'un autre document (feuille changée sur la page GoogleSheet), ou d'origine inconnue
       et non relues ici, sont retirées : la base ne garde que des données du document configuré.
+    - owner : None = données et configuration du site, sinon celles du compte connecté (jamais mélangées).
     """
-    tabs = tabs or configured_tabs()
+    tabs = tabs or configured_tabs(owner)
     header_rows = header_rows or {}
-    spreadsheet = open_spreadsheet(doc_name)
-    source = document_source(doc_name)
+    spreadsheet = open_spreadsheet(doc_name, owner)
+    source = document_source(doc_name, owner)
 
     results = SyncResults()
     for tab in tabs:
@@ -107,7 +110,7 @@ def sync_sheets(
 
         result.header_row, result.columns, result.rows = header_row, columns, len(rows)
 
-        if not rows and not allow_empty and SheetTable.objects.filter(name=tab, row_count__gt=0).exists():
+        if not rows and not allow_empty and SheetTable.objects.filter(user=owner, name=tab, row_count__gt=0).exists():
             result.message = "aucune ligne lue : données existantes conservées (--allow-empty pour forcer)"
             result.code = "empty_kept"
             continue
@@ -119,7 +122,7 @@ def sync_sheets(
             continue
 
         try:
-            _save_table(tab, header_row, columns, rows, source)
+            _save_table(tab, header_row, columns, rows, source, owner)
         except Exception as exc:
             logger.exception("Écriture en base impossible pour l'onglet %s", tab)
             result.message = f"erreur base de données : {exc}"
@@ -130,13 +133,13 @@ def sync_sheets(
         result.saved = True
 
     if not dry_run:
-        results.removed = _remove_other_documents(source)
+        results.removed = _remove_other_documents(source, owner)
     return results
 
 
-def _remove_other_documents(source: str) -> List[str]:
-    """Retire les tables qui ne viennent pas du document configuré ; renvoie leurs noms."""
-    others = SheetTable.objects.exclude(source=source)
+def _remove_other_documents(source: str, owner=None) -> List[str]:
+    """Retire les tables de ce propriétaire qui ne viennent pas du document configuré ; renvoie leurs noms."""
+    others = SheetTable.objects.filter(user=owner).exclude(source=source)
     names = sorted(others.values_list("name", flat=True))
     if names:
         logger.info("Tables d'un autre document retirées : %s", ", ".join(names))

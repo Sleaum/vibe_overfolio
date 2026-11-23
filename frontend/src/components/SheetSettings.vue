@@ -4,7 +4,10 @@
   - La clé privée n'est jamais renvoyée par le serveur : laissée vide, la clé en vigueur est conservée.
   - « Importer le fichier JSON » remplit les champs du compte de service depuis le fichier téléchargé dans Google Cloud.
   - Les onglets à synchroniser ne sont pas ici : section Onglet de la page (SyncTabs.vue).
-  - Événements : `loaded` et `saved` avec la configuration ({ source, values, private_key_set, … }).
+  - Mode 3 (compte Google, compte connecté) : autoriser l'accès (navigation vers Google), puis choisir la feuille
+    dans le sélecteur de Google (lib/googlePicker.js) ; Overfolio n'a accès qu'à cette feuille.
+  - Compte connecté : paramètres propres au compte (scope « account »), sans repli sur le .env du site.
+  - Événements : `loaded` et `saved` avec la configuration ({ scope, source, mode, values, google, … }).
 -->
 <template>
   <section class="mt-10 rounded-xl border border-line bg-paper shadow-soft" aria-labelledby="sheet-settings-title">
@@ -14,13 +17,18 @@
         <p class="mt-1 text-sm text-ink-2" aria-live="polite">
           <template v-if="loading">{{ t('sheetSettings.loading') }}</template>
           <template v-else-if="loadError">{{ t('sheetSettings.unavailable') }}</template>
+          <template v-else-if="isAccount && config?.source === 'page'">
+            {{ updatedLabel ? t('sheetSettings.savedAccountOn', { date: updatedLabel }) : t('sheetSettings.savedAccount') }}
+          </template>
+          <template v-else-if="isAccount">{{ t('sheetSettings.accountEmpty') }}</template>
           <template v-else-if="config?.source === 'page'">
             {{ updatedLabel ? t('sheetSettings.savedHereOn', { date: updatedLabel }) : t('sheetSettings.savedHere') }}
           </template>
           <template v-else>{{ t('sheetSettings.fromEnv') }}</template>
-          <span v-if="!loading && !loadError && config" class="block font-medium text-ink">
-            {{ t(`sheetSettings.mode.${config.mode}`, { email: config.values.client_email }) }}
+          <span v-if="!loading && !loadError && config" class="block font-medium text-ink" data-testid="sheet-mode">
+            {{ t(`sheetSettings.mode.${config.mode}`, { email: config.values.client_email, name: sheetName }) }}
           </span>
+          <span v-if="isAccount" class="mt-1 block text-xs text-ink-3">{{ t('sheetSettings.scopeAccount', { email: google.email }) }}</span>
         </p>
       </div>
       <AppButton
@@ -187,14 +195,42 @@
         </details>
       </fieldset>
 
-      <!-- Compte Google (mode 3) : présentation standard, pas encore branché -->
-      <section v-if="method === 'google'" class="mt-8 rounded-lg border border-line p-5" aria-labelledby="sheet-google-title">
+      <!-- Compte Google (mode 3) : connexion, accord d'accès, puis choix de la feuille dans le sélecteur de Google -->
+      <section v-if="method === 'google'" class="mt-8 rounded-lg border border-line p-5" aria-labelledby="sheet-google-title" data-testid="sheet-google">
         <h3 id="sheet-google-title" class="font-semibold text-ink">{{ t('sheetSettings.google.title') }}</h3>
         <p class="mt-2 max-w-2xl text-sm text-ink-2">{{ t('sheetSettings.google.text') }}</p>
-        <AppButton variant="secondary" class="mt-4" disabled aria-describedby="sheet-google-soon">
-          {{ t('sheetSettings.google.title') }}
-        </AppButton>
-        <p id="sheet-google-soon" class="mt-3 text-sm text-ink-3">{{ t('sheetSettings.google.soon') }}</p>
+
+        <!-- Serveur sans réglages Google (clé API, numéro de projet, clé de chiffrement) -->
+        <p v-if="!google.available" class="mt-4 text-sm text-ink-3" data-testid="sheet-google-unavailable">
+          {{ t('sheetSettings.google.unavailable') }}
+        </p>
+        <!-- Pas connecté -->
+        <div v-else-if="!google.signed_in" class="mt-4">
+          <AppButton variant="secondary" :to="{ path: '/newpage', query: { next: '/sheet?mode=google' } }" data-testid="sheet-google-sign-in">
+            {{ t('sheetSettings.google.signInFirst') }}
+          </AppButton>
+        </div>
+        <!-- Connecté, accès pas encore accordé -->
+        <div v-else-if="!google.authorized" class="mt-4">
+          <AppButton data-testid="sheet-google-authorize" @click="authorizeGoogle">{{ t('sheetSettings.google.authorize') }}</AppButton>
+          <p class="mt-2 max-w-2xl text-xs text-ink-3">{{ t('sheetSettings.google.authorizeHelp', { email: google.email }) }}</p>
+        </div>
+        <!-- Accès accordé : choisir (ou changer) la feuille -->
+        <div v-else class="mt-4 space-y-3">
+          <p v-if="config?.mode === 'google'" class="text-sm text-ink" data-testid="sheet-google-chosen">
+            {{ t('sheetSettings.google.chosen', { name: sheetName }) }}
+          </p>
+          <div class="flex flex-wrap items-center gap-3">
+            <AppButton :disabled="picking || saving" :aria-busy="picking" data-testid="sheet-google-choose" @click="chooseSheet">
+              {{ picking ? t('sheetSettings.google.picking') : config?.mode === 'google' ? t('sheetSettings.google.change') : t('sheetSettings.google.choose') }}
+            </AppButton>
+            <AppButton variant="ghost" :disabled="picking || saving" data-testid="sheet-google-revoke" @click="revokeGoogle">
+              {{ t('sheetSettings.google.revoke') }}
+            </AppButton>
+          </div>
+          <p class="text-xs text-ink-3">{{ t('sheetSettings.google.authorizedAs', { email: google.email }) }}</p>
+        </div>
+        <p v-if="googleNotice" class="mt-3 text-sm font-medium text-success" role="status">{{ googleNotice }}</p>
       </section>
 
       <div v-if="saveError" role="alert" class="mt-6 rounded-lg border border-danger-line bg-danger-wash p-4">
@@ -214,7 +250,7 @@
           :disabled="saving"
           @click="backToEnv"
         >
-          {{ t('sheetSettings.backToEnv') }}
+          {{ isAccount ? t('sheetSettings.clearAccount') : t('sheetSettings.backToEnv') }}
         </AppButton>
         <span v-if="notice" class="text-sm font-medium text-success" role="status">{{ notice }}</span>
       </div>
@@ -227,10 +263,22 @@ import { useI18n } from 'vue-i18n'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import AppButton from './ui/AppButton.vue'
 import SegmentedControl from './ui/SegmentedControl.vue'
-import { getSheetConfig, resetSheetConfig, saveSheetConfig } from '../lib/api.js'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  apiMessage,
+  getPickerToken,
+  getSheetConfig,
+  googleDriveStartUrl,
+  resetSheetConfig,
+  revokeGoogleDrive,
+  saveSheetConfig,
+} from '../lib/api.js'
 import { formatDateTime } from '../lib/format.js'
+import { pickSpreadsheet } from '../lib/googlePicker.js'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const emit = defineEmits(['loaded', 'saved'])
 
@@ -332,10 +380,17 @@ const keySource = computed(() =>
 )
 const updatedLabel = computed(() => (config.value?.updated_at ? formatDateTime(config.value.updated_at) : ''))
 
+// Compte connecté : paramètres de son compte (jamais ceux du site)
+const isAccount = computed(() => config.value?.scope === 'account')
+const google = computed(() => config.value?.google ?? { available: false, signed_in: false, authorized: false, email: '' })
+const sheetName = computed(() => config.value?.values?.doc_name || config.value?.values?.sheet_id || '')
+const savedMethod = (next) =>
+  next?.mode === 'google' || next?.method === 'google' ? 'google' : next?.mode === 'service_account' ? 'service_account' : 'public_link'
+
 const dirty = computed(
   () =>
     !!config.value &&
-    (method.value !== (config.value.mode === 'service_account' ? 'service_account' : 'public_link') ||
+    (method.value !== savedMethod(config.value) ||
       lookup.value !== (config.value.values.sheet_id ? 'link' : 'name') ||
       form.private_key.trim() !== '' ||
       FIELD_NAMES.some((name) => form[name] !== (config.value.values[name] ?? ''))),
@@ -350,7 +405,7 @@ function inputClass(name) {
 
 function fill(next) {
   if (!next) return
-  method.value = next.mode === 'service_account' ? 'service_account' : 'public_link'
+  method.value = savedMethod(next)
   lookup.value = next.values.sheet_id ? 'link' : 'name'
   accountLoadedFrom.value = ''
   for (const name of FIELD_NAMES) form[name] = next.values[name] ?? ''
@@ -368,6 +423,7 @@ async function load() {
     fill(config.value)
     // Formulaire ouvert d'office tant qu'aucun accès n'est configuré
     if (config.value.mode === 'none') open.value = true
+    applyGoogleReturn()
     emit('loaded', config.value)
   } catch (err) {
     loadError.value = err.message
@@ -417,14 +473,78 @@ async function save() {
 }
 
 async function backToEnv() {
-  if (!window.confirm(t('sheetSettings.confirmEnv'))) return
+  if (!window.confirm(isAccount.value ? t('sheetSettings.confirmClearAccount') : t('sheetSettings.confirmEnv'))) return
   saving.value = true
   saveError.value = ''
   try {
     config.value = await resetSheetConfig()
     fill(config.value)
-    showNotice(t('sheetSettings.envRestored'))
+    showNotice(isAccount.value ? t('sheetSettings.accountCleared') : t('sheetSettings.envRestored'))
     emit('saved', config.value)
+  } catch (err) {
+    saveError.value = err.message
+  } finally {
+    saving.value = false
+  }
+}
+
+// ---------- Mode 3 : compte Google ----------
+const picking = ref(false)
+const googleNotice = ref('')
+
+// Retour de Google (?google=connected ou ?google_error=<code>) ou lien vers le mode 3 (?mode=google)
+function applyGoogleReturn() {
+  const { google: done, google_error: failure, mode, ...rest } = route.query
+  if (!done && !failure && mode !== 'google') return
+  method.value = 'google'
+  open.value = true
+  if (done === 'connected') googleNotice.value = t('sheetSettings.google.connected')
+  if (typeof failure === 'string') saveError.value = apiMessage(failure, {}, t('login.error'))
+  router.replace({ query: rest }) // un rechargement ne réaffiche pas le message
+}
+
+function authorizeGoogle() {
+  window.location.assign(googleDriveStartUrl('/sheet?mode=google'))
+}
+
+async function chooseSheet() {
+  picking.value = true
+  saveError.value = ''
+  googleNotice.value = ''
+  try {
+    const token = await getPickerToken()
+    const doc = await pickSpreadsheet({
+      accessToken: token.access_token,
+      apiKey: token.api_key,
+      appId: token.app_id,
+      locale: locale.value,
+    })
+    if (!doc) return // sélecteur fermé sans choix
+    saving.value = true
+    config.value = await saveSheetConfig({ method: 'google', sheet_id: doc.id, doc_name: doc.name })
+    fill(config.value)
+    googleNotice.value = t('sheetSettings.google.saved', { name: doc.name || doc.id })
+    emit('saved', config.value)
+  } catch (err) {
+    saveError.value =
+      err.message === 'picker_unavailable' ? t('sheetSettings.google.pickerFailed') : Object.values(err.fields || {})[0] || err.message
+    // Accès retiré entre-temps : la page repropose de l'autoriser
+    if (['google_access_revoked', 'google_not_authorized'].includes(err.code)) await load()
+  } finally {
+    picking.value = false
+    saving.value = false
+  }
+}
+
+async function revokeGoogle() {
+  if (!window.confirm(t('sheetSettings.google.confirmRevoke'))) return
+  saving.value = true
+  saveError.value = ''
+  try {
+    await revokeGoogleDrive()
+    await load()
+    method.value = 'google'
+    googleNotice.value = t('sheetSettings.google.revoked')
   } catch (err) {
     saveError.value = err.message
   } finally {

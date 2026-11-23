@@ -1,10 +1,20 @@
+from django.conf import settings
 from django.db import models
+from django.db.models.functions import Coalesce
 
 
 class SheetTable(models.Model):
-    """Un onglet du Google Sheet recopié en base (une ligne par onglet)."""
+    """
+    Un onglet du Google Sheet recopié en base (une ligne par onglet et par propriétaire).
 
-    name = models.CharField(max_length=100, unique=True)  # nom de l'onglet
+    `user` vide : données du site (visiteurs non connectés) ; sinon données d'un compte connecté,
+    que lui seul voit. Le nom d'onglet est unique par propriétaire.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name="sheet_tables"
+    )
+    name = models.CharField(max_length=100)  # nom de l'onglet
     # Ordre des colonnes : PostgreSQL (jsonb) ne conserve pas l'ordre des clés d'un objet.
     columns = models.JSONField(default=list)
     header_row = models.PositiveIntegerField(default=1)  # ligne d'en-tête dans la feuille
@@ -14,8 +24,17 @@ class SheetTable(models.Model):
     # Une synchronisation retire les tables d'un autre document : elles ne correspondent plus à la feuille configurée.
     source = models.CharField(max_length=200, blank=True, default="")
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "name"], name="uniq_sheettable_user_name"),
+            # Données du site : NULL n'étant égal à rien, l'unicité du nom se déclare à part
+            models.UniqueConstraint(
+                fields=["name"], condition=models.Q(user__isnull=True), name="uniq_sheettable_site_name"
+            ),
+        ]
+
     def __str__(self):
-        return self.name
+        return self.name if self.user_id is None else f"{self.name} ({self.user})"
 
 
 class SheetRow(models.Model):
@@ -37,11 +56,18 @@ class SheetRow(models.Model):
 
 class SheetConfig(models.Model):
     """
-    Paramètres d'accès au Google Sheet, saisis sur la page GoogleSheet (une seule ligne, pk=1).
+    Paramètres d'accès au Google Sheet, saisis sur la page GoogleSheet : une ligne par propriétaire.
 
-    Tant que l'utilisateur n'a rien enregistré, cette ligne n'existe pas et les valeurs du .env
-    s'appliquent (voir googlesheet/config.py).
+    `user` vide : configuration du site (visiteurs non connectés) ; tant qu'elle n'existe pas, les valeurs
+    du .env s'appliquent. Sinon : configuration d'un compte connecté, sans repli sur le .env
+    (voir googlesheet/config.py).
     """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name="sheet_config"
+    )
+    # "" : mode déduit des valeurs (lien public ou compte de service) ; "google" : compte Google de la personne
+    method = models.CharField(max_length=20, blank=True, default="")
 
     # Compte de service Google (champs du fichier JSON téléchargé depuis Google Cloud)
     type = models.CharField(max_length=50, blank=True, default="service_account")
@@ -66,6 +92,10 @@ class SheetConfig(models.Model):
     class Meta:
         verbose_name = "configuration Google Sheet"
         verbose_name_plural = "configuration Google Sheet"
+        constraints = [
+            # Une seule configuration par propriétaire, site compris (NULL ramené à 0 pour être comparé)
+            models.UniqueConstraint(Coalesce("user", models.Value(0)), name="uniq_sheetconfig_owner"),
+        ]
 
     def __str__(self):
-        return "Configuration Google Sheet"
+        return "Configuration Google Sheet" + ("" if self.user_id is None else f" de {self.user}")

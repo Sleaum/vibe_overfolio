@@ -1,7 +1,7 @@
 import re
 
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
 from googlesheet.errors import error_response
@@ -18,20 +18,20 @@ def current_profile(request):
     """
     Profil de la personne qui appelle l'API.
 
-    Utilisateur connecté : son profil (créé au premier appel). Sinon, le profil du site (sans utilisateur),
-    le seul tant que la connexion n'est pas branchée.
+    Compte connecté (session) : son profil (créé au premier appel s'il manque). Sinon, le profil du site
+    (sans utilisateur), celui des visiteurs non connectés.
     """
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated:
         profile, _ = Profile.objects.get_or_create(user=user)
         return profile
-    profile = Profile.objects.filter(user__isnull=True).order_by("pk").first()
-    return profile or Profile.objects.create()
+    return Profile.site_profile()
 
 
 def _serialize(profile):
     return {
         "asset_colors": profile.asset_colors or {},
+        "theme": profile.theme,
         "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
     }
 
@@ -52,16 +52,29 @@ def _clean_asset_colors(value):
     return cleaned
 
 
-@api_view(["GET"])
-@authentication_classes([])  # pas de session pour l'instant ; à retirer quand la connexion sera branchée
+THEMES = {"", "light", "dark"}
+
+
+@api_view(["GET", "PUT"])
 @permission_classes([AllowAny])
 def profile_detail(request):
-    """GET /api/profile/ : réglages gardés en base."""
-    return JsonResponse(_serialize(current_profile(request)))
+    """
+    GET /api/profile/ : réglages gardés en base (profil du compte connecté, sinon profil du site).
+    PUT /api/profile/ {"theme": "dark"} : enregistre le mode ("light", "dark", ou "" pour suivre le système).
+    Avec une session ouverte, le jeton CSRF est exigé (en-tête X-CSRFToken).
+    """
+    profile = current_profile(request)
+    if request.method == "PUT":
+        body = request.data if isinstance(request.data, dict) else {}
+        theme = body.get("theme")
+        if theme not in THEMES:
+            return error_response("Mode d'affichage non valable", "invalid_theme", 400)
+        profile.theme = theme
+        profile.save(update_fields=["theme", "updated_at"])
+    return JsonResponse(_serialize(profile))
 
 
 @api_view(["PUT"])
-@authentication_classes([])  # pas de session : évite le rejet CSRF si l'admin est connecté
 @permission_classes([AllowAny])
 def profile_asset_colors(request):
     """PUT /api/profile/asset-colors/ {"asset_colors": {type: couleur}} : remplace les couleurs choisies ({} = par défaut)."""

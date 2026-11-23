@@ -29,19 +29,21 @@ Ce fichier est lu au début de chaque session sur ce dépôt. Le README décrit 
 ## Préférences
 
 - Toute préférence gardée par le navigateur passe par `frontend/src/lib/preferences.js` (liste `PREFERENCES`) : jamais d'appel direct à `localStorage`. C'est ce qui permettra de les ranger sur le compte plus tard.
-- Les réglages à retrouver sur tous les appareils vont dans le **profil en base** (`backend/profiles`, `GET /api/profile/`) : c'est déjà le cas des couleurs des types d'actifs. Un seul profil tant qu'il n'y a pas de comptes, un par utilisateur ensuite (`current_profile`).
+- Les réglages à retrouver sur tous les appareils vont dans le **profil en base** (`backend/profiles`, `GET /api/profile/`) : couleurs des types d'actifs et mode clair / sombre. Profil du site sans connexion, un par compte connecté (`current_profile`).
 
 ## Fonctions à venir : à prévoir dès maintenant
 
 ### Comptes et connexion
 
-La page `/newpage` (`frontend/src/views/NewPage.vue`) est la **future page de connexion**. Elle est factice pour l'instant (aucune vérification, rien n'est envoyé au serveur). **La garder, ne pas réutiliser son adresse.**
+La connexion avec un compte Google est branchée (`backend/accounts`, page `/newpage`, `frontend/src/lib/auth.js`) : session Django, compte retrouvé par l'identifiant Google `sub`. Elle est facultative : sans connexion, le site marche comme avant. **Garder l'adresse `/newpage`.**
 
-Quand elle sera branchée : comptes Django, session, et API réservée aux utilisateurs connectés. En attendant, pour toute nouvelle fonction :
+Pour toute nouvelle fonction :
 
-- ne pas supposer que l'API restera publique : toute nouvelle route sous `/api/` doit pouvoir être protégée plus tard sans changer son fonctionnement ;
-- les réglages propres à une personne (mode sombre, langue, réglages de la simulation…) restent dans le navigateur, regroupés dans `lib/preferences.js` pour pouvoir passer sur le compte plus tard ;
-- ne jamais écrire un mot de passe ou une donnée sensible dans la console ou les logs (le `console.log` de `NewPage.vue` est à retirer lors du branchement).
+- l'API est encore publique sans connexion : toute nouvelle route sous `/api/` doit pouvoir être réservée aux comptes connectés plus tard sans changer son fonctionnement ;
+- avec une session, les requêtes qui modifient exigent le jeton CSRF : passer par `request()` de `frontend/src/lib/api.js` (qui l'ajoute), jamais un `fetch` direct ; côté Django, ne pas désactiver l'authentification d'une vue (`authentication_classes([])`) ;
+- un réglage propre à une personne et à retrouver sur tous ses appareils va dans le profil (`current_profile`) ; un réglage propre à un navigateur reste dans `lib/preferences.js` ;
+- configuration GoogleSheet et données synchronisées sont **par propriétaire** (le site, ou un compte) : toute lecture ou écriture de `SheetConfig` / `SheetTable` passe par `config.request_owner(request)` et filtre sur `user` ; un compte n'hérite jamais du `.env` du site ;
+- ne jamais écrire un jeton, un code OAuth, un secret ou une donnée sensible dans la console ou les logs.
 
 ## Sécurité
 

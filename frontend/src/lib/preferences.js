@@ -10,7 +10,7 @@ export const PREFERENCES = {
   simulation: 'overfolio.simulation.v1', // réglages de la page Simulation (JSON)
   amounts: 'overfolio-amounts', // 'gross' | 'net' : bouton Brut / Net de Charts (lib/amounts.js)
   // Ancien emplacement des couleurs des types d'actifs : elles sont désormais sur le profil, en base.
-  // Lu une fois pour les recopier sur le profil, puis effacé (loadAssetColors de lib/palette.js).
+  // Lu une fois pour les recopier sur le profil, puis effacé (applyProfileAssetColors de lib/palette.js).
   assetColors: 'overfolio-asset-colors',
 }
 

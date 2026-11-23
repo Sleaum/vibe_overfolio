@@ -19,14 +19,22 @@ overfolio/
 │   │   ├── data_urls.py
 │   │   ├── middleware.py           # DisableCSPMiddleware
 │   │   ├── errors.py               # forme commune des erreurs de l'API (message, code, params)
-│   │   ├── models.py               # SheetTable, SheetRow, SheetConfig (voir « Base de données »)
+│   │   ├── models.py               # SheetTable, SheetRow, SheetConfig, par propriétaire (voir « Base de données »)
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
 │   │   ├── sync.py                 # copie des onglets vers la base
 │   │   ├── admin.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
-│   ├── profiles/                   # app : profil gardé en base (couleurs des actifs), prêt pour les comptes
-│   │   ├── models.py               # Profile (utilisateur facultatif, asset_colors)
+│   ├── accounts/                   # app : connexion avec Google (session Django)
+│   │   ├── google.py               # OAuth 2.0 (code + PKCE), vérification du jeton d'identité
+│   │   ├── drive.py                # mode 3 : accès aux feuilles choisies (drive.file), jeton chiffré, jeton court du Picker
+│   │   ├── models.py               # GoogleAccount (sub Google, e-mail, nom, photo, accès Drive chiffré)
+│   │   ├── services.py             # compte retrouvé par `sub` ou créé (profil du site recopié)
+│   │   ├── views.py, urls.py       # /api/auth/ (start, callback, me, logout, drive/start, picker-token, drive/revoke)
+│   │   ├── admin.py, tests.py, tests_drive.py
+│   │   └── migrations/
+│   ├── profiles/                   # app : profil gardé en base (couleurs des actifs, mode), un par compte
+│   │   ├── models.py               # Profile (utilisateur facultatif, asset_colors, theme)
 │   │   ├── views.py, urls.py       # /api/profile/
 │   │   ├── admin.py, tests.py
 │   │   └── migrations/
@@ -51,9 +59,10 @@ overfolio/
 │       │   ├── VolatilityPage.vue  #   /volatilite         variation du prix de chaque placement
 │       │   ├── SimulationPage.vue  #   /simulation         simulation de Monte-Carlo du patrimoine
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
-│       │   └── NewPage.vue         #   /newpage            connexion
+│       │   └── NewPage.vue         #   /newpage            connexion avec Google
 │       ├── components/
-│       │   ├── Header.vue, Footer.vue   # en-tête : menus, bouton PDF, langue, clair / sombre
+│       │   ├── Header.vue, Footer.vue   # en-tête : menus, bouton PDF, compte, langue, clair / sombre
+│       │   ├── AccountMenu.vue     # en-tête : Connexion, ou photo du compte et menu (e-mail, Se déconnecter)
 │       │   ├── PdfProgress.vue     # bandeau de progression de l'export PDF (absent du PDF)
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
 │       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
@@ -64,7 +73,10 @@ overfolio/
 │       │                           #   menu.js (noms des menus, toujours en anglais)
 │       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
 │       └── lib/
-│           ├── api.js              # appels /api/data/...
+│           ├── api.js              # appels /api/… (jeton CSRF ajouté aux requêtes qui modifient)
+│           ├── auth.js             # état de la connexion (session), se connecter, se déconnecter
+│           ├── googlePicker.js     # sélecteur de fichiers de Google (mode 3 de la page GoogleSheet)
+│           ├── profile.js          # profil en base au démarrage et après connexion : couleurs, mode
 │           ├── aggregate.js, dates.js, format.js   # calculs ; nombres, dates et noms de pays dans la langue active
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
 │           ├── countries.js        # pays de la carte du monde (Strategy) : écritures de la colonne Area, centres
@@ -124,6 +136,16 @@ UNIVERSE_DOMAIN=googleapis.com
 
 # Google Sheet
 GOOGLE_SHEET_ID=...            # identifiant du document (voir ci-dessous)
+
+# Connexion avec Google (facultatif : sans ces trois lignes, le site marche sans comptes)
+GOOGLE_OAUTH_CLIENT_ID=...apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=...
+GOOGLE_OAUTH_REDIRECT_URI=http://localhost/api/auth/google/callback/
+
+# Mode 3 de la page GoogleSheet « Compte Google » (facultatif, en plus des trois lignes ci-dessus)
+GOOGLE_PICKER_API_KEY=...                 # clé API limitée à l'API Google Picker
+GOOGLE_CLOUD_PROJECT_NUMBER=123456789012  # numéro (pas l'ID) du projet Google Cloud
+FIELD_ENCRYPTION_KEY=...                  # clé Fernet : chiffre les jetons Google en base
 ```
 
 Générer une `SECRET_KEY` :
@@ -142,6 +164,12 @@ python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 | `SHEET_CACHE_SECONDS` | `60` | Cache de `/api/sheet` (0 pour le désactiver) |
 | `SHEET_SYNC_TABS` | `portfolio,inout,stock,budget,_history` | Onglets recopiés en base (modifiables sur la page GoogleSheet, au-dessus de Tout actualiser) |
 | `SYNC_COOLDOWN_SECONDS` | `10` | Délai minimal entre deux synchronisations d'une même table |
+| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | vide | Client OAuth « Application Web » de Google Cloud, pour la connexion avec Google (voir « Connexion avec Google »). Vides : bouton grisé, site utilisable sans compte |
+| `GOOGLE_OAUTH_REDIRECT_URI` | vide | Adresse de retour après Google, **identique** à celle déclarée dans Google Cloud : `http://localhost/api/auth/google/callback/` (Docker), `http://localhost:5173/api/auth/google/callback/` (Vite en développement), `https://ton-domaine/api/auth/google/callback/` (production) |
+| `GOOGLE_PICKER_API_KEY`, `GOOGLE_CLOUD_PROJECT_NUMBER` | vide | Mode 3 « Compte Google » de la page GoogleSheet : clé API du sélecteur de fichiers de Google et numéro du projet (voir « Mode 3 : compte Google »). Vides : mode 3 indisponible |
+| `FIELD_ENCRYPTION_KEY` | vide | Clé de chiffrement des jetons Google gardés en base (mode 3). À générer une fois : `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. **Secret** ; la changer oblige chacun à autoriser de nouveau l'accès à sa feuille |
+| `COOKIE_SECURE` | `False` | `True` en production (HTTPS) : cookies de session et CSRF envoyés seulement en HTTPS |
+| `CSRF_TRUSTED_ORIGINS` | celles de `CORS_ALLOWED_ORIGINS` (`http://localhost:5173,http://127.0.0.1:5173`) | Origines acceptées pour les requêtes qui modifient quand l'hôte reçu par Django diffère (proxy de Vite). En production derrière HTTPS : `https://ton-domaine`. En Docker seul (sans Vite), `CSRF_TRUSTED_ORIGINS=http://localhost` évite de faire confiance au port 5173, où une autre application pourrait tourner |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Noms et adresses par lesquels on ouvre le site. Pour y accéder depuis un téléphone du même Wi-Fi, ajouter l'adresse IP locale du PC (`ipconfig` sous Windows), par exemple `localhost,127.0.0.1,192.168.1.20`, puis ouvrir `http://192.168.1.20` sur le téléphone |
 
 Règles à respecter :
@@ -197,7 +225,7 @@ docker compose up --build -d
 | http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Tout actualiser). L'ancienne adresse `/source` fonctionne toujours |
 | http://localhost/graphiques | Rubrique Charts. Menu à gauche : Flow, Snapshot, Envelopes, Strategy, Volatility et Budget ; la page choisie s'affiche à droite (Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
 | http://localhost/simulation | Simulation de Monte-Carlo du patrimoine (page à part, lien « Simulation » de l'en-tête) |
-| http://localhost/newpage | Future page de connexion (factice pour l'instant) |
+| http://localhost/newpage | Connexion avec un compte Google (bouton « Connexion » de l'en-tête) |
 | http://localhost/admin/ | Admin Django |
 
 Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx.
@@ -210,8 +238,9 @@ Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx
 4. **Brut ou net** : le bouton **Brut / Net** en haut du menu de Charts choisit les montants de Flow, Snapshot et Envelopes : tes actifs seuls, ou actifs moins dettes (voir « Brut ou net »).
 5. **Projeter** : page **Simulation**, réglages dans la page.
 6. **Exporter en PDF** : bouton **PDF** de l'en-tête. Tout le site, une page web par page PDF, avec tes réglages du moment (voir « Le PDF »).
-7. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur.
-8. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Tout le site suit la langue : textes, graphiques, messages d'erreur, nombres et dates (voir « Langues »).
+7. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur (et sur ton compte si tu es connecté).
+8. **Se connecter** (facultatif) : bouton **Connexion** de l'en-tête, avec ton compte Google. Tes couleurs et ton mode clair / sombre sont alors enregistrés sur ton compte et retrouvés sur tous tes appareils (voir « Connexion avec Google »).
+9. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Tout le site suit la langue : textes, graphiques, messages d'erreur, nombres et dates (voir « Langues »).
 
 ### Créer un compte administrateur
 
@@ -227,7 +256,7 @@ Sur la page **GoogleSheet**, le bloc « Connexion à Google Sheets » commence p
 |---|---|
 | **1. Lien public** | lien du Google Sheet. Pas de nom de document : l'identifiant vient du lien |
 | **2. Compte de service** | « Trouver le document par » **Lien** ou **Nom** (un seul des deux champs affiché ; enregistrer par nom vide le lien, sinon il serait utilisé à la place), compte de service (import du fichier JSON, champs, champs avancés). Le lien est plus sûr : la recherche par nom demande l'API Drive et prend le premier document de ce nom |
-| **3. Compte Google** | présentation de la connexion standard « Se connecter avec Google » (sélecteur de fichiers de Google, feuille privée). **Pas encore branchée** : elle arrivera avec les comptes Overfolio |
+| **3. Compte Google** | compte connecté seulement : « Autoriser l'accès à ma feuille », puis « Choisir ma feuille » dans le sélecteur de fichiers de Google. Overfolio n'a accès qu'à cette feuille, qui reste privée (voir « Mode 3 : compte Google ») |
 
 Enregistrer en mode 1 retire le compte de service enregistré (après confirmation). Cocher la carte 2 alors qu'aucun compte n'est en vigueur recharge le compte de service de la **base** s'il y en a un, sinon celui du **`.env`** (message « Compte de service chargé depuis… ») ; la clé privée n'est jamais envoyée au navigateur, elle est reprise à l'enregistrement, et celle du `.env` seulement pour le même e-mail de compte. Côté serveur, le mode en vigueur se déduit des valeurs enregistrées (`access_mode()` dans `backend/googlesheet/config.py`) :
 
@@ -235,12 +264,14 @@ Enregistrer en mode 1 retire le compte de service enregistré (après confirmati
 |---|---|---|---|
 | **Lien public** (`public_link`) | aucun compte de service renseigné, mais un lien | seulement le **lien** du Google Sheet | partagée « Tous les utilisateurs disposant du lien » : **tout le monde peut la lire avec le lien** |
 | **Compte de service** (`service_account`) | e-mail, ID du projet et clé privée renseignés | le lien (ou le nom) + le compte de service (fichier JSON) | privée possible, partagée seulement avec le compte |
+| **Compte Google** (`google`) | compte connecté, feuille choisie dans le sélecteur de Google | se connecter avec Google, autoriser l'accès, choisir la feuille | **privée**, lue avec ton compte ; Overfolio ne voit que ce fichier (scope `drive.file`) |
 
 ```
 lien seul ─────────────────► export Excel de toute la feuille ──┐
                               (docs.google.com/…/export?format=xlsx)│
                                                                    ├─► mêmes lignes ─► base (sync)
-compte de service + lien ──► API Google Sheets (gspread) ─────────┘
+compte de service + lien ──► API Google Sheets (gspread) ─────────┤
+compte Google + feuille choisie ──► API Google Sheets (gspread) ───┘
 ```
 
 **Lien public** : colle le lien sur la page **GoogleSheet**, enregistre, puis Tout actualiser. Google exporte toute la feuille en un fichier Excel (tous les onglets, valeurs calculées) : les nombres arrivent en nombres, les dates en `AAAA-MM-JJ`, comme avec l'API. Si la feuille n'est pas partagée par lien, la synchronisation l'explique (`sheet_not_public`). À n'utiliser que si tu acceptes que quiconque a le lien voie ta feuille.
@@ -252,21 +283,43 @@ compte de service + lien ──► API Google Sheets (gspread) ─────�
 
 **Onglets** : ils se règlent sur la page **GoogleSheet**, juste au-dessus de **Tout actualiser**, à part du formulaire de connexion. Le champ « Onglets à synchroniser » (noms séparés par des virgules, bouton Enregistrer) et, juste en dessous, « Proposer les onglets du document », qui lit les onglets de la feuille enregistrée (dans les deux modes) et les présente en cases à cocher. Cocher ou décocher une case enregistre la liste aussitôt. La liste **suit le document** : dès que ses onglets sont lus, ceux qui n'y existent pas (ceux d'un ancien document) sont retirés de « Onglets à synchroniser », et s'il n'en reste aucun, tous les onglets du document sont pris ; c'est enregistré aussitôt. Quand tu enregistres un autre document dans la connexion, ses onglets sont lus tout de suite. Les tables de l'ancien document disparaissent de la base au prochain Tout actualiser.
 
+### Par compte
+
+Sans connexion, la page GoogleSheet règle la **feuille du site** (repli sur le `.env`) et montre les **données du site**. Connecté avec Google, chacun a **sa propre configuration et ses propres données** : sa ligne `googlesheet_sheetconfig`, ses tables `googlesheet_sheettable`, invisibles pour les autres comptes et pour les visiteurs. Un compte part de zéro : il n'hérite ni du `.env`, ni de la configuration ou des données du site (sinon tout compte pourrait lire la feuille du site). Le compte de service du `.env` n'est jamais proposé à un compte, et sa clé jamais reprise. Côté serveur, tout passe par le propriétaire de la requête (`config.request_owner(request)` : l'utilisateur connecté, sinon `None` pour le site) : `config.py`, `sync.py`, `services.open_spreadsheet()` et `data_views.py`. La commande `sync_sheets` et `/api/sheet` travaillent pour le site.
+
+**Session changée pendant que la page est ouverte** : chaque modification (enregistrer, effacer, onglets, Tout actualiser) porte l'en-tête `X-Sheet-Scope` (`account` ou `site`), la configuration que la page affiche. Si la session a expiré ou changé dans un autre onglet, le serveur refuse (`session_expired`, `scope_changed`) au lieu d'écrire dans une autre configuration — sinon une feuille privée pourrait finir dans celle du site, lisible par tous — et la page se recharge.
+
+### Mode 3 : compte Google
+
+1. Se connecter avec Google (bouton **Connexion** de l'en-tête).
+2. Page **GoogleSheet**, carte **3. Compte Google**, bouton **Autoriser l'accès à ma feuille** : Google demande l'accord pour « les fichiers Google Drive que tu utilises avec cette application » (scope `drive.file`). Overfolio garde un jeton de rafraîchissement **chiffré** (`FIELD_ENCRYPTION_KEY`), jamais renvoyé au navigateur.
+3. **Choisir ma feuille** : le sélecteur de fichiers de Google s'ouvre (`lib/googlePicker.js`, script `apis.google.com/js/api.js`) avec un jeton d'accès court donné par `GET /api/auth/google/picker-token/`. La feuille choisie est enregistrée (`PUT /api/sheet-config/` avec `method: "google"`).
+4. Choisir les onglets, puis **Tout actualiser** : les onglets sont lus avec ton compte Google (gspread).
+
+**Retirer l'accès** le révoque chez Google et l'oublie en base ; si l'accès est retiré depuis le compte Google (réponse `invalid_grant`), la synchronisation le détecte (`google_access_revoked`) et la page repropose de l'autoriser. Une erreur passagère de Google garde l'accès (`google_unreachable`). Si `FIELD_ENCRYPTION_KEY` change, les accès gardés sont oubliés et la page repropose l'autorisation. L'admin Django n'affiche jamais le jeton chiffré.
+
+À créer dans Google Cloud, en plus du client OAuth (voir « Connexion avec Google ») :
+- **API et services → Bibliothèque** : activer **Google Picker API**, **Google Sheets API** et **Google Drive API**.
+- **Écran de consentement OAuth → Accès aux données** : ajouter le scope `.../auth/drive.file` (non sensible : pas de validation Google demandée).
+- **Identifiants → Créer des identifiants → Clé API** : la limiter à l'**API Google Picker** et aux sites `http://localhost/*`, `http://localhost:5173/*`, `https://ton-domaine/*` ; la copier dans `GOOGLE_PICKER_API_KEY`.
+- **Numéro du projet** (tableau de bord du projet, « Numéro du projet ») dans `GOOGLE_CLOUD_PROJECT_NUMBER`.
+- Générer `FIELD_ENCRYPTION_KEY` (commande dans « Variables optionnelles »).
+
 ### Paramètres saisis sur la page GoogleSheet
 
 Les variables Google du `.env` (`TYPE`, `PROJECT_ID`, `PRIVATE_KEY_ID`, `PRIVATE_KEY`, `CLIENT_EMAIL`, `CLIENT_ID`, `AUTH_URI`, `TOKEN_URI`, `AUTH_PROVIDER_X509_CERT_URL`, `CLIENT_X509_CERT_URL`, `UNIVERSE_DOMAIN`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_DOC_NAME`, `SHEET_SYNC_TABS`) se modifient aussi depuis la page GoogleSheet :
 
 - Les champs sont préremplis avec les valeurs en vigueur. Tant que rien n'a été enregistré, ce sont celles du `.env`.
-- **Enregistrer** les écrit en base (table `googlesheet_sheetconfig`, une seule ligne). Elles remplacent alors le `.env` pour la synchronisation, la commande `sync_sheets` et `/api/sheet`, sans redémarrer le backend.
-- **Revenir aux valeurs du .env** efface la ligne enregistrée.
+- **Enregistrer** les écrit en base (table `googlesheet_sheetconfig`, une ligne pour le site, une par compte connecté). Elles remplacent alors le `.env` pour la synchronisation, la commande `sync_sheets` et `/api/sheet`, sans redémarrer le backend.
+- **Revenir aux valeurs du .env** efface la ligne enregistrée (connecté : **Effacer ces paramètres**, qui efface celle du compte).
 - **Importer le fichier JSON** remplit les champs du compte de service depuis le fichier téléchargé dans Google Cloud (lu dans le navigateur).
 - L'identifiant du document accepte aussi l'adresse complète du Google Sheet.
 - La **clé privée n'est jamais renvoyée au navigateur** : le champ reste vide. Laissé vide, la clé en vigueur est conservée.
 - Les **onglets à synchroniser** (`SHEET_SYNC_TABS`) ne font pas partie du formulaire de connexion : ils s'enregistrent seuls, au-dessus de Tout actualiser (`PUT /api/sheet-config/tabs/`). Le formulaire de connexion garde la liste enregistrée. Enregistrer les onglets alors que rien n'était enregistré recopie les valeurs du `.env` en base, comme le formulaire.
 
-API : `GET /api/sheet-config/` (valeurs, sans la clé privée), `PUT /api/sheet-config/` (enregistre ; 400 avec `fields` si la saisie est incomplète), `DELETE /api/sheet-config/` (retour au `.env`).
+API : `GET /api/sheet-config/` (valeurs, sans la clé privée), `PUT /api/sheet-config/` (enregistre ; 400 avec `fields` si la saisie est incomplète), `DELETE /api/sheet-config/` (retour au `.env`, ou rien pour un compte). Connecté : celles du compte.
 
-> ⚠️ Comme le reste de l'API, cette route est publique : toute personne qui atteint l'application peut changer le document lu. Ne pas exposer l'application sur Internet sans authentification.
+> ⚠️ Sans connexion, cette route est publique : toute personne qui atteint l'application peut changer le document lu **du site**. La configuration d'un compte n'est accessible qu'à ce compte. Ne pas exposer l'application sur Internet sans réserver l'API aux comptes.
 
 Onglets utilisés :
 
@@ -279,6 +332,42 @@ Onglets utilisés :
 | `stock` | Valeurs suivies | Strategy (secteur, moat, note…), page GoogleSheet |
 
 La lecture détecte seule la ligne d'en-tête. Les nombres sont lus en valeurs brutes (pas de format régional ni de symbole monétaire).
+
+## Connexion avec Google
+
+La connexion est **facultative** : sans compte, le site marche comme avant (profil du site, préférences du navigateur). Avec un compte Google, chacun a son **profil en base** : couleurs des types d'actifs et mode clair / sombre, retrouvés sur tous ses appareils.
+
+### Ce qui se passe
+
+```
+En-tête « Connexion » ──► /newpage ──► « Continuer avec Google »
+   ──► GET /api/auth/google/start/?next=/page      state + vérificateur PKCE gardés en session
+   ──► accounts.google.com (choix du compte, accord)
+   ──► GET /api/auth/google/callback/?state&code   state vérifié, code échangé (avec PKCE),
+                                                   jeton d'identité vérifié (signature, destinataire, e-mail vérifié)
+   ──► compte retrouvé par son identifiant Google (`sub`) ou créé ; session Django ouverte
+   ──► retour sur /page                            en cas d'échec : /newpage?error=<code>, message traduit
+```
+
+- **Compte** : un utilisateur Django par compte Google, retrouvé par `sub` (jamais par l'e-mail, qui peut changer). Pas de mot de passe. E-mail, nom et photo sont remis à jour à chaque connexion (`accounts_googleaccount`).
+- **Première connexion** : le nouveau profil reprend une fois les réglages du profil du site (couleurs), et le mode clair / sombre de ce navigateur s'il en avait un. Ensuite, chaque profil vit sa vie.
+- **Jetons Google** : la connexion ne demande que l'identité (`openid`, e-mail, profil), sans accès hors ligne ; aucun jeton n'est gardé. Seul le mode 3 de la page GoogleSheet, s'il est autorisé, garde un jeton de rafraîchissement, chiffré (voir « Mode 3 : compte Google »).
+- **Session** : cookie `sessionid` (HttpOnly, SameSite=Lax, 30 jours, `Secure` avec `COOKIE_SECURE=True`). Avec une session ouverte, toute requête qui modifie exige le jeton CSRF : le site le lit dans le cookie `csrftoken` (posé par `GET /api/auth/me/`) et l'envoie dans l'en-tête `X-CSRFToken` (`frontend/src/lib/api.js`).
+- **Feuille et données** : chaque compte a sa configuration GoogleSheet et ses données synchronisées, invisibles pour les autres (voir « Par compte »). Sans compte, l'API reste publique, avec la feuille et les données du site.
+- **Déconnexion** : la page est rechargée, pour qu'aucune donnée du compte ne reste affichée.
+- **Administrateur** : une session ouverte sur `/admin/` vaut aussi pour le site (même domaine) : l'administrateur y voit son propre profil, pas celui du site. Se déconnecter de l'admin pour revenir au profil du site.
+- **Petits écrans** : sous 640 px, « Connexion » / « Se déconnecter » passent dans le menu burger.
+
+### Créer le client OAuth dans Google Cloud
+
+1. [console.cloud.google.com](https://console.cloud.google.com) : créer un projet (ou reprendre celui du compte de service).
+2. **API et services → Écran de consentement OAuth** : type « Externe », nom de l'application (Overfolio), e-mail d'assistance. Scopes : `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile` (pas de scope sensible). Tant que l'application est « En test », ajouter les adresses Gmail autorisées dans « Utilisateurs test ».
+3. **Identifiants → Créer des identifiants → ID client OAuth → Application Web** :
+   - Origines JavaScript autorisées : `http://localhost`, `http://localhost:5173` (développement), `https://ton-domaine` (production).
+   - URI de redirection autorisés : `http://localhost/api/auth/google/callback/`, `http://localhost:5173/api/auth/google/callback/`, `https://ton-domaine/api/auth/google/callback/`.
+4. Copier l'ID client et le code secret dans `.env` (`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`), et l'URI de retour de l'environnement dans `GOOGLE_OAUTH_REDIRECT_URI`, puis `docker compose up -d --force-recreate backend`.
+
+L'URI de retour doit être **exactement** la même dans Google Cloud et dans `.env` (protocole, port, barre finale), sinon Google affiche `redirect_uri_mismatch`.
 
 ## Architecture
 
@@ -348,7 +437,10 @@ Chemin 2 : lecture de la base (rapide, à jour après synchronisation)
 
 Profil (réglages gardés en base, pas dans le navigateur)
   Navigateur ◄──► /api/profile/ ◄──► PostgreSQL (table profiles_profile)
-  utilisé par : les couleurs des actifs (menu de Charts)
+  utilisé par : les couleurs des actifs (menu de Charts) et, pour un compte connecté, le mode clair / sombre
+
+Connexion avec Google (facultative)
+  Navigateur ──► /api/auth/google/start/ ──► Google ──► /api/auth/google/callback/ ──► session Django
 
 Synchronisation Google Sheets ──► PostgreSQL
   - commande : python manage.py sync_sheets
@@ -363,20 +455,27 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | Méthode | URL | Rôle |
 |---|---|---|
 | GET | `/api/sheet?doc_name=&sheet_name=&header_row=&refresh=1` | Lit un onglet dans Google Sheets (cache 60 s, `refresh=1` pour le contourner) |
-| GET | `/api/data/` | Liste des tables en base (nom, nombre de lignes, date de synchronisation) |
+| GET | `/api/data/` | Liste des tables en base (nom, nombre de lignes, date de synchronisation) : celles du compte connecté, sinon celles du site. Il en va de même pour toutes les routes `/api/data/` et `/api/sheet-config/`. En-tête facultatif `X-Sheet-Scope: account|site` sur les requêtes qui modifient : 401 `session_expired` ou 409 `scope_changed` si la session ne correspond plus |
 | GET | `/api/data/<onglet>/` | Colonnes (dans l'ordre) et lignes d'une table |
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
-| GET | `/api/profile/` | Profil gardé en base : `{ asset_colors: { type: "#rrggbb" }, updated_at }` (créé vide au premier appel) |
+| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon) |
 | PUT | `/api/profile/asset-colors/` | `{"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut). Types mis en minuscules ; 400 `invalid_asset_colors` si une couleur n'est pas au format `#rrggbb`, si un type est vide ou dépasse 100 caractères, ou au-delà de 200 types |
+| GET | `/api/auth/google/start/?next=/page` | Navigation (pas d'appel JSON) : part se connecter chez Google, puis revient sur `next` (une page du site seulement). Sans réglages Google : retour sur `/newpage?error=google_not_configured` |
+| GET | `/api/auth/google/callback/` | Retour de Google (adresse déclarée dans Google Cloud) : vérifie `state`, échange le code (PKCE), vérifie le jeton d'identité, ouvre la session. Échec : `/newpage?error=` `google_denied`, `google_state_invalid`, `google_token_failed`, `google_token_invalid`, `google_email_unverified`, `account_disabled` (compte désactivé dans l'admin) |
+| GET | `/api/auth/google/drive/start/?next=/sheet` | Navigation, compte connecté : autorise l'accès aux feuilles choisies (`drive.file`, accès hors ligne, autorisation progressive). Retour sur `next` avec `?google=connected`, ou `?google_error=` `google_drive_not_configured`, `google_account_mismatch` (autre compte choisi chez Google), `google_drive_denied` (case décochée), `google_token_failed`… |
+| GET | `/api/auth/google/picker-token/` | Compte connecté et accès accordé : `{ access_token, expires_in, api_key, app_id }` pour le sélecteur de Google (jamais le jeton de rafraîchissement ; `Cache-Control: no-store`). 401 `login_required`, 409 `google_not_authorized` ou `google_access_revoked`, 503 `google_drive_not_configured` |
+| POST | `/api/auth/google/drive/revoke/` | Retire l'accès aux feuilles (chez Google et en base) |
+| GET | `/api/auth/me/` | `{ configured, authenticated, user?: { email, name, picture }, first_login? }`. Pose le cookie `csrftoken` |
+| POST | `/api/auth/logout/` | Ferme la session (jeton CSRF exigé si une session est ouverte) |
 | GET, PUT | `/api/sheet-config/tabs/` | `GET` : onglets du document, `{ mode, tabs, selected }`, dans les deux modes. `PUT {"sync_tabs": "portfolio, budget"}` : enregistre seulement la liste des onglets à synchroniser et renvoie les paramètres comme `/api/sheet-config/` (400 `sync_tabs_required` si la liste est vide) |
 
 Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "code_stable", "params": {…}}` (`backend/googlesheet/errors.py`) : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google). Le site affiche le message dans la langue choisie à partir de `code` et `params` (rubrique `apiErrors` de `frontend/src/i18n/*.json`) ; `error` reste en français pour la ligne de commande. Un formulaire invalide (`400`) ajoute `fields` (messages par champ) et `field_codes` (codes par champ). Le résultat de chaque onglet d'une synchronisation porte aussi `code` et `params`.
 
 **Ajouter une erreur** : choisir un code, le passer à `error_response` (ou à `SheetError(message, code, **params)`), puis ajouter `apiErrors.<code>` dans les trois fichiers de langue.
 
-> Ces routes n'ont pas d'authentification. Avant d'exposer le site sur Internet, restreins l'API aux utilisateurs connectés.
+> Sans connexion, ces routes restent publiques (choix assumé : le site marche sans compte). Avec une session ouverte, les requêtes qui modifient exigent le jeton CSRF. Avant d'exposer le site sur Internet, réserve les données aux comptes connectés.
 
 ## Base de données
 
@@ -387,10 +486,14 @@ PostgreSQL, tables créées par les migrations Django (lancées au démarrage du
 ```mermaid
 erDiagram
   googlesheet_sheettable ||--o{ googlesheet_sheetrow : "contient"
-  auth_user |o--o| profiles_profile : "un profil par compte (à venir)"
+  auth_user |o--o| profiles_profile : "un profil par compte"
+  auth_user ||--o| accounts_googleaccount : "compte Google"
+  auth_user |o--o{ googlesheet_sheettable : "tables du compte"
+  auth_user |o--o| googlesheet_sheetconfig : "feuille du compte"
   googlesheet_sheettable {
     bigint id PK
-    varchar name UK "nom de l'onglet"
+    int user_id FK "vide = site"
+    varchar name "unique par propriétaire"
     jsonb columns "ordre des colonnes"
     int header_row "ligne d'en-tête"
     int row_count
@@ -404,7 +507,9 @@ erDiagram
     jsonb data "colonne vers valeur"
   }
   googlesheet_sheetconfig {
-    bigint id PK "une seule ligne"
+    bigint id PK
+    int user_id FK, UK "vide = site"
+    varchar method "google ou vide"
     varchar client_email "compte de service"
     text private_key
     varchar sheet_id
@@ -416,6 +521,19 @@ erDiagram
     bigint id PK
     int user_id FK "vide = profil du site"
     jsonb asset_colors "type vers couleur"
+    varchar theme "light, dark ou vide"
+    timestamp updated_at
+  }
+  accounts_googleaccount {
+    bigint id PK
+    int user_id FK, UK
+    varchar sub UK "identifiant Google"
+    varchar email
+    varchar name
+    varchar picture
+    text drive_refresh_token "chiffré (mode 3)"
+    timestamp drive_authorized_at
+    timestamp created_at
     timestamp updated_at
   }
   auth_user {
@@ -425,21 +543,22 @@ erDiagram
   }
 ```
 
-Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessions, admin, permissions, migrations). `googlesheet_sheetconfig` n'a pas de lien : elle ne contient qu'une ligne. Pour `auth_user`, seules les colonnes utiles ici sont montrées.
+Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessions, admin, permissions, migrations). Une ligne sans utilisateur (`user_id` vide) appartient au site : visiteurs non connectés. Pour `auth_user`, seules les colonnes utiles ici sont montrées.
 
 ### Tables
 
 | Table | Modèle | Contenu |
 |---|---|---|
-| `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ) |
+| `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ) |
 | `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration |
-| `googlesheet_sheetconfig` | `SheetConfig` | Une seule ligne : paramètres d'accès saisis sur la page GoogleSheet (compte de service, document, onglets à synchroniser). Absente tant que rien n'est enregistré : les valeurs du `.env` s'appliquent. La clé privée n'est jamais renvoyée au navigateur |
-| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`). Un seul profil, sans utilisateur, tant qu'il n'y a pas de comptes ; un par utilisateur ensuite (voir « Couleurs des graphiques ») |
-| `auth_user` | `User` (Django) | Comptes Django : pour l'instant seulement le compte administrateur (`createsuperuser`) ; servira à la connexion (page `/newpage`) |
+| `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur |
+| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`). Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
+| `accounts_googleaccount` | `GoogleAccount` | Compte Google d'un utilisateur : identifiant Google `sub` (unique), e-mail, nom, photo. Mode 3 : jeton de rafraîchissement Google **chiffré** (`drive_refresh_token`, vide si l'accès n'est pas accordé) |
+| `auth_user` | `User` (Django) | Comptes Django : l'administrateur (`createsuperuser`) et un utilisateur par compte Google connecté (`google-<sub>`, sans mot de passe) |
 
 ### Synchronisation
 
-La synchronisation recopie chaque onglet dans `googlesheet_sheettable` et `googlesheet_sheetrow`.
+La synchronisation recopie chaque onglet dans `googlesheet_sheettable` et `googlesheet_sheetrow`, pour le propriétaire de la requête : le site, ou le compte connecté. La commande `python manage.py sync_sheets` synchronise le site.
 
 Chaque synchronisation remplace le contenu d'un onglet en une seule transaction. Un onglet en erreur n'empêche pas les autres, et un onglet qui renvoie zéro ligne n'écrase pas des données existantes.
 
@@ -504,7 +623,7 @@ Bibliothèques chargées à la demande seulement : `world-atlas` et `topojson-cl
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type ; en mode Brut, la liste « Tes dettes ». Voir « Snapshot » |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `components/charts/WorldMapCard.vue`, `lib/strategy.js`, `lib/charts/sunburst.js` et `lib/charts/worldMap.js` | Strategy : une carte du monde des pays de tes actions (colonne `Area`), puis tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
-| `/newpage` | `views/NewPage.vue` | Connexion, au style du site (carte à filet fin, bleu d'accent, clair ou sombre). La connexion est encore une simulation : rien n'est envoyé au serveur |
+| `/newpage` | `views/NewPage.vue`, `lib/auth.js` | Connexion avec un compte Google (seule méthode). Connecté : e-mail du compte, Ouvrir Charts, Se déconnecter. Affiche le message traduit d'un échec (`?error=`), et un bouton grisé si Google n'est pas réglé sur le serveur. `?next=/page` : page où revenir après la connexion |
 
 Les pages, hors accueil, sont chargées à la demande : ECharts n'est téléchargé que lorsqu'on ouvre un graphique.
 
@@ -661,8 +780,8 @@ Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) 
 
 Toutes dans `frontend/src/lib/palette.js`, dans l'esprit des couleurs Google :
 
-- **Types d'actifs** (colonne `Asset`) : une teinte vive par type, la même dans tous les graphiques (anneau, barres empilées, volatilité, Snapshot). Les teintes proposées sont `ASSET_SWATCHES` : 8 teintes Google (bleu, rouge, jaune, vert, orange, rose, violet, cyan), en vif et en clair. Par défaut : public equity bleu, real estate orange, fiat vert, crypto jaune, commodity cyan, managed futures violet, exotic rose, depreciating rouge ; un autre type prend une teinte restée libre. Dans le menu de Charts, « Couleurs des actifs » liste les types habituels et ceux de la feuille (table `portfolio`) : un clic sur un type ouvre ses teintes. Si la teinte est déjà prise, les deux types échangent leurs couleurs. Le choix est **enregistré en base, sur le profil** (`GET /api/profile/`, `PUT /api/profile/asset-colors/`, app `backend/profiles`) : il se retrouve sur tous les navigateurs et appareils. Les couleurs sont chargées au démarrage (`loadAssetColors` dans `lib/palette.js`), affichées tout de suite à chaque clic, et remises comme avant avec un message si l'enregistrement échoue. « Couleurs par défaut » efface le choix. Les couleurs gardées par le navigateur avant ce changement sont recopiées une fois sur le profil, puis effacées du navigateur.
-- **Profil et comptes** : tant qu'il n'y a pas de comptes, un seul profil existe (sans utilisateur) et vaut pour tout le site. Le modèle `Profile` a déjà un champ `user` : une fois la connexion branchée (page `/newpage`, compte Google ou autre), chaque utilisateur connecté aura son propre profil (`current_profile` dans `backend/profiles/views.py`), sans changer l'API.
+- **Types d'actifs** (colonne `Asset`) : une teinte vive par type, la même dans tous les graphiques (anneau, barres empilées, volatilité, Snapshot). Les teintes proposées sont `ASSET_SWATCHES` : 8 teintes Google (bleu, rouge, jaune, vert, orange, rose, violet, cyan), en vif et en clair. Par défaut : public equity bleu, real estate orange, fiat vert, crypto jaune, commodity cyan, managed futures violet, exotic rose, depreciating rouge ; un autre type prend une teinte restée libre. Dans le menu de Charts, « Couleurs des actifs » liste les types habituels et ceux de la feuille (table `portfolio`) : un clic sur un type ouvre ses teintes. Si la teinte est déjà prise, les deux types échangent leurs couleurs. Le choix est **enregistré en base, sur le profil** (`GET /api/profile/`, `PUT /api/profile/asset-colors/`, app `backend/profiles`) : il se retrouve sur tous les navigateurs et appareils. Les couleurs sont chargées au démarrage et à chaque connexion ou déconnexion (`lib/profile.js`, puis `applyProfileAssetColors` de `lib/palette.js`), affichées tout de suite à chaque clic, et remises comme avant avec un message si l'enregistrement échoue. « Couleurs par défaut » efface le choix. Les couleurs gardées par le navigateur avant ce changement sont recopiées une fois sur le profil, puis effacées du navigateur.
+- **Profil et comptes** : sans connexion, le profil du site (sans utilisateur) s'applique. Connecté avec Google, chacun a son propre profil (`current_profile` dans `backend/profiles/views.py`) ; à la création du compte, il reprend une fois les couleurs du profil du site.
 - **Tout le reste** (devises, enveloppes, catégories de Strategy, courbes du patrimoine, simulation, carte, budget) : des nuances de bleu (`BLUES`, du bleu nuit au bleu pâle). `blues(n)` donne `n` nuances bien séparées, la plus foncée pour la plus grosse catégorie ; `BLUE` est le bleu principal, `NAVY` le repère posé sur du bleu (tendance, objectif).
 - **Montants négatifs** (baisse d'un mois sur l'autre, sorties d'argent, dettes) : rouge `NEGATIVE`, et orange `NEGATIVE_2` pour un second montant négatif (impôts).
 - « Autres » reste gris (`CONTEXT`), « Non renseigné » gris clair.
@@ -676,7 +795,7 @@ Toutes dans `frontend/src/lib/palette.js`, dans l'esprit des couleurs Google :
 | `frontend/vite.config.ts` | Plugin `theme` : injecte la clé du thème (`preferences.js`) et les couleurs de fond de `theme.js` dans `index.html`, et signale au build toute couleur écrite en dur dans `src/lib/` (à faire passer par `palette.js`, ou à commenter « couleur fixe ») |
 | `frontend/src/lib/palette.js` | Les couleurs des graphiques (voir « Couleurs des graphiques » ci-dessous), et les couleurs de fond, d'encre et de filet des graphiques, lues dans `theme.js` avec leur équivalent sombre (`DARK`) |
 | `frontend/src/assets/tailwind.css` | Base : focus clavier visible, animations réduites si le système le demande, largeur du contenu. Aucune couleur |
-| `frontend/src/composables/useTheme.js` | Mode sombre : suit le réglage du système ; le bouton (`components/ui/ThemeToggle.vue`) force clair ou sombre et s'en souvient (préférence `theme` de `lib/preferences.js`). `index.html` pose la classe `dark` avant le premier affichage |
+| `frontend/src/composables/useTheme.js` | Mode sombre : suit le réglage du système ; le bouton (`components/ui/ThemeToggle.vue`) force clair ou sombre et s'en souvient (préférence `theme` de `lib/preferences.js`). Connecté, le choix est aussi enregistré sur le profil (`PUT /api/profile/`) et repris sur les autres appareils (`applyProfileTheme`). `index.html` pose la classe `dark` avant le premier affichage |
 | `frontend/src/lib/chartDark.js` | Passe les graphiques en sombre dans `BaseChart.vue` : remplace les couleurs claires de `palette.js` par celles de `DARK` |
 | `frontend/src/lib/sample.js` | Données **fictives** de l'aperçu de la page d'accueil. Ce ne sont pas les tiennes |
 
@@ -736,6 +855,9 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 | médiane / trajectoire | median / path | ค่ามัธยฐาน / เส้นทาง |
 | Autres / Non renseigné | Others / Not specified | อื่น ๆ / ไม่ระบุ |
 | pays / carte du monde | country / world map | ประเทศ / แผนที่โลก |
+| Connexion / se connecter / se déconnecter | Sign in / sign in / sign out | เข้าสู่ระบบ / เข้าสู่ระบบ / ออกจากระบบ |
+| compte / profil | account / profile | บัญชี / โปรไฟล์ |
+| sélecteur de fichiers (de Google) / autoriser l'accès | (Google) file picker / allow access | ตัวเลือกไฟล์ (ของ Google) / อนุญาตการเข้าถึง |
 
 ## Commandes utiles
 
@@ -790,22 +912,33 @@ cd frontend && npm audit && npm outdated
 | Un graphique de répartition ou de flux est vide alors que la table a des lignes | Montants à 0, négatifs ou non numériques | Ces lignes sont ignorées ; vérifier la colonne de montant dans la page GoogleSheet |
 | L'interface n'a pas changé après une modification du front | Le build Vue n'a pas été refait | `./init.sh` ou `docker compose up --build -d`, puis recharger sans cache |
 | `failed to prepare extraction snapshot` (build) | Stockage d'images Docker incohérent | `docker image rm -f overfolio-backend overfolio-frontend`, `docker builder prune -af` |
+| Google affiche `redirect_uri_mismatch` | `GOOGLE_OAUTH_REDIRECT_URI` différente de l'URI déclarée dans Google Cloud | Mettre exactement la même (protocole, port, `/` final), puis recréer le backend |
+| Google affiche « Accès bloqué : l'application n'a pas été validée » | Écran de consentement « En test », adresse absente des utilisateurs test | Ajouter l'adresse Gmail dans « Utilisateurs test », ou publier l'application |
+| `/newpage?error=google_token_failed` | Google injoignable au retour (réseau), ou code expiré | Réessayer ; vérifier que le serveur accède à Internet et que son horloge est à l'heure |
+| `/newpage?error=google_state_invalid` | Cookie de session perdu entre le départ et le retour (autre nom d'hôte, cookies bloqués, retour trop tardif) | Ouvrir le site par la même adresse que l'URI de retour (`localhost` partout), réessayer |
+| `403` « CSRF Failed » après connexion | Jeton CSRF absent, ou origine non reconnue (proxy, HTTPS) | Recharger la page (le cookie `csrftoken` est reposé) ; en production, renseigner `CSRF_TRUSTED_ORIGINS` |
+| `?google_error=google_drive_denied` au retour sur GoogleSheet | Chez Google, la case d'accès aux fichiers n'a pas été cochée | Recommencer « Autoriser l'accès à ma feuille » et cocher la case |
+| Le sélecteur de Google ne s'ouvre pas, ou affiche « The API developer key is invalid » | Clé API absente, non limitée à l'API Google Picker, ou site non autorisé dans ses restrictions | Vérifier `GOOGLE_PICKER_API_KEY` et les restrictions de la clé (sites `http://localhost/*`…) ; activer l'API Google Picker |
+| Synchronisation en mode 3 : « Feuille introuvable ou plus autorisée » | Feuille supprimée, ou choisie par un autre compte | « Choisir une autre feuille » dans la carte 3 |
+| `google_not_authorized` après un changement de `FIELD_ENCRYPTION_KEY` | Les jetons gardés ne se déchiffrent plus | Autoriser de nouveau l'accès (carte 3) |
 | `git push` : mot de passe refusé | GitHub n'accepte plus les mots de passe | Clé SSH ou token d'accès personnel |
 
 > Les identifiants PostgreSQL ne sont lus qu'à la **première initialisation** du volume. Si tu les modifies dans `.env`, recrée le volume (`docker compose down -v`).
 
 ## À venir
 
-- **Comptes et connexion.** La page `/newpage` est la future page de connexion ; elle est factice pour l'instant (aucun compte vérifié, rien n'est envoyé au serveur). Une fois branchée (comptes Django, session), l'API sera réservée aux utilisateurs connectés, ce qui permettra d'exposer le site sur Internet. Le profil en base (`backend/profiles`, couleurs des actifs) est déjà prévu pour un profil par utilisateur. Les nouvelles fonctions sont écrites en le prévoyant (voir `CLAUDE.md`).
+- **Synchronisation automatique des comptes** : la commande `sync_sheets` (et donc sa planification) ne synchronise que le site ; chaque compte synchronise avec Tout actualiser.
+- **API réservée aux comptes** : aujourd'hui l'API reste publique sans connexion ; la réserver aux comptes connectés permettra d'exposer le site sur Internet.
 
 ## Sécurité
 
 - `.env` ne doit jamais être commité, ni les fichiers `env` ou `backend/overfolio/.env`, ni une clé SSH ou un fichier JSON de compte de service : le `.gitignore` de la racine les exclut. Un fichier déjà suivi par git n'est pas concerné par le `.gitignore` : le retirer avec `git rm --cached <fichier>`. Si une clé privée a été exposée (capture d'écran, commit), la révoquer dans Google Cloud (IAM → Comptes de service → Clés) et en générer une nouvelle.
 - Le mode « lien public » exige une feuille lisible par quiconque a son lien : elle contient l'intégralité du patrimoine. Pour une feuille privée, utilise un compte de service et partage-la seulement avec `CLIENT_EMAIL`.
-- Passer à `DEBUG=False` et restreindre `ALLOWED_HOSTS` en production.
+- Passer à `DEBUG=False` (lu dans `.env`) et restreindre `ALLOWED_HOSTS` en production : en mode debug, une page d'erreur montre des valeurs internes.
 - Paquets du backend : toutes les versions sont fixées dans `backend/requirements.txt` (Django 5.2, version à support long jusqu'en avril 2028). Vérifier régulièrement les failles connues avec `pip-audit` (voir « Commandes utiles »), puis monter les versions et reconstruire l'image (`./init.sh`).
 - Paquets du frontend : les versions installées sont celles de `frontend/package-lock.json` (l'image les installe avec `npm ci`). Vérifier avec `npm audit` ; `npm audit fix` corrige ce qui ne demande pas de changer de version majeure. Après une mise à jour, refaire `npm run build` et tester le bouton PDF et quelques graphiques.
-- Les routes `/api/sheet`, `/api/data/` et `/api/sheet-config/` sont publiques : les restreindre avant toute exposition sur Internet.
+- Les routes `/api/sheet`, `/api/data/` et `/api/sheet-config/` sont publiques sans connexion : les restreindre avant toute exposition sur Internet.
+- Connexion avec Google : flux « authorization code » côté serveur avec `state` (à usage unique) et PKCE, jeton d'identité vérifié (signature, destinataire, e-mail vérifié), compte retrouvé par `sub`, nouvelle clé de session à la connexion, adresse de retour limitée aux pages du site. Aucun mot de passe n'est gardé ; le seul jeton Google gardé (mode 3) est chiffré avec `FIELD_ENCRYPTION_KEY` et limité au scope `drive.file`. `GOOGLE_OAUTH_CLIENT_SECRET` et `FIELD_ENCRYPTION_KEY` sont des secrets : `.env` seulement. Chaque compte ne voit que sa configuration et ses données ; un compte n'hérite jamais du `.env` ni du compte de service du site. En production : `COOKIE_SECURE=True`, `CSRF_TRUSTED_ORIGINS=https://ton-domaine`.
 - Le PDF du bouton PDF est fabriqué dans le navigateur et contient tout ton patrimoine : rien n'est envoyé au serveur, mais le fichier téléchargé est à garder comme une donnée sensible.
 
 ## Notes pour la production
@@ -813,5 +946,5 @@ cd frontend && npm audit && npm outdated
 - Retirer le montage `./backend:/app` du service `backend`.
 - Utiliser un Dockerfile frontend multi-stage (build Node, puis copie du `dist` dans une image nginx).
 - Dans `nginx/default.conf`, utiliser `resolver 127.0.0.11` et `set $backend http://backend:8000;` pour que nginx résolve le backend à chaque requête et évite le `502` après reconstruction.
-- Mettre en place HTTPS (certificat, `SECURE_PROXY_SSL_HEADER`, `CSRF_TRUSTED_ORIGINS`).
+- Mettre en place HTTPS (certificat ; `SECURE_PROXY_SSL_HEADER` est déjà réglé sur l'en-tête `X-Forwarded-Proto` de nginx), puis `COOKIE_SECURE=True`, `CSRF_TRUSTED_ORIGINS=https://ton-domaine` et l'URI de retour Google en `https://`.
 - Sauvegarder régulièrement le volume `postgres_data`.

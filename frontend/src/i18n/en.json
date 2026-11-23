@@ -74,14 +74,35 @@
       "email_invalid": "Service account email: invalid address.",
       "sheet_id_or_name": "Enter the document ID or its name.",
       "sync_tabs_required": "List at least one tab to sync.",
-      "sheet_link_required": "Paste the Google Sheet link (or fill in a service account)."
+      "sheet_link_required": "Paste the Google Sheet link (or fill in a service account).",
+      "google_requires_account": "Google account mode requires signing in with Google.",
+      "google_not_authorized": "First allow access to your sheet with your Google account.",
+      "google_sheet_required": "Choose your sheet in Google’s file picker."
     },
     "sheet_not_public": "The sheet isn’t shared by link: in Google Sheets, choose “Anyone with the link”, or fill in a service account.",
     "public_sheet_not_found": "Sheet not found: check the document link.",
     "public_export_too_big": "The sheet is too large to download.",
     "public_export_unreadable": "Unreadable exported file: {detail}",
     "no_access_configured": "No access set up: paste the link of a sheet shared by link, or fill in a service account.",
-    "invalid_asset_colors": "Invalid asset colours."
+    "invalid_asset_colors": "Invalid asset colours.",
+    "google_not_configured": "Google sign-in is not set up on this server.",
+    "google_denied": "You cancelled the sign-in at Google.",
+    "google_state_invalid": "The sign-in request expired or is not valid. Please try again.",
+    "google_token_failed": "Google refused the sign-in. Please try again in a moment.",
+    "google_token_invalid": "Your identity could not be verified with Google.",
+    "google_email_unverified": "The email address of this Google account is not verified.",
+    "invalid_theme": "Invalid display mode.",
+    "account_disabled": "This account is disabled. Contact the site administrator.",
+    "login_required": "Please sign in first.",
+    "google_not_authorized": "First allow access to your sheet with your Google account.",
+    "google_access_revoked": "Google access was removed: please allow it again.",
+    "google_sheet_not_found": "Sheet not found or no longer allowed: choose it again in Google’s file picker.",
+    "google_account_mismatch": "You chose a different Google account from the one you are signed in with.",
+    "google_drive_denied": "You did not tick file access at Google: try again and tick it.",
+    "google_drive_not_configured": "Google account mode is not set up on this server.",
+    "google_requires_account": "Google account mode requires signing in with Google.",
+    "session_expired": "Your session expired: nothing was saved. The page will reload.",
+    "scope_changed": "You signed in or out in another tab: nothing was saved. The page will reload."
   },
   "data": {
     "unknown": "Not specified",
@@ -646,7 +667,8 @@
       "auth_uri": "auth_uri",
       "token_uri": "token_uri",
       "auth_provider_x509_cert_url": "auth_provider_x509_cert_url",
-      "client_x509_cert_url": "client_x509_cert_url"
+      "client_x509_cert_url": "client_x509_cert_url",
+      "method": "Connection mode"
     },
     "help": {
       "sheet_id": "Paste the sheet’s address (or just the part between /d/ and /edit).",
@@ -655,7 +677,8 @@
     "mode": {
       "service_account": "Read with a service account ({email}).",
       "public_link": "Read by link: the sheet must be shared with “Anyone with the link”.",
-      "none": "No access set up: paste your sheet’s link."
+      "none": "No access set up: paste your sheet’s link.",
+      "google": "Read with your Google account: “{name}”."
     },
     "confirmRemove": "Switching to the public link removes the saved service account. The sheet will need to be shared with “Anyone with the link”. Continue?",
     "method": {
@@ -670,13 +693,27 @@
       },
       "google": {
         "title": "3. Google account",
-        "text": "Sign in with your Google account and pick your sheet. Coming soon."
+        "text": "You sign in with your Google account and choose your sheet. Overfolio can only access that sheet."
       }
     },
     "google": {
-      "title": "Sign in with Google",
-      "text": "The standard way: sign in with your Google account, then pick your sheet in Google’s file picker. Overfolio only gets access to that sheet, which stays private. No sharing to set up, no service account, no JSON file.",
-      "soon": "Coming soon: this connection will arrive with Overfolio accounts. Until then, use the public link or a service account."
+      "title": "Your sheet, with your Google account",
+      "text": "The standard way: sign in with your Google account, then choose your sheet in Google’s file picker. Overfolio can only access that sheet, which stays private. No sharing, no service account, no JSON file.",
+      "unavailable": "This mode is not set up on this server yet (see the README, “Mode 3: Google account”). Meanwhile, use the public link or a service account.",
+      "signInFirst": "Sign in with Google",
+      "authorize": "Allow access to my sheet",
+      "authorizeHelp": "Google will ask you to allow Overfolio for {email}. Overfolio will only be able to read the files you choose next.",
+      "choose": "Choose my sheet",
+      "change": "Choose another sheet",
+      "picking": "Opening the picker…",
+      "chosen": "Chosen sheet: “{name}”.",
+      "authorizedAs": "Access granted by {email}.",
+      "revoke": "Remove access",
+      "confirmRevoke": "Remove Overfolio’s access to your Google sheets? Syncing will stop working until you allow it again.",
+      "revoked": "Access removed.",
+      "connected": "Access granted. Now choose your sheet.",
+      "saved": "Sheet “{name}” saved. Choose your tabs, then click Refresh all.",
+      "pickerFailed": "Google’s file picker could not open. Check your connection, then try again."
     },
     "accountTitle": "Google service account",
     "accountLoaded": {
@@ -688,7 +725,14 @@
       "label": "Find the document by",
       "link": "Link",
       "name": "Name"
-    }
+    },
+    "savedAccount": "Saved to your account.",
+    "savedAccountOn": "Saved to your account on {date}.",
+    "accountEmpty": "No sheet is connected to your account yet.",
+    "scopeAccount": "Your sheet and data belong to your account ({email}): nobody else sees them.",
+    "clearAccount": "Clear these settings",
+    "confirmClearAccount": "Clear your account’s connection settings? Tables already synced stay in place.",
+    "accountCleared": "Settings cleared."
   },
   "simulationPage": {
     "lead": "{runs} possible futures for your net worth, drawn at random from your current amounts and the assumptions below. The range shows what can reasonably happen, not a forecast.",
@@ -783,23 +827,21 @@
     }
   },
   "login": {
-    "lead": "Access your personal space",
-    "email": "Email address",
-    "password": "Password",
-    "hidePassword": "Hide password",
-    "showPassword": "Show password",
-    "remember": "Remember me",
-    "forgot": "Forgot your password?",
-    "signingIn": "Signing in…",
-    "signIn": "Sign in",
-    "or": "or",
+    "lead": "Sign in with your Google account to get your settings back on all your devices.",
     "google": "Continue with Google",
-    "noAccount": "No account yet?",
-    "signUp": "Sign up",
-    "fillAll": "Fill in all the fields.",
-    "success": "Signed in!",
-    "error": "Sign-in error.",
-    "googleTodo": "Sign-in with Google isn’t available yet."
+    "notConfigured": "Google sign-in is not set up on this server yet. You can still use the site without an account.",
+    "saved": "Once signed in, your colours and your light or dark mode are saved to your account.",
+    "privacy": "Overfolio only receives your name, email address and Google profile picture. No password is asked for or stored.",
+    "connected": "You are signed in as {email}.",
+    "openCharts": "Open Charts",
+    "failed": "Sign-in did not go through",
+    "error": "Sign-in error."
+  },
+  "account": {
+    "signIn": "Sign in",
+    "menu": "Your account ({email})",
+    "signOut": "Sign out",
+    "synced": "Your colours and display mode are saved to your account."
   },
   "syncTabs": {
     "label": "Tabs to sync",
