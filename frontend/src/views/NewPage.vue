@@ -64,7 +64,6 @@ import { useI18n } from 'vue-i18n'
 import AppButton from '../components/ui/AppButton.vue'
 import { apiMessage } from '../lib/api.js'
 import { safeNext, session, signIn, signOut } from '../lib/auth.js'
-import { loadProfile } from '../lib/profile.js'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -86,8 +85,7 @@ async function signOutNow() {
   busy.value = true
   signOutError.value = ''
   try {
-    await signOut()
-    await loadProfile()
+    await signOut() // recharge la page
   } catch (failure) {
     signOutError.value = failure.message
   } finally {

@@ -23,15 +23,21 @@ def _sort_key(table: SheetTable, order=None):
     return (1, 0, table.name)
 
 
+def _owner_key(owner):
+    """Verrou de synchronisation : un par propriétaire (site ou compte)."""
+    return "site" if owner is None else f"user-{owner.pk}"
+
+
 def _iso(value):
     return value.isoformat() if value else None
 
 
 @api_view(["GET"])
 def table_list(request):
-    """GET /api/data/ : liste des tables recopiées en base."""
-    order = configured_tabs()
-    tables = sorted(SheetTable.objects.all(), key=lambda table: _sort_key(table, order))
+    """GET /api/data/ : liste des tables recopiées en base (celles du compte connecté, sinon celles du site)."""
+    owner = config.request_owner(request)
+    order = configured_tabs(owner)
+    tables = sorted(SheetTable.objects.filter(user=owner), key=lambda table: _sort_key(table, order))
     return JsonResponse(
         [
             {"name": t.name, "row_count": t.row_count, "synced_at": _iso(t.synced_at)}
@@ -43,9 +49,9 @@ def table_list(request):
 
 @api_view(["GET"])
 def table_detail(request, name):
-    """GET /api/data/<onglet>/ : colonnes (dans l'ordre) et lignes d'une table."""
+    """GET /api/data/<onglet>/ : colonnes (dans l'ordre) et lignes d'une table (du compte connecté, sinon du site)."""
     try:
-        table = SheetTable.objects.get(name=name)
+        table = SheetTable.objects.get(user=config.request_owner(request), name=name)
     except SheetTable.DoesNotExist:
         return error_response(
             f"Table '{name}' introuvable en base. Lance la synchronisation : python manage.py sync_sheets",
@@ -74,10 +80,14 @@ def table_sync(request, name):
     POST /api/data/<onglet>/sync/ : relit l'onglet dans Google Sheets et met la base à jour.
     Seuls les onglets de la liste de synchronisation sont acceptés.
     """
-    if name not in configured_tabs():
+    try:
+        owner = config.owner_for_change(request)
+    except config.ScopeMismatch as exc:
+        return error_response(str(exc), exc.code, exc.status)
+    if name not in configured_tabs(owner):
         return error_response(f"Onglet '{name}' non synchronisable", "tab_not_syncable", 404, {"name": name})
 
-    lock_key = f"sheet-sync-lock:{name}"
+    lock_key = f"sheet-sync-lock:{_owner_key(owner)}:{name}"
     if not cache.add(lock_key, 1, SYNC_COOLDOWN):
         return error_response(
             f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes.",
@@ -87,7 +97,7 @@ def table_sync(request, name):
         )
 
     try:
-        result = sync_sheets(config.doc_name(), tabs=[name])[0]
+        result = sync_sheets(config.doc_name(owner), tabs=[name], owner=owner)[0]
     except SheetError as exc:
         cache.delete(lock_key)
         return error_response(str(exc), exc.code, exc.status, exc.params)
@@ -107,7 +117,11 @@ def sync_all(request):
     Un onglet en erreur garde ses anciennes données et n'empêche pas les autres.
     200 si au moins un onglet a été enregistré, 502 si aucun.
     """
-    lock_key = "sheet-sync-lock:__all__"
+    try:
+        owner = config.owner_for_change(request)
+    except config.ScopeMismatch as exc:
+        return error_response(str(exc), exc.code, exc.status)
+    lock_key = f"sheet-sync-lock:{_owner_key(owner)}:__all__"
     if not cache.add(lock_key, 1, SYNC_COOLDOWN):
         return error_response(
             f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes.",
@@ -117,7 +131,7 @@ def sync_all(request):
         )
 
     try:
-        results = sync_sheets(config.doc_name())
+        results = sync_sheets(config.doc_name(owner), owner=owner)
     except SheetError as exc:
         cache.delete(lock_key)
         return error_response(str(exc), exc.code, exc.status, exc.params)
@@ -146,18 +160,23 @@ def sheet_config(request):
               La clé privée n'est jamais renvoyée : seulement private_key_set (true/false).
     PUT    -> enregistre les valeurs saisies. Clé privée vide = clé en vigueur conservée.
               400 avec {"error", "code", "fields": {champ: message}, "field_codes": {champ: code}} si la saisie est incomplète.
-    DELETE -> efface les valeurs saisies : le .env s'applique de nouveau.
+    DELETE -> efface les valeurs saisies : le .env s'applique de nouveau (site), ou plus rien (compte).
+    Compte connecté : sa propre configuration, sans repli sur le .env du site.
     """
+    try:
+        owner = config.request_owner(request) if request.method == "GET" else config.owner_for_change(request)
+    except config.ScopeMismatch as exc:
+        return error_response(str(exc), exc.code, exc.status)
     if request.method == "PUT":
         if not isinstance(request.data, dict):
             return error_response("Corps JSON attendu", "invalid_json", 400)
         try:
-            config.save(request.data)
+            config.save(request.data, owner)
         except config.ConfigInvalid as exc:
             return error_response("Formulaire incomplet", "form_incomplete", 400, fields=exc.errors, field_codes=exc.codes)
     elif request.method == "DELETE":
-        config.reset()
-    return JsonResponse(config.public_view())
+        config.reset(owner)
+    return JsonResponse(config.public_view(owner))
 
 
 @api_view(["GET", "PUT"])
@@ -170,17 +189,21 @@ def sheet_tabs(request):
     PUT -> {"sync_tabs": "portfolio, budget"} : enregistre seulement la liste des onglets à synchroniser,
            renvoie les paramètres comme GET /api/sheet-config/. 400 sync_tabs_required si la liste est vide.
     """
+    try:
+        owner = config.request_owner(request) if request.method == "GET" else config.owner_for_change(request)
+    except config.ScopeMismatch as exc:
+        return error_response(str(exc), exc.code, exc.status)
     if request.method == "PUT":
         if not isinstance(request.data, dict):
             return error_response("Corps JSON attendu", "invalid_json", 400)
         try:
-            config.save_tabs(request.data.get("sync_tabs"))
+            config.save_tabs(request.data.get("sync_tabs"), owner)
         except config.ConfigInvalid as exc:
             return error_response("Formulaire incomplet", "form_incomplete", 400, fields=exc.errors, field_codes=exc.codes)
-        return JsonResponse(config.public_view())
+        return JsonResponse(config.public_view(owner))
     try:
-        spreadsheet = open_spreadsheet(config.doc_name())
+        spreadsheet = open_spreadsheet(config.doc_name(owner), owner)
         tabs = worksheet_titles(spreadsheet)
     except SheetError as exc:
         return error_response(str(exc), exc.code, exc.status, exc.params)
-    return JsonResponse({"mode": config.access_mode(), "tabs": tabs, "selected": config.sync_tabs()})
+    return JsonResponse({"mode": config.access_mode(owner=owner), "tabs": tabs, "selected": config.sync_tabs(owner)})

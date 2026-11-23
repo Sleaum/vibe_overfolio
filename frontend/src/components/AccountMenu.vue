@@ -113,7 +113,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { session, signOut } from '../lib/auth.js'
-import { loadProfile } from '../lib/profile.js'
 
 defineProps({
   variant: { type: String, default: 'header' }, // 'header' | 'mobile'
@@ -143,8 +142,7 @@ async function signOutNow() {
   busy.value = true
   error.value = ''
   try {
-    await signOut()
-    await loadProfile() // réglages du site
+    await signOut() // recharge la page
     open.value = false
   } catch (failure) {
     error.value = failure.message

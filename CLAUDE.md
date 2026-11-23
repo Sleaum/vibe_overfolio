@@ -42,6 +42,7 @@ Pour toute nouvelle fonction :
 - l'API est encore publique sans connexion : toute nouvelle route sous `/api/` doit pouvoir être réservée aux comptes connectés plus tard sans changer son fonctionnement ;
 - avec une session, les requêtes qui modifient exigent le jeton CSRF : passer par `request()` de `frontend/src/lib/api.js` (qui l'ajoute), jamais un `fetch` direct ; côté Django, ne pas désactiver l'authentification d'une vue (`authentication_classes([])`) ;
 - un réglage propre à une personne et à retrouver sur tous ses appareils va dans le profil (`current_profile`) ; un réglage propre à un navigateur reste dans `lib/preferences.js` ;
+- configuration GoogleSheet et données synchronisées sont **par propriétaire** (le site, ou un compte) : toute lecture ou écriture de `SheetConfig` / `SheetTable` passe par `config.request_owner(request)` et filtre sur `user` ; un compte n'hérite jamais du `.env` du site ;
 - ne jamais écrire un jeton, un code OAuth, un secret ou une donnée sensible dans la console ou les logs.
 
 ## Sécurité

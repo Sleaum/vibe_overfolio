@@ -15,6 +15,10 @@ class GoogleAccount(models.Model):
     email = models.EmailField(max_length=320)
     name = models.CharField(max_length=255, blank=True, default="")
     picture = models.URLField(max_length=1000, blank=True, default="")
+    # Mode 3 de la page GoogleSheet : jeton de rafraîchissement Google (scope drive.file), chiffré (accounts/drive.py).
+    # Jamais renvoyé au navigateur ; vide = accès non accordé ou retiré.
+    drive_refresh_token = models.TextField(blank=True, default="")
+    drive_authorized_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -74,7 +74,10 @@
       "email_invalid": "E-mail du compte de service : adresse invalide.",
       "sheet_id_or_name": "Renseigne l’identifiant du document ou son nom.",
       "sync_tabs_required": "Indique au moins un onglet à synchroniser.",
-      "sheet_link_required": "Colle le lien du Google Sheet (ou renseigne un compte de service)."
+      "sheet_link_required": "Colle le lien du Google Sheet (ou renseigne un compte de service).",
+      "google_requires_account": "Le mode compte Google demande d’être connecté avec Google.",
+      "google_not_authorized": "Autorise d’abord l’accès à ta feuille avec ton compte Google.",
+      "google_sheet_required": "Choisis ta feuille dans le sélecteur de Google."
     },
     "sheet_not_public": "La feuille n’est pas partagée par lien : dans Google Sheets, choisis « Tous les utilisateurs disposant du lien », ou renseigne un compte de service.",
     "public_sheet_not_found": "Feuille introuvable : vérifie le lien du document.",
@@ -89,7 +92,17 @@
     "google_token_invalid": "Impossible de vérifier ton identité auprès de Google.",
     "google_email_unverified": "L’adresse e-mail de ce compte Google n’est pas vérifiée.",
     "invalid_theme": "Mode d’affichage non valable.",
-    "account_disabled": "Ce compte est désactivé. Contacte l’administrateur du site."
+    "account_disabled": "Ce compte est désactivé. Contacte l’administrateur du site.",
+    "login_required": "Connecte-toi d’abord.",
+    "google_not_authorized": "Autorise d’abord l’accès à ta feuille avec ton compte Google.",
+    "google_access_revoked": "L’accès Google a été retiré : autorise-le de nouveau.",
+    "google_sheet_not_found": "Feuille introuvable ou plus autorisée : choisis-la de nouveau dans le sélecteur de Google.",
+    "google_account_mismatch": "Tu as choisi un autre compte Google que celui avec lequel tu es connecté.",
+    "google_drive_denied": "Tu n’as pas coché l’accès aux fichiers chez Google : réessaie et coche-le.",
+    "google_drive_not_configured": "Le mode compte Google n’est pas configuré sur ce serveur.",
+    "google_requires_account": "Le mode compte Google demande d’être connecté avec Google.",
+    "session_expired": "Ta session a expiré : rien n’a été enregistré. La page va se recharger.",
+    "scope_changed": "Tu t’es connecté ou déconnecté dans un autre onglet : rien n’a été enregistré. La page va se recharger."
   },
   "data": {
     "unknown": "Non renseigné",
@@ -654,7 +667,8 @@
       "auth_uri": "auth_uri",
       "token_uri": "token_uri",
       "auth_provider_x509_cert_url": "auth_provider_x509_cert_url",
-      "client_x509_cert_url": "client_x509_cert_url"
+      "client_x509_cert_url": "client_x509_cert_url",
+      "method": "Mode de connexion"
     },
     "help": {
       "sheet_id": "Colle l’adresse de la feuille (ou seulement la partie entre /d/ et /edit).",
@@ -663,7 +677,8 @@
     "mode": {
       "service_account": "Lecture par compte de service ({email}).",
       "public_link": "Lecture par lien : la feuille doit être partagée « Tous les utilisateurs disposant du lien ».",
-      "none": "Aucun accès configuré : colle le lien de ta feuille."
+      "none": "Aucun accès configuré : colle le lien de ta feuille.",
+      "google": "Lecture avec ton compte Google : « {name} »."
     },
     "confirmRemove": "Passer au lien public retire le compte de service enregistré. La feuille devra être partagée « Tous les utilisateurs disposant du lien ». Continuer ?",
     "method": {
@@ -678,13 +693,27 @@
       },
       "google": {
         "title": "3. Compte Google",
-        "text": "Tu te connectes avec ton compte Google et tu choisis ta feuille. Bientôt disponible."
+        "text": "Tu te connectes avec ton compte Google et tu choisis ta feuille. Overfolio n’a accès qu’à cette feuille."
       }
     },
     "google": {
-      "title": "Se connecter avec Google",
+      "title": "Ta feuille, avec ton compte Google",
       "text": "La façon standard : tu te connectes avec ton compte Google, puis tu choisis ta feuille dans le sélecteur de fichiers de Google. Overfolio n’a accès qu’à cette feuille, qui reste privée. Pas de partage à faire, pas de compte de service, pas de fichier JSON.",
-      "soon": "Bientôt disponible : cette connexion arrivera avec les comptes Overfolio. En attendant, utilise le lien public ou un compte de service."
+      "unavailable": "Ce mode n’est pas encore configuré sur ce serveur (voir le README, « Mode 3 : compte Google »). En attendant, utilise le lien public ou un compte de service.",
+      "signInFirst": "Se connecter avec Google",
+      "authorize": "Autoriser l’accès à ma feuille",
+      "authorizeHelp": "Google te demandera d’autoriser Overfolio pour {email}. Overfolio ne pourra lire que les fichiers que tu choisiras ensuite.",
+      "choose": "Choisir ma feuille",
+      "change": "Choisir une autre feuille",
+      "picking": "Ouverture du sélecteur…",
+      "chosen": "Feuille choisie : « {name} ».",
+      "authorizedAs": "Accès accordé par {email}.",
+      "revoke": "Retirer l’accès",
+      "confirmRevoke": "Retirer l’accès d’Overfolio à tes feuilles Google ? La synchronisation ne fonctionnera plus jusqu’à une nouvelle autorisation.",
+      "revoked": "Accès retiré.",
+      "connected": "Accès accordé. Choisis maintenant ta feuille.",
+      "saved": "Feuille « {name} » enregistrée. Choisis tes onglets, puis clique sur Tout actualiser.",
+      "pickerFailed": "Le sélecteur de Google n’a pas pu s’ouvrir. Vérifie ta connexion, puis réessaie."
     },
     "accountTitle": "Compte de service Google",
     "accountLoaded": {
@@ -696,7 +725,14 @@
       "label": "Trouver le document par",
       "link": "Lien",
       "name": "Nom"
-    }
+    },
+    "savedAccount": "Valeurs enregistrées sur ton compte.",
+    "savedAccountOn": "Valeurs enregistrées sur ton compte le {date}.",
+    "accountEmpty": "Aucune feuille n’est encore branchée sur ton compte.",
+    "scopeAccount": "Ta feuille et tes données sont propres à ton compte ({email}) : personne d’autre ne les voit.",
+    "clearAccount": "Effacer ces paramètres",
+    "confirmClearAccount": "Effacer les paramètres de connexion de ton compte ? Tes tables déjà synchronisées restent en place.",
+    "accountCleared": "Paramètres effacés."
   },
   "simulationPage": {
     "lead": "{runs} avenirs possibles pour ton patrimoine net, tirés au hasard à partir de tes montants actuels et des hypothèses ci-dessous. La fourchette montre ce qui peut raisonnablement arriver, pas une prévision.",

@@ -4,7 +4,7 @@
 // Se connecter est une navigation (pas un fetch) : le serveur part chez Google, puis revient sur `next`.
 
 import { reactive } from 'vue'
-import { getSession, logoutSession } from './api.js'
+import { getSession, logoutSession, setSheetScope } from './api.js'
 
 export const session = reactive({
   loaded: false, // première réponse du serveur reçue
@@ -25,6 +25,7 @@ export async function loadSession() {
     session.user = body.user ?? null
     session.error = ''
     firstLogin = Boolean(body.first_login)
+    setSheetScope(session.authenticated ? 'account' : 'site')
   } catch (error) {
     session.error = error.message
   } finally {
@@ -52,10 +53,14 @@ export function signIn(next = '/') {
   window.location.assign(`/api/auth/google/start/?next=${encodeURIComponent(safeNext(next))}`)
 }
 
-/** Déconnexion ; le profil du site reprend la main (à recharger avec loadProfile de lib/profile.js). */
+/**
+ * Déconnexion, puis rechargement complet de la page : plus rien du compte (données, réglages) ne reste affiché,
+ * et la page repart avec le profil et les données du site.
+ */
 export async function signOut() {
   const body = await logoutSession()
   session.authenticated = false
   session.user = null
   session.configured = Boolean(body?.configured)
+  window.location.reload()
 }

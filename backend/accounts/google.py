@@ -68,23 +68,42 @@ def make_flow(scopes=None, code_verifier=None) -> Flow:
     )
 
 
-def authorization_url(scopes=None):
-    """Adresse de la page Google, `state` et vérificateur PKCE à garder en session jusqu'au retour."""
+def authorization_url(scopes=None, offline=False, login_hint=""):
+    """
+    Adresse de la page Google, `state` et vérificateur PKCE à garder en session jusqu'au retour.
+
+    offline=False (connexion) : pas de jeton de rafraîchissement, choix du compte.
+    offline=True (mode 3, accès à une feuille) : jeton de rafraîchissement demandé (accord affiché de nouveau),
+    autorisation progressive (les scopes déjà accordés sont gardés), compte connecté proposé (login_hint).
+    """
     flow = make_flow(scopes)
-    url, state = flow.authorization_url(
-        access_type="online",  # pas de jeton de rafraîchissement : la connexion n'en a pas besoin
-        include_granted_scopes="true",
-        prompt="select_account",
-    )
+    params = {"include_granted_scopes": "true"}
+    if offline:
+        params.update(access_type="offline", prompt="consent")
+    else:
+        params.update(access_type="online", prompt="select_account")
+    if login_hint:
+        params["login_hint"] = login_hint
+    url, state = flow.authorization_url(**params)
     return url, state, flow.code_verifier
 
 
+def granted_scopes(tokens: dict) -> set:
+    scope = tokens.get("scope") or []
+    return set(scope.split() if isinstance(scope, str) else scope)
+
+
 def exchange_code(code: str, code_verifier: str) -> dict:
+    """Connexion : informations vérifiées du jeton d'identité (sub, email…)."""
+    return exchange(code, code_verifier)[0]
+
+
+def exchange(code: str, code_verifier: str, scopes=None):
     """
     Échange le code reçu au retour de Google contre les jetons, puis vérifie le jeton d'identité
-    (signature, émetteur, destinataire = notre client, expiration). Renvoie ses informations (sub, email…).
+    (signature, émetteur, destinataire = notre client, expiration). Renvoie (informations, jetons).
     """
-    flow = make_flow(code_verifier=code_verifier)
+    flow = make_flow(scopes, code_verifier=code_verifier)
     try:
         tokens = flow.fetch_token(code=code) or {}
     except Exception as exc:  # réseau, code expiré ou déjà utilisé, secret erroné…
@@ -105,4 +124,4 @@ def exchange_code(code: str, code_verifier: str) -> dict:
         raise GoogleAuthError("Jeton d'identité Google sans identifiant.", "google_token_invalid")
     if not claims.get("email") or not claims.get("email_verified"):
         raise GoogleAuthError("Adresse e-mail Google non vérifiée.", "google_email_unverified")
-    return claims
+    return claims, tokens
