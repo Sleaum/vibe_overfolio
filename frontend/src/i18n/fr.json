@@ -24,6 +24,13 @@
   "language": {
     "label": "Langue"
   },
+  "displayCurrency": {
+    "label": "Devise",
+    "title": "Devise des pages Charts et Simulation",
+    "euros": "euros",
+    "convertedNote": "Montants convertis de {from} en {to} au taux de la BCE du jour de chaque ligne.",
+    "unconvertedNote": "{count} ligne sans taux de la BCE pour son jour n’est pas comptée en {to} ; relance « Tout actualiser » sur la page GoogleSheet plus tard. | {count} lignes sans taux de la BCE pour leur jour ne sont pas comptées en {to} ; relance « Tout actualiser » sur la page GoogleSheet plus tard."
+  },
   "footer": {
     "tagline": "Ton Google Sheet, mis en graphiques : la répartition et l’évolution de ton patrimoine.",
     "pages": "Pages",
@@ -105,7 +112,8 @@
     "scope_changed": "Tu t’es connecté ou déconnecté dans un autre onglet : rien n’a été enregistré. La page va se recharger.",
     "invalid_currencies": "Devises non valables.",
     "fx_unreachable": "Les taux de change de la BCE n’ont pas pu être relus : les devises sont calculées avec les derniers taux connus.",
-    "fx_invalid": "Le fichier de taux de la BCE est illisible : les devises sont calculées avec les derniers taux connus."
+    "fx_invalid": "Le fichier de taux de la BCE est illisible : les devises sont calculées avec les derniers taux connus.",
+    "invalid_currency": "Devise non valable."
   },
   "data": {
     "unknown": "Non renseigné",
@@ -227,21 +235,21 @@
       ]
     },
     "trend": {
-      "bars": "Patrimoine en euros",
+      "bars": "Patrimoine en {currency}",
       "trend": "Tendance",
       "goals": "Objectifs",
       "goal": "Objectif",
-      "noColumn": "Colonne de montants en euros introuvable dans la table « {table} » : EUR ou Assets Master Currency. Colonnes disponibles : {available}.",
+      "noColumn": "Colonne de montants introuvable dans la table « {table} » : {code} ou Assets Master Currency. Colonnes disponibles : {available}.",
       "twoRecords": "Il faut au moins deux relevés dans la table history pour tracer une tendance.",
       "nextGoal": "Prochain objectif : {goal} au {date} ; au rythme de la tendance, tu serais à {projected}.",
-      "a11y": "Patrimoine en euros sur {count} relevés, du {from} au {to}. Dernier relevé : {last}. La tendance est de {perYear} par an.",
+      "a11y": "Patrimoine en {currency} sur {count} relevés, du {from} au {to}. Dernier relevé : {last}. La tendance est de {perYear} par an.",
       "note": "Colonne utilisée : {column}. Tendance : {perYear} par an en moyenne.",
       "goalCount": "{count} objectif (ligne sans Asset ni Instrument). | {count} objectifs (lignes sans Asset ni Instrument).",
       "title": "Patrimoine et tendance",
-      "summary": "Ton patrimoine en euros à chaque relevé, avec la droite de tendance.",
-      "source": "Table history, colonne Date et colonne de montants en euros (EUR, sinon Assets Master Currency), additionnées par date. Les lignes sans Asset ni Instrument sont des objectifs.",
+      "summary": "Ton patrimoine en {currency} à chaque relevé, avec la droite de tendance.",
+      "source": "Table history, colonne Date et colonne de montants de la devise choisie dans l’en-tête (EUR par défaut, sinon Assets Master Currency), additionnées par date. Les lignes sans Asset ni Instrument sont des objectifs.",
       "explain": [
-        "Chaque barre est le total de ton patrimoine en euros (brut ou net, selon le bouton du menu) à la date d’un relevé. La droite est la tendance moyenne de tous les relevés : elle montre le rythme de croissance passé.",
+        "Chaque barre est le total de ton patrimoine en {currency} (brut ou net, selon le bouton du menu) à la date d’un relevé. La droite est la tendance moyenne de tous les relevés : elle montre le rythme de croissance passé.",
         "Les losanges orange sont tes objectifs : dans la table history, ce sont les lignes qui n’ont qu’une date et un montant (ni type d’actif, ni instrument). La tendance est prolongée en pointillés jusqu’au dernier objectif : si elle passe au-dessus d’un losange, ton rythme actuel suffit pour l’atteindre.",
         "Les objectifs étirent l’axe du temps : le curseur du bas permet de zoomer sur les relevés."
       ]
@@ -310,7 +318,7 @@
       },
       "summary": "De combien le prix de chacun de tes placements a bougé sur {period}.",
       "explain1": "Une bulle par placement. Horizontalement, le montant que tu détiens (échelle logarithmique : chaque graduation multiplie par 10) ; verticalement, la variation de son prix unitaire sur {period}. Plus la bulle est grosse, plus le placement pèse dans ton patrimoine.",
-      "explain2": "Le prix unitaire est calculé en euros (montant ÷ quantité) : il tient compte du change, mais pas de tes achats ni de tes ventes. Une grosse bulle loin sous la ligne du zéro est le placement qui t’a fait perdre le plus.",
+      "explain2": "Le prix unitaire est calculé en {currency} (montant ÷ quantité) : il tient compte du change, mais pas de tes achats ni de tes ventes. Une grosse bulle loin sous la ligne du zéro est le placement qui t’a fait perdre le plus.",
       "explain3": "Les liquidités, l’immobilier et les biens sans cours de marché ne sont pas affichés.",
       "source": "Table history, colonnes Date, Instrument, Quantity, Assets Master Currency (et Asset, Envelope, Broker si présentes) : dernier relevé comparé au relevé d’il y a {period}.",
       "notYet": "L’historique ne remonte pas encore à {period} avant le dernier relevé ({date}).",
@@ -539,7 +547,7 @@
     "footer": "Pour le détail de tes actions par secteur, moat ou note, ouvre {strategy}."
   },
   "volatilityPage": {
-    "lead": "De combien le prix de chacun de tes placements a bougé. Une bulle par placement : à droite ce que tu détiens le plus, en bas ce qui a le plus baissé. Le prix est calculé en euros, change compris, sans tes achats ni tes ventes.",
+    "lead": "De combien le prix de chacun de tes placements a bougé. Une bulle par placement : à droite ce que tu détiens le plus, en bas ce qui a le plus baissé. Le prix est calculé en {currency}, change compris, sans tes achats ni tes ventes.",
     "footer": "Les variations comparent deux relevés de la table history : plus tu fais de relevés, plus elles sont précises. L’ancien rapport proposait aussi « 1 semaine », qui demande des relevés hebdomadaires."
   },
   "notFound": {
@@ -579,9 +587,7 @@
     "yourNetWorth": "Ton patrimoine net",
     "yourDebts": "Tes dettes",
     "debtsTotal": "{amount} au total, par instrument.",
-    "typeDebts": "Après {amount} de dettes ; le détail montre ses actifs.",
-    "converted": "Montants de ta feuille en {currency}, convertis en euros au taux de la BCE du jour des positions.",
-    "notConverted": "{count} ligne en {currency} n’a pas pu être convertie en euros : pas encore de taux de la BCE pour ce jour. Relance « Tout actualiser » sur la page GoogleSheet plus tard. | {count} lignes en {currency} n’ont pas pu être converties en euros : pas encore de taux de la BCE pour ces jours. Relance « Tout actualiser » sur la page GoogleSheet plus tard."
+    "typeDebts": "Après {amount} de dettes ; le détail montre ses actifs."
   },
   "strategyPage": {
     "loading": "Chargement de tes actions…",
@@ -630,8 +636,7 @@
     "tabFailure": "{tab} : {message}",
     "error": "erreur",
     "removedNotice": "{count} onglet de l’ancien document retiré : {names}. | {count} onglets de l’ancien document retirés : {names}.",
-    "computedColumns": "Colonnes calculées par le site (taux BCE) : {columns}.",
-    "convertedFrom": "Montants convertis de {currency} en euros (taux BCE)."
+    "computedColumns": "Colonnes calculées par le site (taux BCE) : {columns}."
   },
   "sheetSettings": {
     "title": "Connexion à Google Sheets",
@@ -753,8 +758,8 @@
     "prepareError": "Impossible de préparer la simulation",
     "results": "Résultats",
     "fanTitle": "Patrimoine net simulé",
-    "realNote": "En euros d’aujourd’hui (inflation déduite).",
-    "nominalNote": "En euros courants.",
+    "realNote": "En {currency} d’aujourd’hui (inflation déduite).",
+    "nominalNote": "En {currency} courants.",
     "computing": "Calcul en cours…",
     "unit": "Unité",
     "computingRuns": "Calcul des {runs} trajectoires…",
@@ -773,9 +778,9 @@
     "fees": "Frais annuels",
     "feesHint": "ETF, courtiers, gestion : sur les actifs financiers.",
     "inflation": "Inflation",
-    "inflationHint": "Sert aux montants en euros d’aujourd’hui.",
+    "inflationHint": "Sert aux montants en {currency} d’aujourd’hui.",
     "perYear": "% par an",
-    "perMonth": "€ / mois",
+    "perMonth": "{currency} / mois",
     "fatTails": "Krachs plus fréquents qu’une loi normale",
     "fatTailsHint": "Loi de Student à 5 degrés de liberté : plus réaliste pour les actions et la crypto. Décoché, la simulation est plus optimiste dans les mauvaises années.",
     "byType": "Par type d’actif",
@@ -803,13 +808,13 @@
     ],
     "notAdvice": "C’est un outil de projection, pas un conseil en investissement.",
     "units": {
-      "real": "Euros d’aujourd’hui",
-      "nominal": "Euros courants"
+      "real": "Valeur d’aujourd’hui",
+      "nominal": "Valeur courante"
     },
     "noPositive": "La table portfolio ne contient aucun montant positif dans Assets Master Currency.",
     "readFailed": "Lecture impossible ({message}).",
-    "realUnitText": "en euros d’aujourd’hui",
-    "nominalUnitText": "en euros courants",
+    "realUnitText": "en {currency} d’aujourd’hui",
+    "nominalUnitText": "en {currency} courants",
     "kpi": {
       "chance": "Chance d’atteindre l’objectif",
       "chooseGoal": "Choisis un objectif et une date future.",
@@ -836,8 +841,8 @@
       "debt": "Dette actuelle : {amount}. Indique la part capital de tes mensualités.",
       "noDebt": "Aucune dette dans la table portfolio.",
       "goalFromHistory": "Lu dans history (ligne sans type d’actif). {unit}",
-      "real": "Compté en euros d’aujourd’hui.",
-      "nominal": "Compté en euros courants."
+      "real": "Compté en {currency} d’aujourd’hui.",
+      "nominal": "Compté en {currency} courants."
     }
   },
   "login": {

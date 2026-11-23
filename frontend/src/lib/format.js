@@ -4,6 +4,7 @@
 
 import { intlLocale, locale, t } from '../i18n/index.js'
 import { isoToTimestamp, toIsoDate } from './dates.js'
+import { displayCurrency } from './displayCurrency.js'
 
 const NBSP = '\u00a0'
 
@@ -18,9 +19,10 @@ function intl(Kind, name, options) {
 const number = (name, options) => intl(Intl.NumberFormat, name, options)
 const date = (name, options) => intl(Intl.DateTimeFormat, name, { timeZone: 'UTC', ...options })
 
-const euroFormat = () => number('euro', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-const euroCompact = () =>
-  number('euroCompact', { style: 'currency', currency: 'EUR', notation: 'compact', maximumFractionDigits: 1 })
+const currencyFormat = (code) => number(`currency-${code}`, { style: 'currency', currency: code, maximumFractionDigits: 0 })
+const currencyCompact = (code) =>
+  number(`currencyCompact-${code}`, { style: 'currency', currency: code, notation: 'compact', maximumFractionDigits: 1 })
+const euroFormat = () => currencyFormat('EUR')
 const oneDecimal = () => number('oneDecimal', { maximumFractionDigits: 1 })
 const integer = () => number('integer', { maximumFractionDigits: 0 })
 const percentFormat = () => number('percent', { style: 'percent', maximumFractionDigits: 1 })
@@ -37,11 +39,33 @@ const monthYearTiny = () => date('monthYearTiny', { month: 'short', year: '2-dig
 // Heure du navigateur (pas UTC) : c'est l'heure de la synchronisation
 const dateAndTime = () => intl(Intl.DateTimeFormat, 'dateAndTime', { dateStyle: 'long', timeStyle: 'short' })
 
-/** 12345.6 -> "12 346 €" (espaces insécables). */
+/** 12345.6 -> "12 346 €" (espaces insécables). Toujours en euros : données fictives de la page de présentation. */
 export function euro(value) {
   const n = Number(value)
   if (!Number.isFinite(n)) return '–'
   return euroFormat().format(Math.abs(n) < 0.5 ? 0 : n) // évite "-0 €"
+}
+
+/**
+ * Montant dans la devise d'affichage (menu de l'en-tête, lib/displayCurrency.js) : 12345.6 -> "12 346 €",
+ * "12 346 THB", "฿12,346"… Les tables arrivent déjà converties par le serveur : seule l'écriture change ici.
+ */
+export function formatAmount(value) {
+  return money(value, displayCurrency.value)
+}
+
+/** Symbole de la devise d'affichage dans la langue active : "€", "$US", "THB"… */
+export function currencySymbol(code = displayCurrency.value) {
+  try {
+    return currencyFormat(code).formatToParts(0).find((part) => part.type === 'currency')?.value ?? code
+  } catch {
+    return code
+  }
+}
+
+/** Nom de la devise d'affichage dans une phrase (« en euros », « en THB ») : « euros » traduit, sinon le code. */
+export function currencyLabel(code = displayCurrency.value) {
+  return code === 'EUR' ? t('displayCurrency.euros') : code
 }
 
 /** 12345 -> "12 345 CHF" / "12 345 $US" selon la devise ; devise inconnue : le code après le nombre. */
@@ -50,7 +74,7 @@ export function money(value, code) {
   if (!Number.isFinite(n)) return '–'
   let format = null
   try {
-    format = number(`money-${code}`, { style: 'currency', currency: code, maximumFractionDigits: 0 })
+    format = currencyFormat(code)
   } catch {
     format = null // code de devise inconnu d'Intl
   }
@@ -91,21 +115,29 @@ export function formatNumber(value) {
 /**
  * Étiquettes d'un axe de montants : en entier sous 10 000 (0 / 2 000 / 4 000 €),
  * en compact au-delà (0 / 10 k€ / 20 k€ ; €10K en anglais), un seul style par axe.
+ * `code` : devise de l'axe ; par défaut celle d'affichage (la page de présentation passe 'EUR').
  */
-export function axisEuroFormatter(maxValue) {
+export function axisAmountFormatter(maxValue, code = displayCurrency.value) {
   const compact = Math.abs(Number(maxValue)) >= 10_000
   return (value) => {
     const n = Number(value)
     if (!Number.isFinite(n)) return ''
-    if (!compact) return euroFormat().format(n)
-    // Français : écriture habituelle « 12,5 k€ » ; autres langues : forme compacte d'Intl
-    if (locale.value !== 'fr') return euroCompact().format(n)
+    try {
+      if (!compact) return currencyFormat(code).format(n)
+      // Français et euro : écriture habituelle « 12,5 k€ » ; sinon forme compacte d'Intl (« 12,5 k THB », « €10K »)
+      if (locale.value !== 'fr' || code !== 'EUR') return currencyCompact(code).format(n)
+    } catch {
+      return `${compactNumber(n)} ${code}` // code de devise inconnu d'Intl
+    }
     const abs = Math.abs(n)
     if (abs >= 1_000_000) return `${oneDecimal().format(n / 1_000_000)}${NBSP}M€`
     if (abs >= 1_000) return `${oneDecimal().format(n / 1_000)}${NBSP}k€`
     return `${integer().format(n)}${NBSP}€`
   }
 }
+
+/** Axe de montants toujours en euros (page de présentation). */
+export const axisEuroFormatter = (maxValue) => axisAmountFormatter(maxValue, 'EUR')
 
 /** Valeur "AAAA-MM-JJ" ou millisecondes UTC -> Date, ou null. */
 function asDate(value) {

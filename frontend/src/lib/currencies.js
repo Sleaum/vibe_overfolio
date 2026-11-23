@@ -2,7 +2,8 @@
 //
 // Devises proposées : celles que le serveur sait calculer avec les taux de la BCE (table.currencies_available,
 // googlesheet/currencies.py), et celles qui ont une colonne dans la feuille. Le serveur n'envoie en colonnes que les
-// devises cochées (ou EUR, USD, CHF, THB tant que rien n'est choisi) : en cocher une nouvelle recharge la table.
+// devises cochées (ou EUR, USD, CHF, THB tant que rien n'est choisi), plus la devise d'affichage de l'en-tête
+// (lib/displayCurrency.js) : en cocher une nouvelle recharge la table.
 // Le choix est gardé sur le profil, en base (PUT /api/profile/ { chart_currencies }) : celui du compte connecté,
 // sinon celui du site. Choix vide = devises par défaut.
 
@@ -42,11 +43,16 @@ export function availableCurrencies(table) {
   return { shown, more }
 }
 
-/** Devises à afficher parmi celles disponibles : le choix enregistré, sinon toutes. */
+/**
+ * Devises à afficher parmi celles disponibles : le choix enregistré, sinon EUR, USD, CHF et THB (le serveur ajoute
+ * aussi la colonne de la devise d'affichage de l'en-tête : elle n'apparaît ici que si elle est cochée), sinon toutes.
+ */
 export function selectedCurrencies(available) {
   const codes = available.map((item) => item.code)
   const chosen = chartCurrencies.value.filter((code) => codes.includes(code))
-  return chosen.length ? codes.filter((code) => chosen.includes(code)) : codes
+  if (chosen.length) return codes.filter((code) => chosen.includes(code))
+  const known = codes.filter((code) => KNOWN_CURRENCIES.includes(code))
+  return known.length ? known : codes
 }
 
 let version = 0

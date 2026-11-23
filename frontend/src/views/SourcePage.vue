@@ -104,10 +104,7 @@
           <span v-if="data?.computed_columns?.length" data-testid="sheet-computed">
             {{ t('sheetPage.computedColumns', { columns: data.computed_columns.join(', ') }) }}
           </span>
-          <span v-if="data?.unconverted_rows" class="text-danger" data-testid="sheet-unconverted">
-            {{ t('snapshotPage.notConverted', { count: data.unconverted_rows, currency: data.currency }, data.unconverted_rows) }}
-          </span>
-          <span v-else-if="data?.currency && data.currency !== 'EUR'">{{ t('sheetPage.convertedFrom', { currency: data.currency }) }}</span>
+          <ConversionNote :table="data" testid="sheet-converted" />
         </template>
         <span v-if="notice" class="font-medium text-success">{{ notice }}</span>
       </div>
@@ -246,6 +243,7 @@ import AppButton from '../components/ui/AppButton.vue'
 import SheetSettings from '../components/SheetSettings.vue'
 import SyncTabs from '../components/SyncTabs.vue'
 import { useTable } from '../composables/useTable.js'
+import ConversionNote from '../components/ConversionNote.vue'
 import { apiMessage, listTables, syncAll } from '../lib/api.js'
 import { formatCell, formatDateTime, formatNumber } from '../lib/format.js'
 
@@ -279,7 +277,7 @@ const page = ref(1)
 const scroller = ref(null)
 
 // Table choisie : se recharge toute seule quand `selected` change
-const { data, loading, error, reload } = useTable(selected)
+const { data, loading, error, reload } = useTable(selected, { raw: true })
 
 /* ---------- Liste des onglets ---------- */
 

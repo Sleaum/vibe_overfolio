@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
+from fx.rates import ISO_CODES
 from googlesheet.errors import error_response
 
 from .models import Profile
@@ -33,6 +34,7 @@ def _serialize(profile):
         "asset_colors": profile.asset_colors or {},
         "theme": profile.theme,
         "chart_currencies": profile.chart_currencies or [],
+        "display_currency": profile.display_currency or "",
         "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
     }
 
@@ -79,14 +81,15 @@ def profile_detail(request):
     GET /api/profile/ : réglages gardés en base (profil du compte connecté, sinon profil du site).
     PUT /api/profile/ : enregistre ce qui est envoyé, le reste ne change pas :
       {"theme": "dark"}                   mode ("light", "dark", ou "" pour suivre le système) ;
-      {"chart_currencies": ["EUR", "THB"]} devises de « Patrimoine par devise » ([] = toutes).
+      {"chart_currencies": ["EUR", "THB"]} devises de « Patrimoine par devise » ([] = toutes) ;
+      {"display_currency": "THB"}         devise des pages Charts et Simulation ("" = euro).
     Avec une session ouverte, le jeton CSRF est exigé (en-tête X-CSRFToken).
     """
     profile = current_profile(request)
     if request.method == "PUT":
         body = request.data if isinstance(request.data, dict) else {}
         fields = []
-        if "theme" in body or "chart_currencies" not in body:
+        if "theme" in body or not body.keys() & {"chart_currencies", "display_currency"}:
             theme = body.get("theme")
             if theme not in THEMES:
                 return error_response("Mode d'affichage non valable", "invalid_theme", 400)
@@ -98,6 +101,13 @@ def profile_detail(request):
                 return error_response("Devises non valables", "invalid_currencies", 400)
             profile.chart_currencies = currencies
             fields.append("chart_currencies")
+        if "display_currency" in body:
+            code = body.get("display_currency")
+            code = code.strip().upper() if isinstance(code, str) else None
+            if code is None or (code and code not in ISO_CODES):
+                return error_response("Devise non valable", "invalid_currency", 400)
+            profile.display_currency = code
+            fields.append("display_currency")
         profile.save(update_fields=[*fields, "updated_at"])
     return JsonResponse(_serialize(profile))
 

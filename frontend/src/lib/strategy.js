@@ -6,7 +6,7 @@
 // un attribut introuvable n'empêche pas les autres anneaux de s'afficher, il est simplement signalé.
 
 import { DataError, findColumn, latestDate, requireColumns, rowsOf, toLabel, toNumber } from './aggregate.js'
-import { capitalize, countryName, euro, formatDateLong, percent } from './format.js'
+import { capitalize, countryName, formatAmount, formatDateLong, percent } from './format.js'
 import { CONTEXT, blues } from './palette.js'
 import { countryCode } from './countries.js'
 import { t } from '../i18n/index.js'
@@ -247,15 +247,15 @@ function tableOf(title, detailTitle, categories, total) {
     return {
       columns: [title, t('chart.amount'), t('chart.shareOfTotal')],
       numeric: [false, true, true],
-      rows: [...categories.map((c) => [c.name, euro(c.value), percent(c.share)]), [t('chart.total'), euro(total), percent(1)]],
+      rows: [...categories.map((c) => [c.name, formatAmount(c.value), percent(c.share)]), [t('chart.total'), formatAmount(total), percent(1)]],
     }
   }
   const rows = []
   for (const category of categories) {
-    rows.push([category.name, t('strategy.all'), euro(category.value), percent(category.share)])
-    for (const child of category.allChildren) rows.push([category.name, child.name, euro(child.value), percent(child.share)])
+    rows.push([category.name, t('strategy.all'), formatAmount(category.value), percent(category.share)])
+    for (const child of category.allChildren) rows.push([category.name, child.name, formatAmount(child.value), percent(child.share)])
   }
-  rows.push([t('chart.total'), '', euro(total), percent(1)])
+  rows.push([t('chart.total'), '', formatAmount(total), percent(1)])
   return { columns: [title, detailTitle, t('chart.amount'), t('chart.shareOfTotal')], numeric: [false, false, true, true], rows }
 }
 
@@ -432,7 +432,7 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
       categories,
       unknownShare: categories.find((c) => c.name === UNKNOWN())?.share ?? 0,
       subtitle: [
-        euro(total),
+        formatAmount(total),
         t('strategy.categories', { count: named }, named),
         def.detailTitle ? t('strategy.detail', { detail: def.detailTitle.toLowerCase() }) : '',
       ]
@@ -441,11 +441,11 @@ export function buildStrategy(portfolio, stock = null, scope = undefined) {
       summary: t(def.detailTitle ? 'strategy.a11yDouble' : 'strategy.a11ySingle', {
         title: def.title.toLowerCase(),
         parts: t('strategy.parts', { count: categories.length }, categories.length),
-        total: euro(total),
+        total: formatAmount(total),
         biggest: biggest.name,
         share: percent(biggest.share),
       }),
-      legend: categories.map((c) => ({ name: c.name, color: c.color, amount: euro(c.value), share: percent(c.share) })),
+      legend: categories.map((c) => ({ name: c.name, color: c.color, amount: formatAmount(c.value), share: percent(c.share) })),
       table: tableOf(def.innerTitle ?? def.title, def.detailTitle, categories, total),
     }
   })

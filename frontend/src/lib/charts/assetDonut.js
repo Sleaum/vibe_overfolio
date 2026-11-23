@@ -3,7 +3,7 @@
 // couleur d'une synchronisation à l'autre ; la liste à côté donne les montants, du plus gros au plus petit.
 
 import { baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
-import { capitalize, euro, percent } from '../format.js'
+import { capitalize, formatAmount, percent } from '../format.js'
 import { CONTEXT, FONT, INK, INK_2, SURFACE, assignAssetColors } from '../palette.js'
 import { t } from '../../i18n/index.js'
 
@@ -31,7 +31,8 @@ export function assetParts(entries, total) {
   return parts
 }
 
-export function donutOption(parts, total, caption = t('chart.totalAssets')) {
+/** `format` : écriture des montants (devise d'affichage ; la page de présentation passe `euro`, données fictives). */
+export function donutOption(parts, total, caption = t('chart.totalAssets'), format = formatAmount) {
   const ring = [...parts].sort((a, b) => a.slot - b.slot)
   return {
     ...baseOption(),
@@ -39,12 +40,12 @@ export function donutOption(parts, total, caption = t('chart.totalAssets')) {
       trigger: 'item',
       formatter: (p) =>
         tooltipHtml(p.name, [
-          { color: p.color, label: t('chart.amount'), value: euro(p.value), strong: true },
+          { color: p.color, label: t('chart.amount'), value: format(p.value), strong: true },
           { label: t('chart.shareOfTotal'), value: percent(p.value / total) },
         ]),
     }),
     title: {
-      text: euro(total),
+      text: format(total),
       subtext: caption,
       left: 'center',
       top: 'center',

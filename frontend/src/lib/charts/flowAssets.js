@@ -3,7 +3,7 @@
 
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
-import { axisEuroFormatter, euro, formatMonthKey, formatMonthKeyTiny } from '../format.js'
+import { axisAmountFormatter, formatAmount, formatMonthKey, formatMonthKeyTiny } from '../format.js'
 import { AXIS, SURFACE } from '../palette.js'
 import { assetMonthly, monthsSubtitle, skippedNote } from './flowData.js'
 import { t, tList } from '../../i18n/index.js'
@@ -28,13 +28,13 @@ export function assetsLinesOption(model) {
           .map((serie, s) => ({ serie, value: values[s][m] }))
           .filter((item) => item.value > 0)
           .sort((a, b) => b.value - a.value)
-          .map((item) => ({ color: item.serie.color, label: item.serie.label, value: euro(item.value) }))
-        rows.push({ label: t('chart.total'), value: euro(totals[m]), strong: true })
+          .map((item) => ({ color: item.serie.color, label: item.serie.label, value: formatAmount(item.value) }))
+        rows.push({ label: t('chart.total'), value: formatAmount(totals[m]), strong: true })
         return tooltipHtml(formatMonthKey(months[m].key), rows)
       },
     }),
     xAxis: categoryAxis(months.map((month) => formatMonthKeyTiny(month.key)), { boundaryGap: false }),
-    yAxis: valueAxis(axisEuroFormatter(max)),
+    yAxis: valueAxis(axisAmountFormatter(max)),
     dataZoom: zoom ? [zoomSlider()] : undefined,
     series: series.map((serie, s) => ({
       name: serie.label,
@@ -81,7 +81,7 @@ export default {
           count: model.series.length,
           from: formatMonthKey(model.months[0].key),
           to: formatMonthKey(model.months[last].key),
-          total: euro(model.totals[last]),
+          total: formatAmount(model.totals[last]),
         }),
       option: assetsLinesOption(model),
       height: 400,
@@ -91,8 +91,8 @@ export default {
         rows: model.months
           .map((month, m) => [
             formatMonthKey(month.key),
-            ...model.series.map((_, s) => euro(model.values[s][m])),
-            euro(model.totals[m]),
+            ...model.series.map((_, s) => formatAmount(model.values[s][m])),
+            formatAmount(model.totals[m]),
           ])
           .reverse(),
       },

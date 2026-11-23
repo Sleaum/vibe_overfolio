@@ -5,7 +5,7 @@
 // `categories` vient de lib/strategy.js : [{ name, value, share, color, children: [{ name, value, share, color }] }].
 
 import { baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
-import { euro, percent } from '../format.js'
+import { formatAmount, percent } from '../format.js'
 import { SURFACE } from '../palette.js'
 import { t } from '../../i18n/index.js'
 
@@ -82,7 +82,7 @@ export function sunburstOption(categories, total) {
         const color = item.itemStyle?.color
         const amount = Number.isFinite(item.amount) ? item.amount : Number(p?.value) || 0
         const rows = [
-          { color, label: t('chart.amount'), value: euro(amount), strong: true },
+          { color, label: t('chart.amount'), value: formatAmount(amount), strong: true },
           { label: t('chart.shareOfTotal'), value: percent(amount / total) },
         ]
         if (item.parent) {

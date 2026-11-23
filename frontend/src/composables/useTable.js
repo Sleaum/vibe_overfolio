@@ -1,11 +1,14 @@
 // Charge une table de l'API et expose son état (données, chargement, erreur).
 // `source` : un nom de table, une ref ou une fonction qui renvoie le nom. Si le nom change, la table est rechargée.
 // Pendant un rechargement de la même table, les anciennes données restent disponibles (pas de saut d'affichage).
+// Montants dans la devise d'affichage (lib/displayCurrency.js), convertis par le serveur ; `raw: true` (page
+// GoogleSheet) les garde en euros.
 
 import { isRef, onMounted, ref, watch } from 'vue'
 import { getTable } from '../lib/api.js'
+import { DEFAULT_CURRENCY, displayCurrency } from '../lib/displayCurrency.js'
 
-export function useTable(source, { immediate = true } = {}) {
+export function useTable(source, { immediate = true, raw = false } = {}) {
   const read = () => (typeof source === 'function' ? source() : isRef(source) ? source.value : source)
 
   const data = ref(null)
@@ -23,7 +26,8 @@ export function useTable(source, { immediate = true } = {}) {
     loading.value = true
     error.value = null
     try {
-      const body = await getTable(name)
+      const currency = raw ? '' : displayCurrency.value
+      const body = await getTable(name, currency === DEFAULT_CURRENCY ? '' : currency)
       if (request !== lastRequest) return
       data.value = body
       loadedName = name

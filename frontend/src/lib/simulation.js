@@ -13,6 +13,7 @@
 // Pas de rééquilibrage, pas d'impôt à la sortie : ce sont des limites assumées et écrites sur la page.
 
 import { buildInOut, findColumn, latestDate, requireColumns, rowsOf, toLabel, toNumber } from './aggregate.js'
+import { displayCurrency } from './displayCurrency.js'
 import { splitGoals } from './charts/flowTrend.js'
 import { findCurrencyColumn } from './charts/flowData.js'
 
@@ -74,7 +75,7 @@ export function averageContribution(table, today = new Date().toISOString().slic
 export function readGoals(table, fromIso) {
   if (!table) return []
   const date = findColumn(table.columns, ['Date'])
-  const value = findCurrencyColumn(table.columns, 'EUR') ?? findColumn(table.columns, ['Assets Master Currency'])
+  const value = findCurrencyColumn(table.columns, displayCurrency.value) ?? findColumn(table.columns, ['Assets Master Currency'])
   if (!date || !value) return []
   const labels = [findColumn(table.columns, ['Asset']), findColumn(table.columns, ['Instrument'])].filter(Boolean)
   return splitGoals(rowsOf(table), date, value, labels)

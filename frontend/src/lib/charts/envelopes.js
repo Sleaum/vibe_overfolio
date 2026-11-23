@@ -5,7 +5,7 @@
 // Quatre graphiques : anneau enveloppe → instrument, évolution de chaque enveloppe, répartition par sous-type, par zone.
 
 import { DataError, findColumn, latestDate, noteDropped, requireColumns, rowsOf, toLabel, toNumber } from '../aggregate.js'
-import { capitalize, euro, formatDateLong, formatMonthKey, percent } from '../format.js'
+import { capitalize, formatAmount, formatDateLong, formatMonthKey, percent } from '../format.js'
 import { BLUES, CONTEXT, blues } from '../palette.js'
 import { toIsoDate } from '../dates.js'
 import { tint } from '../strategy.js'
@@ -154,7 +154,7 @@ export const envelopeInstruments = {
       subtitle: date ? t('subtitle.recordOf', { date: formatDateLong(date) }) : dataSubtitle(table),
       summary: t('charts.envelopes.ringA11y', {
         envelopes: t('charts.envelopes.count', { count: groups.length }, groups.length),
-        total: euro(total),
+        total: formatAmount(total),
         shares: groups.map((group) => `${group.name} ${percent(group.total / total)}`).join(', '),
       }),
       option: withLabels(sunburstOption(categories, total), total),
@@ -164,11 +164,11 @@ export const envelopeInstruments = {
         numeric: [false, false, true, true],
         // Le tableau liste tous les instruments, y compris ceux regroupés en « Autres » dans l'anneau
         rows: groups.flatMap((group, g) => [
-          [group.name, t('chart.total'), euro(group.total), percent(1)],
-          ...sortedParts[g].map(([name, value]) => ['', name, euro(value), percent(value / group.total)]),
+          [group.name, t('chart.total'), formatAmount(group.total), percent(1)],
+          ...sortedParts[g].map(([name, value]) => ['', name, formatAmount(value), percent(value / group.total)]),
         ]),
       },
-      note: t('charts.envelopes.total', { total: euro(total) }),
+      note: t('charts.envelopes.total', { total: formatAmount(total) }),
     }
   },
 }
@@ -241,7 +241,7 @@ export const envelopeHistory = {
       summary: t('charts.envelopes.historyA11y', {
         envelopes: t('charts.envelopes.count', { count: series.length }, series.length),
         months: t('charts.envelopes.months', { count: shownMonths.length }, shownMonths.length),
-        last: series.map((serie, s) => `${serie.label} ${euro(values[s][shownMonths.length - 1])}`).join(', '),
+        last: series.map((serie, s) => `${serie.label} ${formatAmount(values[s][shownMonths.length - 1])}`).join(', '),
       }),
       option: assetsLinesOption(model),
       height: 400,
@@ -250,7 +250,7 @@ export const envelopeHistory = {
         numeric: [false, ...series.map(() => true), true],
         rows: [...shownMonths.keys()]
           .reverse()
-          .map((m) => [formatMonthKey(shownMonths[m].key), ...values.map((row) => euro(row[m])), euro(totals[m])]),
+          .map((m) => [formatMonthKey(shownMonths[m].key), ...values.map((row) => formatAmount(row[m])), formatAmount(totals[m])]),
       },
       note: skippedNote(months.skipped),
     }
@@ -325,8 +325,8 @@ function mixSpec({ slug, key, names }) {
           numeric: [false, ...series.map(() => true), true],
           rows: groups.map((group, g) => [
             group.name,
-            ...values[g].map((value) => (value > 0 ? `${euro(value)} (${percent(value / group.total)})` : '')),
-            euro(group.total),
+            ...values[g].map((value) => (value > 0 ? `${formatAmount(value)} (${percent(value / group.total)})` : '')),
+            formatAmount(group.total),
           ]),
         },
       }

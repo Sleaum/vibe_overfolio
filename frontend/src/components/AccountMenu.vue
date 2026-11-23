@@ -52,8 +52,9 @@
         <circle cx="12" cy="8" r="4" />
         <path d="M4 21a8 8 0 0 1 16 0" />
       </svg>
-      <span class="hidden sm:inline">{{ t('account.signIn') }}</span>
-      <span class="sr-only sm:hidden">{{ t('account.signIn') }}</span>
+      <!-- Entre 768 et 1024 px, le menu de l'ordinateur prend la place : icône seule, texte pour les lecteurs d'écran -->
+      <span class="hidden sm:inline md:hidden lg:inline">{{ t('account.signIn') }}</span>
+      <span class="sr-only sm:hidden md:inline lg:hidden">{{ t('account.signIn') }}</span>
     </router-link>
 
     <template v-else>

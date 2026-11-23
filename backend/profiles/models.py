@@ -24,6 +24,9 @@ class Profile(models.Model):
     theme = models.CharField(max_length=10, blank=True, default="", choices=[("light", "clair"), ("dark", "sombre")])
     # Devises affichées dans « Patrimoine par devise » : ["EUR", "USD"…] ; vide = toutes celles disponibles
     chart_currencies = models.JSONField(default=list, blank=True)
+    # Devise d'affichage des pages Charts et Simulation (menu de l'en-tête) : code ISO ; vide = euro.
+    # Gardée ici pour un compte connecté ; un visiteur la garde dans son navigateur (lib/preferences.js).
+    display_currency = models.CharField(max_length=3, blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

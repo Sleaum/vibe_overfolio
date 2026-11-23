@@ -3,7 +3,7 @@
 import { buildFlow, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { t, tList } from '../../i18n/index.js'
-import { euro, formatDateTime } from '../format.js'
+import { formatAmount, formatDateTime } from '../format.js'
 import { BLUE, FONT, INK, SURFACE } from '../palette.js'
 
 export function sankeyOption(nodes, links) {
@@ -14,10 +14,10 @@ export function sankeyOption(nodes, links) {
       formatter: (p) => {
         if (p.dataType === 'edge') {
           return tooltipHtml(`${p.data.source} → ${p.data.target}`, [
-            { color: BLUE, label: t('chart.amount'), value: euro(p.data.value), strong: true },
+            { color: BLUE, label: t('chart.amount'), value: formatAmount(p.data.value), strong: true },
           ])
         }
-        return tooltipHtml(p.name, [{ color: BLUE, label: t('charts.budget.flowTotal'), value: euro(p.value), strong: true }])
+        return tooltipHtml(p.name, [{ color: BLUE, label: t('charts.budget.flowTotal'), value: formatAmount(p.value), strong: true }])
       },
     }),
     series: [
@@ -75,14 +75,14 @@ export default {
 
     return {
       subtitle: table.synced_at ? t('subtitle.syncedAt', { date: formatDateTime(table.synced_at) }) : '',
-      summary: t('charts.budget.a11y', { links: links.length, nodes: nodes.length, amount: euro(entering) }),
+      summary: t('charts.budget.a11y', { links: links.length, nodes: nodes.length, amount: formatAmount(entering) }),
       option: sankeyOption(nodes, links),
       height: Math.max(360, nodes.length * 30),
       note: dropped ? t('charts.budget.dropped', { count: dropped }, dropped) : '',
       table: {
         columns: tList('charts.budget.columns'),
         numeric: [false, false, true],
-        rows: [...links].sort((a, b) => b.value - a.value).map((link) => [link.source, link.target, euro(link.value)]),
+        rows: [...links].sort((a, b) => b.value - a.value).map((link) => [link.source, link.target, formatAmount(link.value)]),
       },
     }
   },

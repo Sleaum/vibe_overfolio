@@ -7,7 +7,7 @@ import { findColumn, latestDate, requireColumns, rowsOf, splitBy, toLabel } from
 import { amountTable, amountTotals } from './amounts.js'
 import { assetParts } from './charts/assetDonut.js'
 import { totalsByDate } from './charts/flowData.js'
-import { capitalize, euro, percent, percentPrecise } from './format.js'
+import { capitalize, formatAmount, percent, percentPrecise } from './format.js'
 import { ASSET_ORDER, CONTEXT, assignAssetColors } from './palette.js'
 import { t } from '../i18n/index.js'
 
@@ -152,7 +152,7 @@ export function buildSnapshot(portfolio, history = null, today = new Date().toIS
     legend: byValue.map((part) => ({
       name: part.name,
       color: part.color,
-      amount: euro(part.value),
+      amount: formatAmount(part.value),
       share: percent(part.share),
     })),
     changes: history ? periodChanges(amountTable(history, mode), asOf) : { year: null, month: null },

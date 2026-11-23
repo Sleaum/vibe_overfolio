@@ -3,6 +3,8 @@
   objectif. Calculs dans lib/simulation.js, exécutés dans un Web Worker (lib/simulation.worker.js).
   Point de départ lu dans la base : portfolio (montants par type d'actif et dettes), inout (versement moyen, facultatif),
   history (objectifs, facultatif). Toutes les hypothèses se modifient dans la page et sont retenues par le navigateur.
+  Montants dans la devise d'affichage de l'en-tête (lib/displayCurrency.js) : les tables arrivent converties, et les
+  montants retenus dans une autre devise (versement, remboursement, objectif) sont convertis au dernier taux.
 -->
 <template>
   <div class="page-container py-12 sm:py-16">
@@ -11,6 +13,7 @@
       <p class="mt-3 text-lead text-ink-2">
         {{ t('simulationPage.lead', { runs: runsLabel }) }}
       </p>
+      <ConversionNote :table="portfolio.data.value" class="mt-2" />
     </header>
 
     <div
@@ -51,7 +54,7 @@
           <div class="min-w-0">
             <h2 id="titre-eventail" class="text-h3 text-ink">{{ t('simulationPage.fanTitle') }}</h2>
             <p class="mt-1 text-ink-2">
-              {{ settings.real ? t('simulationPage.realNote') : t('simulationPage.nominalNote') }}
+              {{ settings.real ? t('simulationPage.realNote', { currency: currencyLabel() }) : t('simulationPage.nominalNote', { currency: currencyLabel() }) }}
               <span v-if="computing" class="ml-1 text-ink-3">{{ t('simulationPage.computing') }}</span>
             </p>
           </div>
@@ -93,10 +96,10 @@
         </header>
 
         <div class="grid gap-x-6 gap-y-5 p-4 sm:grid-cols-2 sm:p-6 lg:grid-cols-3">
-          <NumberField id="sim-versement" v-model="settings.contribution" :label="t('simulationPage.contribution')" suffix="€" :step="50" :hint="contributionHint" />
+          <NumberField id="sim-versement" v-model="settings.contribution" :label="t('simulationPage.contribution')" :suffix="currencySymbol()" :step="50" :hint="contributionHint" />
           <NumberField id="sim-hausse" v-model="settings.contributionGrowth" :label="t('simulationPage.contributionGrowth')" :suffix="t('simulationPage.perYear')" :step="0.5" :hint="t('simulationPage.contributionGrowthHint')" />
-          <NumberField id="sim-pret" v-model="settings.debtPayment" :label="t('simulationPage.debtPayment')" :suffix="t('simulationPage.perMonth')" :step="50" :hint="debtHint" />
-          <NumberField id="sim-objectif" v-model="settings.goalAmount" :label="t('simulationPage.goalAmount')" suffix="€" :step="10000" :hint="goalHint" />
+          <NumberField id="sim-pret" v-model="settings.debtPayment" :label="t('simulationPage.debtPayment')" :suffix="t('simulationPage.perMonth', { currency: currencySymbol() })" :step="50" :hint="debtHint" />
+          <NumberField id="sim-objectif" v-model="settings.goalAmount" :label="t('simulationPage.goalAmount')" :suffix="currencySymbol()" :step="10000" :hint="goalHint" />
           <div>
             <label for="sim-date" class="block text-sm font-medium text-ink">{{ t('simulationPage.goalDate') }}</label>
             <input
@@ -108,7 +111,7 @@
             <p class="mt-1 text-sm text-ink-3">{{ t('simulationPage.goalDateHint') }}</p>
           </div>
           <NumberField id="sim-frais" v-model="settings.fees" :label="t('simulationPage.fees')" suffix="%" :step="0.05" :hint="t('simulationPage.feesHint')" />
-          <NumberField id="sim-inflation" v-model="settings.inflation" :label="t('simulationPage.inflation')" :suffix="t('simulationPage.perYear')" :step="0.1" :hint="t('simulationPage.inflationHint')" />
+          <NumberField id="sim-inflation" v-model="settings.inflation" :label="t('simulationPage.inflation')" :suffix="t('simulationPage.perYear')" :step="0.1" :hint="t('simulationPage.inflationHint', { currency: currencyLabel() })" />
           <div class="flex items-start gap-3 sm:col-span-2 lg:col-span-2">
             <input id="sim-queues" v-model="settings.fatTails" type="checkbox" class="mt-1 h-4 w-4 accent-accent" />
             <label for="sim-queues" class="text-ink">
@@ -140,7 +143,7 @@
               <tbody>
                 <tr v-for="asset in assetRows" :key="asset.name" class="border-b border-line last:border-0">
                   <th scope="row" class="py-2 pr-4 font-medium text-ink">{{ asset.label }}</th>
-                  <td class="py-2 pr-4 text-right tabular-nums text-ink">{{ euro(asset.amount) }}</td>
+                  <td class="py-2 pr-4 text-right tabular-nums text-ink">{{ formatAmount(asset.amount) }}</td>
                   <td class="py-2 pr-4">
                     <input v-model.number="settings.assets[asset.name].mu" type="number" step="0.5" :aria-label="t('simulationPage.a11y.return', { asset: asset.label })" :class="cellInput" />
                   </td>
@@ -182,7 +185,9 @@ import DataTableView from '../components/charts/DataTableView.vue'
 import { useTable } from '../composables/useTable.js'
 import { DataError } from '../lib/aggregate.js'
 import { fanOption } from '../lib/charts/simulationFan.js'
-import { capitalize, euro, formatDateLong, formatMonthYear, formatNumber, percent } from '../lib/format.js'
+import { capitalize, currencyLabel, currencySymbol, formatAmount, formatDateLong, formatMonthYear, formatNumber, percent } from '../lib/format.js'
+import { convertLatest, displayCurrency } from '../lib/displayCurrency.js'
+import ConversionNote from '../components/ConversionNote.vue'
 import { assumptionFor, averageContribution, monthsBetween, readGoals, readPortfolio } from '../lib/simulation.js'
 import { readPreference, writePreference } from '../lib/preferences.js'
 
@@ -285,7 +290,8 @@ function defaults() {
     fees: 0.3,
     inflation: 2,
     fatTails: true,
-    real: false, // les objectifs de la feuille sont en euros courants
+    real: false, // les objectifs de la feuille sont en monnaie courante
+    currency: displayCurrency.value, // devise des montants ci-dessous
     goalAmount: goal?.amount ?? Math.round(sumAssets() * 2),
     goalDate: goal?.iso ?? `${y + 15}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
     assets: Object.fromEntries(
@@ -304,6 +310,7 @@ function load() {
   try {
     const saved = JSON.parse(readPreference('simulation') ?? 'null')
     if (saved && typeof saved === 'object') {
+      convertSaved(saved)
       for (const key of Object.keys(base)) if (key !== 'assets' && saved[key] !== undefined) base[key] = saved[key]
       for (const name of Object.keys(base.assets)) if (saved.assets?.[name]) Object.assign(base.assets[name], saved.assets[name])
     }
@@ -312,6 +319,22 @@ function load() {
   }
   Object.assign(settings, base)
   unit.value = settings.real ? 'real' : 'nominal'
+}
+
+// Montants retenus dans une autre devise (avant un changement dans l'en-tête ; anciens réglages : euros) :
+// convertis au dernier taux ; sans taux, les valeurs par défaut les remplacent.
+const MONEY_SETTINGS = ['contribution', 'debtPayment', 'goalAmount']
+function convertSaved(saved) {
+  const from = typeof saved.currency === 'string' ? saved.currency : 'EUR'
+  const to = displayCurrency.value
+  if (from !== to) {
+    for (const key of MONEY_SETTINGS) {
+      const value = saved[key] === undefined ? null : convertLatest(saved[key], from, to)
+      if (value === null) delete saved[key]
+      else saved[key] = Math.round(value)
+    }
+  }
+  saved.currency = to
 }
 
 function resetSettings() {
@@ -440,7 +463,7 @@ const kpis = computed(() => {
   if (!result.value || !last.value) return []
   const [p10, , p50, , p90] = last.value.values
   const chance = result.value.goalChance
-  const unitText = settings.real ? t('simulationPage.realUnitText') : t('simulationPage.nominalUnitText')
+  const unitText = t(settings.real ? 'simulationPage.realUnitText' : 'simulationPage.nominalUnitText', { currency: currencyLabel() })
   return [
     {
       label: t('simulationPage.kpi.chance'),
@@ -448,16 +471,16 @@ const kpis = computed(() => {
       hint:
         chance === null
           ? t('simulationPage.kpi.chooseGoal')
-          : t('simulationPage.kpi.goalAt', { amount: euro(settings.goalAmount), date: goalLabel.value }),
+          : t('simulationPage.kpi.goalAt', { amount: formatAmount(settings.goalAmount), date: goalLabel.value }),
       tone: chance === null ? '' : chance >= 0.75 ? 'text-success' : chance < 0.4 ? 'text-danger' : 'text-ink',
     },
     {
       label: t('simulationPage.kpi.medianIn', { date: last.value.label }),
-      value: euro(p50),
+      value: formatAmount(p50),
       hint: t('simulationPage.kpi.medianHint', { unit: unitText }),
     },
-    { label: t('simulationPage.kpi.poor'), value: euro(p10), hint: t('simulationPage.kpi.poorHint') },
-    { label: t('simulationPage.kpi.good'), value: euro(p90), hint: t('simulationPage.kpi.goodHint') },
+    { label: t('simulationPage.kpi.poor'), value: formatAmount(p10), hint: t('simulationPage.kpi.poorHint') },
+    { label: t('simulationPage.kpi.good'), value: formatAmount(p90), hint: t('simulationPage.kpi.goodHint') },
   ]
 })
 
@@ -466,10 +489,10 @@ const summary = computed(() => {
   const [p10, , p50, , p90] = last.value.values
   const chance = result.value?.goalChance
   return (
-    t('simulationPage.summary', { runs: runsLabel, date: last.value.label, median: euro(p50), p10: euro(p10), p90: euro(p90) }) +
+    t('simulationPage.summary', { runs: runsLabel, date: last.value.label, median: formatAmount(p50), p10: formatAmount(p10), p90: formatAmount(p90) }) +
     (chance === null || chance === undefined
       ? ''
-      : ` ${t('simulationPage.summaryChance', { amount: euro(settings.goalAmount), chance: percent(chance) })}`)
+      : ` ${t('simulationPage.summaryChance', { amount: formatAmount(settings.goalAmount), chance: percent(chance) })}`)
   )
 })
 
@@ -483,24 +506,22 @@ const table = computed(() => ({
     t('simulationPage.table.good'),
   ],
   numeric: [false, true, true, true, true, true],
-  rows: points.value.map((point) => [point.label, ...point.values.map((value) => euro(value))]),
+  rows: points.value.map((point) => [point.label, ...point.values.map((value) => formatAmount(value))]),
 }))
 
 const contributionHint = computed(() =>
   averageIn.value === null
     ? t('simulationPage.hint.contributionDefault')
-    : t('simulationPage.hint.contributionAverage', { amount: euro(averageIn.value) }),
+    : t('simulationPage.hint.contributionAverage', { amount: formatAmount(averageIn.value) }),
 )
 const debtHint = computed(() =>
   start.value?.debt > 0
-    ? t('simulationPage.hint.debt', { amount: euro(start.value.debt) })
+    ? t('simulationPage.hint.debt', { amount: formatAmount(start.value.debt) })
     : t('simulationPage.hint.noDebt'),
 )
 const goalHint = computed(() =>
   goals.value.length
-    ? t('simulationPage.hint.goalFromHistory', { unit: settings.real ? t('simulationPage.hint.real') : t('simulationPage.hint.nominal') })
-    : settings.real
-      ? t('simulationPage.hint.real')
-      : t('simulationPage.hint.nominal'),
+    ? t('simulationPage.hint.goalFromHistory', { unit: t(settings.real ? 'simulationPage.hint.real' : 'simulationPage.hint.nominal', { currency: currencyLabel() }) })
+    : t(settings.real ? 'simulationPage.hint.real' : 'simulationPage.hint.nominal', { currency: currencyLabel() }),
 )
 </script>
