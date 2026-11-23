@@ -21,7 +21,8 @@ overfolio/
 │   │   ├── errors.py               # forme commune des erreurs de l'API (message, code, params)
 │   │   ├── models.py               # SheetTable, SheetRow, SheetConfig, par propriétaire (voir « Base de données »)
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
-│   │   ├── sync.py                 # copie des onglets vers la base
+│   │   ├── sync.py                 # copie des onglets vers la base, puis devises recalculées
+│   │   ├── currencies.py           # devises calculées avec les taux BCE (history, portfolio dans une autre devise)
 │   │   ├── admin.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
@@ -33,11 +34,18 @@ overfolio/
 │   │   ├── views.py, urls.py       # /api/auth/ (start, callback, me, logout, drive/start, picker-token, drive/revoke)
 │   │   ├── admin.py, tests.py, tests_drive.py
 │   │   └── migrations/
-│   ├── profiles/                   # app : profil gardé en base (couleurs des actifs, mode), un par compte
-│   │   ├── models.py               # Profile (utilisateur facultatif, asset_colors, theme)
+│   ├── profiles/                   # app : profil gardé en base (couleurs des actifs, mode, devises), un par compte
+│   │   ├── models.py               # Profile (utilisateur facultatif, asset_colors, theme, chart_currencies)
 │   │   ├── views.py, urls.py       # /api/profile/
 │   │   ├── admin.py, tests.py
 │   │   └── migrations/
+│   ├── fx/                         # app : taux de change de l'euro publiés par la BCE (voir « Devises et taux de change »)
+│   │   ├── ecb.py                  # téléchargement : historique complet (zip) ou 90 derniers jours (XML)
+│   │   ├── rates.py                # taux d'une devise à une date (dernier jour de cotation), devises connues
+│   │   ├── models.py               # ExchangeRate (date, devise, taux)
+│   │   ├── admin.py, tests.py
+│   │   ├── migrations/
+│   │   └── management/commands/update_fx_rates.py
 ├── frontend/
 │   ├── Dockerfile                  # stage "build" (Node 24, npm ci, Vite)
 │   ├── index.html                  # page HTML ; pose le mode sombre avant l'affichage
@@ -53,7 +61,7 @@ overfolio/
 │       │   ├── GraphiquesLayout.vue #  /graphiques         bouton Brut / Net, menu à gauche (6 entrées), couleurs des actifs, page choisie à droite
 │       │   ├── GraphiquePage.vue   #   /graphiques/<nom>   un graphique
 │       │   ├── PortfolioFlowPage.vue #  /portfolio-flow    l'historique mois par mois
-│       │   ├── SnapshotPage.vue    #   /portfolio-snapshot  le patrimoine d'aujourd'hui
+│       │   ├── SnapshotPage.vue    #   /portfolio-snapshot  le patrimoine d'aujourd'hui (montants convertis en euros signalés)
 │       │   ├── StrategyPage.vue    #   /strategie          les actions : carte du monde, puis anneaux à deux niveaux
 │       │   ├── EnvelopesPage.vue   #   /enveloppes         les enveloppes de placement (CTO, PEA, PER, PEE)
 │       │   ├── VolatilityPage.vue  #   /volatilite         variation du prix de chaque placement
@@ -68,7 +76,7 @@ overfolio/
 │       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
 │       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue)
 │       │   ├── landing/            # sections de la page de présentation
-│       │   └── charts/             # AssetColorSettings, BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
+│       │   └── charts/             # AssetColorSettings, CurrencyPicker (devises du graphique par devise), BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
 │       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes),
 │       │                           #   menu.js (noms des menus, toujours en anglais)
 │       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
@@ -76,7 +84,8 @@ overfolio/
 │           ├── api.js              # appels /api/… (jeton CSRF ajouté aux requêtes qui modifient)
 │           ├── auth.js             # état de la connexion (session), se connecter, se déconnecter
 │           ├── googlePicker.js     # sélecteur de fichiers de Google (mode 3 de la page GoogleSheet)
-│           ├── profile.js          # profil en base au démarrage et après connexion : couleurs, mode
+│           ├── profile.js          # profil en base au démarrage et après connexion : couleurs, mode, devises
+│           ├── currencies.js       # devises de « Patrimoine par devise » : proposées, cochées, ajoutées, enregistrées sur le profil
 │           ├── aggregate.js, dates.js, format.js   # calculs ; nombres, dates et noms de pays dans la langue active
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
 │           ├── countries.js        # pays de la carte du monde (Strategy) : écritures de la colonne Area, centres
@@ -403,6 +412,7 @@ frontend (build, exit 0) ──────────────────�
 | nginx | backend (statiques) | Sert `/static/` | volume `static_data` monté sur `/staticfiles` |
 | backend | db | Accès PostgreSQL | `db:5432` |
 | backend | Google Sheets | Lecture des onglets | HTTPS : API avec le compte de service, ou export Excel de la feuille partagée par lien |
+| backend | BCE | Taux de change de l'euro (voir « Devises et taux de change ») | HTTPS : `www.ecb.europa.eu`, à la synchronisation, au plus une fois par heure |
 
 ### Schéma d'ensemble
 
@@ -419,11 +429,11 @@ frontend (build, exit 0) ──────────────────�
                                ▼
                         [backend:8000]
                          gunicorn + Django
-                      ┌────────┴─────────┐
-                      │                  │
-                      ▼                  ▼
-                 [db:5432]         ☁ Google Sheets
-                 PostgreSQL        (API Sheets)
+                      ┌────────┴─────────┬──────────────────┐
+                      │                  │                  │
+                      ▼                  ▼                  ▼
+                 [db:5432]         ☁ Google Sheets     ☁ BCE
+                 PostgreSQL        (API Sheets)        (taux de change)
 ```
 
 ### Deux chemins pour les données
@@ -439,12 +449,12 @@ Chemin 2 : lecture de la base (rapide, à jour après synchronisation)
 
 Profil (réglages gardés en base, pas dans le navigateur)
   Navigateur ◄──► /api/profile/ ◄──► PostgreSQL (table profiles_profile)
-  utilisé par : les couleurs des actifs (menu de Charts) et, pour un compte connecté, le mode clair / sombre
+  utilisé par : les couleurs des actifs (menu de Charts), les devises de « Patrimoine par devise » et, pour un compte connecté, le mode clair / sombre
 
 Connexion avec Google (facultative)
   Navigateur ──► /api/auth/google/start/ ──► Google ──► /api/auth/google/callback/ ──► session Django
 
-Synchronisation Google Sheets ──► PostgreSQL
+Synchronisation Google Sheets ──► PostgreSQL, puis devises recalculées (taux BCE)
   - commande : python manage.py sync_sheets
   - bouton « Tout actualiser » de la page GoogleSheet (tous les onglets de la liste)
   - ./init.sh --sync
@@ -458,11 +468,11 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 |---|---|---|
 | GET | `/api/sheet?doc_name=&sheet_name=&header_row=&refresh=1` | Lit un onglet dans Google Sheets (cache 60 s, `refresh=1` pour le contourner) |
 | GET | `/api/data/` | Liste des tables en base (nom, nombre de lignes, date de synchronisation) : celles du compte connecté, sinon celles du site. Il en va de même pour toutes les routes `/api/data/` et `/api/sheet-config/`. En-tête facultatif `X-Sheet-Scope: account|site` sur les requêtes qui modifient : 401 `session_expired` ou 409 `scope_changed` si la session ne correspond plus |
-| GET | `/api/data/<onglet>/` | Colonnes (dans l'ordre) et lignes d'une table |
-| POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas |
+| GET | `/api/data/<onglet>/` | Colonnes (dans l'ordre) et lignes d'une table, avec ce que le site calcule (voir « Devises et taux de change ») : `currency` (devise des montants dans la feuille), `unconverted_rows` (lignes restées dans cette devise faute de taux), `computed_columns` (colonnes de devises ajoutées par le site), `currencies_available` (devises proposées par « Patrimoine par devise »), `rates_applied_at` |
+| POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas. `fx` : taux BCE mis à jour et devises recalculées (`rates_latest`, `error` : `fx_unreachable` ou `fx_invalid`, `tables`) |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
-| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon) |
+| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon). `PUT {"chart_currencies": ["EUR", "THB"]}` : devises de « Patrimoine par devise » (codes ISO, `[]` = toutes ; 400 `invalid_currencies`). Seul ce qui est envoyé change |
 | PUT | `/api/profile/asset-colors/` | `{"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut). Types mis en minuscules ; 400 `invalid_asset_colors` si une couleur n'est pas au format `#rrggbb`, si un type est vide ou dépasse 100 caractères, ou au-delà de 200 types |
 | GET | `/api/auth/google/start/?next=/page` | Navigation (pas d'appel JSON) : part se connecter chez Google, puis revient sur `next` (une page du site seulement). Sans réglages Google : retour sur `/newpage?error=google_not_configured` |
 | GET | `/api/auth/google/callback/` | Retour de Google (adresse déclarée dans Google Cloud) : vérifie `state`, échange le code (PKCE), vérifie le jeton d'identité, ouvre la session. Échec : `/newpage?error=` `google_denied`, `google_state_invalid`, `google_token_failed`, `google_token_invalid`, `google_email_unverified`, `account_disabled` (compte désactivé dans l'admin) |
@@ -501,12 +511,15 @@ erDiagram
     int row_count
     timestamp synced_at
     varchar source "document d'origine"
+    varchar currency "devise des montants, EUR par défaut"
+    timestamp rates_applied_at "devises recalculées le"
   }
   googlesheet_sheetrow {
     bigint id PK
     bigint table_id FK
     int position "unique par table"
     jsonb data "colonne vers valeur"
+    jsonb computed "calculé par le site : eur, fx"
   }
   googlesheet_sheetconfig {
     bigint id PK
@@ -524,6 +537,7 @@ erDiagram
     int user_id FK "vide = profil du site"
     jsonb asset_colors "type vers couleur"
     varchar theme "light, dark ou vide"
+    jsonb chart_currencies "devises de Patrimoine par devise"
     timestamp updated_at
   }
   accounts_googleaccount {
@@ -538,6 +552,13 @@ erDiagram
     timestamp created_at
     timestamp updated_at
   }
+  fx_exchangerate {
+    bigint id PK
+    date date "jour de cotation"
+    varchar currency "code ISO, unique avec date"
+    numeric rate "unités pour 1 EUR"
+    varchar source "ECB"
+  }
   auth_user {
     int id PK
     varchar username
@@ -545,24 +566,25 @@ erDiagram
   }
 ```
 
-Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessions, admin, permissions, migrations). Une ligne sans utilisateur (`user_id` vide) appartient au site : visiteurs non connectés. Pour `auth_user`, seules les colonnes utiles ici sont montrées.
+Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessions, admin, permissions, migrations). Une ligne sans utilisateur (`user_id` vide) appartient au site : visiteurs non connectés. Pour `auth_user`, seules les colonnes utiles ici sont montrées. `fx_exchangerate` n'est liée à aucune table : les taux sont communs au site et à tous les comptes.
 
 ### Tables
 
 | Table | Modèle | Contenu |
 |---|---|---|
-| `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ) |
-| `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration |
+| `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ), `currency` (devise des montants, lue au-dessus de l'en-tête : case M1 de `portfolio`), `rates_applied_at` (dernier calcul des devises) |
+| `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration. `computed` : ce que le site calcule avec les taux BCE, sans toucher aux valeurs de la feuille (`eur` : montants convertis en euros ; `fx` : le relevé dans chaque devise, pour `history`) |
 | `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur |
-| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`). Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
+| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes). Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
 | `accounts_googleaccount` | `GoogleAccount` | Compte Google d'un utilisateur : identifiant Google `sub` (unique), e-mail, nom, photo. Mode 3 : jeton de rafraîchissement Google **chiffré** (`drive_refresh_token`, vide si l'accès n'est pas accordé) |
+| `fx_exchangerate` | `ExchangeRate` | Taux de référence de l'euro publiés par la BCE : une ligne par jour de cotation et par devise (unique), taux = unités de la devise pour 1 EUR. Communs à tous |
 | `auth_user` | `User` (Django) | Comptes Django : l'administrateur (`createsuperuser`) et un utilisateur par compte Google connecté (`google-<sub>`, sans mot de passe) |
 
 ### Synchronisation
 
 La synchronisation recopie chaque onglet dans `googlesheet_sheettable` et `googlesheet_sheetrow`, pour le propriétaire de la requête : le site, ou le compte connecté. La commande `python manage.py sync_sheets` synchronise le site.
 
-Chaque synchronisation remplace le contenu d'un onglet en une seule transaction. Un onglet en erreur n'empêche pas les autres, et un onglet qui renvoie zéro ligne n'écrase pas des données existantes.
+Chaque synchronisation remplace le contenu d'un onglet en une seule transaction. Un onglet en erreur n'empêche pas les autres, et un onglet qui renvoie zéro ligne n'écrase pas des données existantes. Ensuite, les taux de la BCE sont mis à jour et les devises recalculées pour `history` et les tables qui ne sont pas en euros (voir « Devises et taux de change »).
 
 Exemple de requête (total en euros par type d'actif) :
 
@@ -603,6 +625,46 @@ Cron sur la machine hôte (`crontab -e`), toutes les 30 minutes :
 ```
 
 Sous WSL, le service cron doit être démarré (`sudo service cron start`), et la synchronisation ne s'exécute que lorsque WSL est ouvert. Évite un intervalle inférieur à 5 minutes, à cause des quotas de l'API Google.
+
+## Devises et taux de change
+
+Le site garde en base les **taux de référence de l'euro publiés par la BCE** (Banque centrale européenne) : 29 devises, chaque jour ouvré vers 16 h (heure de Francfort), depuis 1999. Il s'en sert à chaque synchronisation pour deux calculs. Les valeurs de la feuille ne sont jamais modifiées : le résultat va dans `SheetRow.computed`, et l'API le fusionne avec les valeurs de la feuille (`backend/googlesheet/currencies.py`).
+
+```
+   BCE (www.ecb.europa.eu)                     onglets synchronisés
+             │ app fx : ecb.py                          │ sync.py
+             ▼                                          ▼
+   fx_exchangerate (date, devise, taux)      googlesheet_sheetrow.data (feuille)
+             └──────────────┬───────────────────────────┘
+                            ▼  currencies.py (après chaque synchronisation)
+                googlesheet_sheetrow.computed
+                  ├─ fx  : history, le relevé dans chaque devise
+                  └─ eur : portfolio dans une autre devise, montants en euros
+                            ▼  GET /api/data/<onglet>/ (fusion)
+             graphiques, Snapshot, page GoogleSheet
+```
+
+| Table | Calcul |
+|---|---|
+| `history` | Les montants (`Assets Master Currency`, `Liabilities Master Currency`) sont en euros. Pour chaque relevé, le site calcule actifs + dettes (une dette est négative) dans chaque devise, au taux du jour du relevé. Les colonnes `EUR`, `USD`, `CHF`, `THB` de la feuille ne sont donc plus nécessaires ; une colonne de devise encore présente dans la feuille l'emporte sur le calcul. Une ligne d'avant ces deux colonnes, qui n'a que `EUR`, part de `EUR` |
+| `portfolio` (ou toute table dont la devise n'est pas l'euro) | La devise est lue au-dessus de la ligne d'en-tête : le code de devise le plus proche de la colonne `Assets Master Currency` (case M1). Sans code, EUR. Si ce n'est pas EUR, `Assets Master Currency` et `Liabilities Master Currency` sont convertis en euros au taux du jour du relevé, et l'API envoie les montants en euros. Snapshot et la page GoogleSheet l'indiquent. Sans taux pour ce jour, les montants restent dans leur devise et les deux pages le signalent en rouge |
+
+- **Taux d'un jour** : celui du jour, sinon du dernier jour de cotation (week-ends, jours fériés), au plus 7 jours avant (`fx/rates.py`). Après le dernier jour publié (taux du jour pas encore paru, BCE injoignable), le dernier taux sert. Les anciennes devises de l'historique (RUB, HRK, BGN…) sont gardées mais pas proposées.
+- **Mise à jour des taux** : à chaque synchronisation (Tout actualiser, `sync_sheets`), au plus une fois par heure. Base vide, ou dernier taux de plus de 80 jours : tout l'historique (un fichier zip) ; sinon, les 90 derniers jours (un petit fichier XML), seuls les jours manquants sont ajoutés. Le backend doit pouvoir joindre `www.ecb.europa.eu`.
+- **BCE injoignable** : la synchronisation se fait quand même, avec les taux déjà en base ; la page GoogleSheet affiche le message.
+- **Devises affichées** : « Patrimoine par devise » montre celles du profil (`chart_currencies`), par défaut EUR, USD, CHF et THB. « Ajouter une devise » propose les autres devises de la BCE ; la page se recharge avec la nouvelle colonne.
+
+```bash
+# Taux manquants seulement
+docker compose exec -T backend python manage.py update_fx_rates
+
+# Taux, puis devises recalculées pour toutes les tables (site et comptes)
+docker compose exec -T backend python manage.py update_fx_rates --recompute
+```
+
+`--force` interroge la BCE même si les taux semblent à jour. Pour garder les taux à jour sans synchroniser, un cron quotidien après 16 h suffit : `15 17 * * 1-5 cd ~/overfolio && docker compose exec -T backend python manage.py update_fx_rates --recompute >> ~/overfolio/fx.log 2>&1`.
+
+> **Colonnes O à V de `history`** (`EUR`, `USD`, `CHF`, `THB`, `Gold Index`, `Bitcoin Index`, `Oil Index`, `Corn Index`) : ne les supprimer qu'**après** avoir déployé cette version, et après avoir vérifié que chaque relevé a bien `Assets Master Currency` ou `Liabilities Master Currency` (les plus anciens n'avaient que `EUR`). Les rapports Looker Studio qui lisent ces colonnes ne marcheront plus. Les indices (or, bitcoin, pétrole, maïs) ne servent pas au site.
 
 ## Interface
 
@@ -675,7 +737,7 @@ Quinze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de F
 | `<nom>` dans l'adresse | Table | Colonnes lues |
 |---|---|---|
 | `flux-budget` | `budget` | `Source`, `Destination`, `Valeur`. Lignes supérieures à 0, doublons additionnés |
-| `patrimoine-devises` | `history` | `Date` et une colonne de montants par devise dont le nom contient `CHF`, `EUR` ou `USD` (par exemple `EUR` ou `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées. Brut ou net selon le bouton Brut / Net |
+| `patrimoine-devises` | `history` | `Date` et une colonne de montants par devise : celles que le site calcule avec les taux BCE (voir « Devises et taux de change »), ou une colonne de la feuille dont le nom contient le code (par exemple `EUR` ou `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées. Les devises affichées se cochent au-dessus du graphique (au moins une), « Ajouter une devise » en propose d'autres ; le choix est gardé sur le profil (`chart_currencies`, voir `lib/currencies.js`). Brut ou net selon le bouton Brut / Net |
 | `repartition-mensuelle` | `history` | `Date`, `Asset`, `Assets Master Currency`. Barres à 100 % par mois |
 | `evolution-par-actif` | `history` | `Date`, `Asset`, `Assets Master Currency`. Une courbe par type d'actif |
 | `dettes-par-actif` | `history` | `Date`, `Asset`, `Liabilities Master Currency` (ou `EUR` négatif). Tes dettes en positif, une courbe par type d'actif. Sur la page Flow, seulement en mode Brut |
@@ -702,7 +764,7 @@ En haut du menu de Charts, le bouton **Brut / Net** choisit les montants des pag
 | Brut | Tes actifs (`Assets Master Currency`), sans les dettes. La page Flow ajoute le graphique « Tes dettes » (`dettes-par-actif`), la page Snapshot la liste « Tes dettes » par instrument |
 | Net | Actifs moins dettes. Chaque dette reste sur sa ligne, donc dans son type d'actif, son enveloppe… : le prêt de la maison est retiré de `real estate`. Les découpages additionnent chaque groupe, puis écartent un groupe négatif (ses dettes dépassent ses actifs), avec une note sous le graphique |
 
-- Dans la feuille, une ligne est soit un actif, soit une dette. Les colonnes de devise (`EUR`, `USD`, `CHF`, `THB`) portent les deux : positives pour un actif, négatives pour une dette. Elles suivent le mode, comme `Assets Master Currency`.
+- Dans la feuille, une ligne est soit un actif, soit une dette. Les colonnes de devise (`EUR`, `USD`, `CHF`, `THB`…, de la feuille ou calculées par le site) portent les deux : positives pour un actif, négatives pour une dette. Elles suivent le mode, comme `Assets Master Currency`.
 - Les anciens relevés n'ont ni `Assets Master Currency` ni `Liabilities Master Currency`, seulement les colonnes de devise : la colonne `EUR` décide, selon son signe. Une ligne sans `Asset`, `Instrument` ni `Envelope` (un objectif) n'est ni un actif ni une dette.
 - Une spécification de graphique suit le bouton en déclarant `amounts: true` (`amounts: 'debt'` pour les dettes seules) : `buildChart()` lui passe une copie de la table avec les montants du mode, et ajoute à sa note la nature des montants.
 
@@ -710,7 +772,7 @@ Si une colonne manque, la page du graphique le dit en clair et renvoie vers la p
 
 ### Snapshot
 
-La page `/portfolio-snapshot` lit la table `portfolio` (et `history` pour deux chiffres). Tous les calculs sont dans `frontend/src/lib/snapshot.js`.
+La page `/portfolio-snapshot` lit la table `portfolio` (et `history` pour deux chiffres). Tous les calculs sont dans `frontend/src/lib/snapshot.js`. Les montants sont toujours en euros : si `portfolio` est dans une autre devise (case M1), le serveur les a convertis et la page l'indique sous le titre (voir « Devises et taux de change »).
 
 | Élément | Calcul |
 |---|---|
@@ -860,6 +922,7 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 | Connexion / se connecter / se déconnecter | Sign in / sign in / sign out | เข้าสู่ระบบ / เข้าสู่ระบบ / ออกจากระบบ |
 | compte / profil | account / profile | บัญชี / โปรไฟล์ |
 | sélecteur de fichiers (de Google) / autoriser l'accès | (Google) file picker / allow access | ตัวเลือกไฟล์ (ของ Google) / อนุญาตการเข้าถึง |
+| devise / taux de change / taux de la BCE | currency / exchange rate / ECB rate | สกุลเงิน / อัตราแลกเปลี่ยน / อัตรา ECB |
 
 ## Commandes utiles
 
@@ -924,6 +987,9 @@ cd frontend && npm audit && npm outdated
 | Synchronisation en mode 3 : « Feuille introuvable ou plus autorisée » | Feuille supprimée, ou choisie par un autre compte | « Choisir une autre feuille » dans la carte 3 |
 | `google_not_authorized` après un changement de `FIELD_ENCRYPTION_KEY` | Les jetons gardés ne se déchiffrent plus | Autoriser de nouveau l'accès (carte 3) |
 | « Onglet 'history' introuvable » après la mise à jour | L'onglet s'appelle encore `_history` dans la feuille | Le renommer `history` dans Google Sheets, puis Tout actualiser |
+| Page GoogleSheet : « Les taux de change de la BCE n'ont pas pu être relus » | Le backend n'accède pas à `www.ecb.europa.eu` (réseau, pare-feu) | Les taux déjà en base servent ; vérifier l'accès Internet du backend, puis `update_fx_rates --recompute` |
+| Snapshot : « lignes en THB n'ont pas pu être converties » | Pas encore de taux en base (première synchronisation sans accès à la BCE) | Rétablir l'accès à la BCE, puis Tout actualiser |
+| « Patrimoine par devise » sans USD, CHF ni THB | Aucun taux en base, ou relevés sans `Assets Master Currency` ni `EUR` | `update_fx_rates --recompute`, vérifier les colonnes de `history` |
 | `git push` : mot de passe refusé | GitHub n'accepte plus les mots de passe | Clé SSH ou token d'accès personnel |
 
 > Les identifiants PostgreSQL ne sont lus qu'à la **première initialisation** du volume. Si tu les modifies dans `.env`, recrée le volume (`docker compose down -v`).

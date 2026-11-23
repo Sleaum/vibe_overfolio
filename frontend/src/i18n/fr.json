@@ -102,7 +102,10 @@
     "google_drive_not_configured": "Le mode compte Google n’est pas configuré sur ce serveur.",
     "google_requires_account": "Le mode compte Google demande d’être connecté avec Google.",
     "session_expired": "Ta session a expiré : rien n’a été enregistré. La page va se recharger.",
-    "scope_changed": "Tu t’es connecté ou déconnecté dans un autre onglet : rien n’a été enregistré. La page va se recharger."
+    "scope_changed": "Tu t’es connecté ou déconnecté dans un autre onglet : rien n’a été enregistré. La page va se recharger.",
+    "invalid_currencies": "Devises non valables.",
+    "fx_unreachable": "Les taux de change de la BCE n’ont pas pu être relus : les devises sont calculées avec les derniers taux connus.",
+    "fx_invalid": "Le fichier de taux de la BCE est illisible : les devises sont calculées avec les derniers taux connus."
   },
   "data": {
     "unknown": "Non renseigné",
@@ -162,13 +165,15 @@
     },
     "currency": {
       "title": "Patrimoine par devise",
-      "summary": "La valeur de ton patrimoine exprimée en CHF, en euros et en dollars, mois par mois.",
-      "source": "Table history, colonne Date et une colonne de montants pour chaque devise (CHF, EUR, USD), additionnées par date.",
+      "summary": "La valeur de ton patrimoine exprimée dans les devises de ton choix (euro, dollar, franc suisse, baht…), mois par mois.",
+      "source": "Table history : Date et les montants en euros (Assets Master Currency, Liabilities Master Currency), convertis par le site dans chaque devise au taux de la BCE du jour du relevé, ou une colonne de devise de la feuille (EUR, USD…). Additionnés par date.",
       "explain": [
-        "Pour chaque mois, trois barres donnent la valeur totale de ton patrimoine exprimée dans chaque devise. Ce n’est pas une répartition : c’est le même patrimoine, converti trois fois.",
-        "Les barres changent donc ensemble ; leur écart ne bouge qu’avec les taux de change. Le montant d’un mois est celui du dernier relevé de ce mois."
+        "Pour chaque mois, une barre par devise cochée donne la valeur totale de ton patrimoine exprimée dans cette devise. Ce n’est pas une répartition : c’est le même patrimoine, converti dans chaque devise.",
+        "Les barres changent donc ensemble ; leur écart ne bouge qu’avec les taux de change. Le montant d’un mois est celui du dernier relevé de ce mois.",
+        "Coche les devises à afficher au-dessus du graphique, ou ajoutes-en une avec « Ajouter une devise » : ton choix est enregistré (sur ton compte si tu es connecté).",
+        "Les montants en devises sont calculés par le site avec les taux de référence de la Banque centrale européenne (BCE), au jour de chaque relevé. Ta feuille n’a besoin que des montants en euros."
       ],
-      "noColumn": "Aucune colonne de montants en CHF, EUR ou USD dans la table « {table} ». Colonnes disponibles : {available}.",
+      "noColumn": "Aucun montant par devise dans la table « {table} » : il faut la colonne Assets Master Currency (ou une colonne EUR, USD…) et des taux de la BCE en base. Colonnes disponibles : {available}.",
       "a11y": "Patrimoine en {codes} entre {from} et {to} : {amounts} au dernier mois.",
       "columnsFound": "Colonnes trouvées : {columns}."
     },
@@ -507,6 +512,11 @@
     "partsOf": "Parts : {title}",
     "ringsHint": "Anneau intérieur : {inner}. Anneau extérieur : {outer}, en nuances de la couleur de sa catégorie. Survole une part pour voir son montant."
   },
+  "currencyPicker": {
+    "label": "Devises",
+    "keepOne": "Garde au moins une devise",
+    "add": "Ajouter une devise"
+  },
   "chartPage": {
     "breadcrumb": "Fil d’Ariane",
     "notFoundTitle": "Ce graphique n’existe pas",
@@ -569,7 +579,9 @@
     "yourNetWorth": "Ton patrimoine net",
     "yourDebts": "Tes dettes",
     "debtsTotal": "{amount} au total, par instrument.",
-    "typeDebts": "Après {amount} de dettes ; le détail montre ses actifs."
+    "typeDebts": "Après {amount} de dettes ; le détail montre ses actifs.",
+    "converted": "Montants de ta feuille en {currency}, convertis en euros au taux de la BCE du jour des positions.",
+    "notConverted": "{count} ligne en {currency} n’a pas pu être convertie en euros : pas encore de taux de la BCE pour ce jour. Relance « Tout actualiser » sur la page GoogleSheet plus tard. | {count} lignes en {currency} n’ont pas pu être converties en euros : pas encore de taux de la BCE pour ces jours. Relance « Tout actualiser » sur la page GoogleSheet plus tard."
   },
   "strategyPage": {
     "loading": "Chargement de tes actions…",
@@ -617,7 +629,9 @@
     "failedNotice": "{count} onglet non actualisé : {details} | {count} onglets non actualisés : {details}",
     "tabFailure": "{tab} : {message}",
     "error": "erreur",
-    "removedNotice": "{count} onglet de l’ancien document retiré : {names}. | {count} onglets de l’ancien document retirés : {names}."
+    "removedNotice": "{count} onglet de l’ancien document retiré : {names}. | {count} onglets de l’ancien document retirés : {names}.",
+    "computedColumns": "Colonnes calculées par le site (taux BCE) : {columns}.",
+    "convertedFrom": "Montants convertis de {currency} en euros (taux BCE)."
   },
   "sheetSettings": {
     "title": "Connexion à Google Sheets",

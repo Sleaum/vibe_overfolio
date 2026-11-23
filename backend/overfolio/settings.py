@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'googlesheet',
     'profiles',
     'accounts',
+    'fx',
     'corsheaders',
 ]
 

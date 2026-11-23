@@ -22,6 +22,8 @@ class Profile(models.Model):
     asset_colors = models.JSONField(default=dict, blank=True)
     # Mode clair ou sombre choisi avec le bouton de l'en-tête ; vide = suivre le réglage du système
     theme = models.CharField(max_length=10, blank=True, default="", choices=[("light", "clair"), ("dark", "sombre")])
+    # Devises affichées dans « Patrimoine par devise » : ["EUR", "USD"…] ; vide = toutes celles disponibles
+    chart_currencies = models.JSONField(default=list, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -38,7 +40,12 @@ class Profile(models.Model):
         """Profil d'un nouveau compte : reprend une fois les réglages du profil du site."""
         site = cls.site_profile()
         profile, _ = cls.objects.update_or_create(
-            user=user, defaults={"asset_colors": dict(site.asset_colors or {}), "theme": site.theme}
+            user=user,
+            defaults={
+                "asset_colors": dict(site.asset_colors or {}),
+                "theme": site.theme,
+                "chart_currencies": list(site.chart_currencies or []),
+            },
         )
         return profile
 

@@ -23,6 +23,11 @@ class SheetTable(models.Model):
     # Document Google Sheets d'où vient la table (identifiant, ou « nom:<nom> ») ; vide = inconnu (avant ce champ).
     # Une synchronisation retire les tables d'un autre document : elles ne correspondent plus à la feuille configurée.
     source = models.CharField(max_length=200, blank=True, default="")
+    # Devise des montants (Assets / Liabilities Master Currency) : lue au-dessus de l'en-tête (case M1 de portfolio),
+    # EUR par défaut. Si ce n'est pas l'euro, les montants sont convertis en euros (googlesheet/currencies.py).
+    currency = models.CharField(max_length=3, default="EUR")
+    # Dernier calcul des devises (taux BCE) pour cette table
+    rates_applied_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -43,6 +48,9 @@ class SheetRow(models.Model):
     table = models.ForeignKey(SheetTable, on_delete=models.CASCADE, related_name="rows")
     position = models.PositiveIntegerField()  # ordre de la ligne dans l'onglet (à partir de 0)
     data = models.JSONField()
+    # Calculé par le site avec les taux BCE (googlesheet/currencies.py), à part des valeurs de la feuille :
+    # {"fx": {"EUR": 1000.0, "USD": 1160.0, …}, "eur": {"Assets Master Currency": 1000.0, …}}
+    computed = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["position"]

@@ -32,6 +32,7 @@ def _serialize(profile):
     return {
         "asset_colors": profile.asset_colors or {},
         "theme": profile.theme,
+        "chart_currencies": profile.chart_currencies or [],
         "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
     }
 
@@ -53,6 +54,22 @@ def _clean_asset_colors(value):
 
 
 THEMES = {"", "light", "dark"}
+CURRENCY_CODE = re.compile(r"^[A-Z]{3}$")
+MAX_CURRENCIES = 40
+
+
+def _clean_currencies(value):
+    """Devises reçues -> liste de codes ISO (« EUR »…), sans doublon, dans l'ordre ; None si non valable."""
+    if not isinstance(value, list) or len(value) > MAX_CURRENCIES:
+        return None
+    codes = []
+    for code in value:
+        if not isinstance(code, str) or not CURRENCY_CODE.match(code.strip().upper()):
+            return None
+        code = code.strip().upper()
+        if code not in codes:
+            codes.append(code)
+    return codes
 
 
 @api_view(["GET", "PUT"])
@@ -60,17 +77,28 @@ THEMES = {"", "light", "dark"}
 def profile_detail(request):
     """
     GET /api/profile/ : réglages gardés en base (profil du compte connecté, sinon profil du site).
-    PUT /api/profile/ {"theme": "dark"} : enregistre le mode ("light", "dark", ou "" pour suivre le système).
+    PUT /api/profile/ : enregistre ce qui est envoyé, le reste ne change pas :
+      {"theme": "dark"}                   mode ("light", "dark", ou "" pour suivre le système) ;
+      {"chart_currencies": ["EUR", "THB"]} devises de « Patrimoine par devise » ([] = toutes).
     Avec une session ouverte, le jeton CSRF est exigé (en-tête X-CSRFToken).
     """
     profile = current_profile(request)
     if request.method == "PUT":
         body = request.data if isinstance(request.data, dict) else {}
-        theme = body.get("theme")
-        if theme not in THEMES:
-            return error_response("Mode d'affichage non valable", "invalid_theme", 400)
-        profile.theme = theme
-        profile.save(update_fields=["theme", "updated_at"])
+        fields = []
+        if "theme" in body or "chart_currencies" not in body:
+            theme = body.get("theme")
+            if theme not in THEMES:
+                return error_response("Mode d'affichage non valable", "invalid_theme", 400)
+            profile.theme = theme
+            fields.append("theme")
+        if "chart_currencies" in body:
+            currencies = _clean_currencies(body.get("chart_currencies"))
+            if currencies is None:
+                return error_response("Devises non valables", "invalid_currencies", 400)
+            profile.chart_currencies = currencies
+            fields.append("chart_currencies")
+        profile.save(update_fields=[*fields, "updated_at"])
     return JsonResponse(_serialize(profile))
 
 

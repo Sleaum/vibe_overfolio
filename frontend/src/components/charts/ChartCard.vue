@@ -11,6 +11,15 @@
         <p class="mt-1 text-ink-2">{{ subtitle }}</p>
       </div>
       <SegmentedControl v-if="status === 'ready'" v-model="view" :options="VIEWS" :label="t('chartUi.display')" />
+      <!-- Choix des devises (graphique Patrimoine par devise) -->
+      <CurrencyPicker
+        v-if="model?.currencies"
+        class="w-full"
+        :available="model.currencies.available"
+        :selected="model.currencies.selected"
+        :more="model.currencies.more"
+        @changed="reload"
+      />
     </header>
 
     <div class="p-4 sm:p-6">
@@ -85,6 +94,7 @@
 </template>
 
 <script setup>
+import CurrencyPicker from './CurrencyPicker.vue'
 import { useI18n } from 'vue-i18n'
 import { computed, ref } from 'vue'
 import { DataError } from '../../lib/aggregate.js'
