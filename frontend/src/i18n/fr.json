@@ -323,8 +323,8 @@
       "explain1": "Une bulle par placement. Horizontalement, le montant que tu détiens (échelle logarithmique : chaque graduation multiplie par 10) ; verticalement, la variation de son prix unitaire sur {period}. Plus la bulle est grosse, plus le placement pèse dans ton patrimoine.",
       "explain2": "Le prix unitaire est calculé en {currency} (montant ÷ quantité) : il tient compte du change, mais pas de tes achats ni de tes ventes. Une grosse bulle loin sous la ligne du zéro est le placement qui t’a fait perdre le plus.",
       "explain3": "Les liquidités, l’immobilier et les biens sans cours de marché ne sont pas affichés.",
-      "source": "Table history, colonnes Date, Instrument, Quantity, Assets Master Currency (et Asset, Envelope, Broker si présentes) : dernier relevé comparé au relevé d’il y a {period}.",
-      "notYet": "L’historique ne remonte pas encore à {period} avant le dernier relevé ({date}).",
+      "source": "Table history avec tes positions actuelles (onglet portfolio), colonnes Date, Instrument, Quantity, Assets Master Currency (et Asset, Envelope, Broker si présentes) : prix actuels comparés à ceux du même jour il y a {period}.",
+      "notYet": "L’historique ne remonte pas encore à {period} avant le {date}.",
       "noCommon": "Aucun placement commun au {from} et au {to} avec une quantité et un montant renseignés.",
       "range": "Du {from} au {to}.",
       "count": "{count} placement comparé | {count} placements comparés",
@@ -337,7 +337,9 @@
       "priceNow": "Prix unitaire maintenant",
       "investment": "Placement",
       "type": "Type",
-      "missing": "Pas encore détenu le {date}, donc sans variation : {names}. | Pas encore détenus le {date}, donc sans variation : {names}."
+      "missing": "Pas encore détenu le {date}, donc sans variation : {names}. | Pas encore détenus le {date}, donc sans variation : {names}.",
+      "current": "Prix du {date} : tes positions actuelles (onglet portfolio).",
+      "estimated": "Prix du {date} estimé entre tes relevés du {before} et du {after}, au prorata des jours."
     },
     "debts": {
       "title": "Tes dettes",
@@ -551,7 +553,7 @@
   },
   "volatilityPage": {
     "lead": "De combien le prix de chacun de tes placements a bougé. Une bulle par placement : à droite ce que tu détiens le plus, en bas ce qui a le plus baissé. Le prix est calculé en {currency}, change compris, sans tes achats ni tes ventes.",
-    "footer": "Les variations comparent deux relevés de la table history : plus tu fais de relevés, plus elles sont précises. L’ancien rapport proposait aussi « 1 semaine », qui demande des relevés hebdomadaires."
+    "footer": "Les variations comparent tes prix actuels (onglet portfolio) à ceux du même jour il y a 1 mois, 3 mois ou 1 an. La table history n’ayant qu’un relevé par mois, ces prix-là sont estimés entre les deux relevés qui encadrent la date : plus tu fais de relevés, plus ils sont précis. L’ancien rapport proposait aussi « 1 semaine », qui demande des relevés hebdomadaires."
   },
   "notFound": {
     "text": "L’adresse que tu as ouverte n’existe pas, ou plus. Tu peux repartir de l’accueil.",

@@ -1,43 +1,50 @@
 // Page « Volatilité » (/volatilite) : comment le prix de chaque placement a bougé sur 1 mois, 3 mois et 1 an,
 // comme la page « Portfolio Volatility » de l'ancien rapport Data Studio (une bulle par ligne : montant détenu et variation).
 //
-// Calcul, à partir de la table `history` seulement (aucun onglet de plus à synchroniser) :
-// - prix unitaire en euros d'une ligne = Assets Master Currency / Quantity, au dernier relevé et au relevé d'il y a N mois ;
-//   il intègre donc le change (un titre en dollars bouge aussi avec l'euro/dollar) mais pas tes achats ni tes ventes ;
+// Calcul, à partir de la table `history` avec le mois prochain (googlesheet/projection.py) :
+// - prix unitaire d'une ligne = Assets Master Currency / Quantity ; il intègre donc le change (un titre en dollars bouge
+//   aussi avec l'euro/dollar) mais pas tes achats ni tes ventes ;
+// - point d'arrivée : tes positions actuelles (lignes tirées de portfolio par le serveur), à la date des positions ;
+//   sans elles (mois déjà relevé dans la feuille), le dernier relevé de history ;
+// - point de départ : le même jour, 1, 3 ou 12 mois plus tôt (23 novembre -> 23 octobre). history n'ayant en général
+//   qu'un relevé par mois, le prix de ce jour-là est estimé entre les deux relevés qui l'encadrent, au prorata des jours
+//   (le relevé lui-même s'il tombe ce jour-là) ;
 // - une ligne = même Instrument, même enveloppe et même courtier aux deux dates ;
 // - les liquidités, l'immobilier, les biens qui se déprécient et les objets (fiat, real estate, depreciating, exotic)
 //   n'ont pas de cours : ils sont écartés ;
-// - une ligne du dernier relevé absente du relevé d'il y a N mois (placement plus récent) n'a pas de variation :
-//   elle est nommée dans la note sous le graphique (`missing`).
+// - une ligne actuelle sans prix au point de départ (placement plus récent) n'a pas de variation : elle est nommée dans
+//   la note sous le graphique (`missing`).
 // Chaque bulle porte son nom ; un même instrument dans plusieurs enveloppes (MSCI World en PEA, CTO et PER) porte aussi
 // son enveloppe. Deux bulles presque identiques se superposent : leurs noms sont décalés pour rester lisibles.
 
 import { DataError, findColumn, requireColumns, rowsOf, toLabel, toNumber } from '../aggregate.js'
 import { axisLabelStyle, baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
-import { toIsoDate } from '../dates.js'
+import { isoToTimestamp, toIsoDate } from '../dates.js'
 import { axisPercent, capitalize, currencyLabel, formatAmount, formatDateLong } from '../format.js'
 import { envelopeLabel } from './envelopes.js'
 import { AXIS, GRID, INK_2, SURFACE, assignAssetColors } from '../palette.js'
-import { compactNumber, monthEnds, signedPercent } from './flowData.js'
+import { compactNumber, signedPercent } from './flowData.js'
 import { t } from '../../i18n/index.js'
 
 const NOT_QUOTED = new Set(['fiat', 'real estate', 'depreciating', 'exotic', 'cash', 'liquidités'])
-const DAY = 86_400_000
 
 const lower = (text) => String(text ?? '').trim().toLowerCase()
 
-/** "AAAA-MM-JJ" décalée de `months` mois en arrière. */
-function monthsBefore(iso, months) {
+/** "AAAA-MM-JJ" décalée de `months` mois en arrière, le même jour (ramené à la fin du mois : 31 mars -> 28 février). */
+export function monthsBefore(iso, months) {
   const [y, m, d] = iso.split('-').map(Number)
-  const date = new Date(Date.UTC(y, m - 1 - months, d))
-  return date.toISOString().slice(0, 10)
+  const first = new Date(Date.UTC(y, m - 1 - months, 1))
+  const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate()
+  first.setUTCDate(Math.min(d, lastDay))
+  return first.toISOString().slice(0, 10)
 }
 
 /**
- * Variation du prix unitaire de chaque ligne entre le dernier relevé et celui d'il y a `months` mois
- * (le plus récent relevé daté au plus tard 7 jours après cette date-là).
- * Retourne { latest, reference, lines: [{ name, envelope, asset, amount, before, after, pct }], missing: [noms] } ;
- * reference = '' si l'historique est trop court. `missing` : lignes du dernier relevé sans relevé à la date de référence.
+ * Variation du prix unitaire de chaque ligne entre le point de départ (même jour, `months` mois plus tôt) et le point
+ * d'arrivée (positions actuelles, sinon dernier relevé).
+ * Retourne { latest, reference, lines: [{ name, envelope, asset, amount, before, after, pct }], missing: [noms],
+ * current (prix d'arrivée = positions actuelles), estimated: { before, after } | null (relevés qui encadrent le départ) } ;
+ * reference = '' si l'historique ne remonte pas assez loin.
  */
 export function priceChanges(table, months) {
   const cols = requireColumns(table, {
@@ -49,56 +56,62 @@ export function priceChanges(table, months) {
   const asset = findColumn(table.columns, ['Asset'])
   const envelope = findColumn(table.columns, ['Envelope', 'Enveloppe', 'Account', 'Compte'])
   const broker = findColumn(table.columns, ['Broker', 'Courtier'])
-  const rows = rowsOf(table)
-
-  const ends = monthEnds(rows, cols.date)
-  if (!ends.length) return { latest: '', reference: '', lines: [], missing: [] }
-  const latest = ends[ends.length - 1].iso
-  const first = ends[0].iso
-  const limit = new Date(Date.parse(monthsBefore(latest, months)) + 7 * DAY).toISOString().slice(0, 10)
-  const dates = [...new Set(rows.map((row) => toIsoDate(row[cols.date])).filter((iso) => iso && iso >= first && iso <= limit))]
-  const reference = dates.sort().pop() ?? ''
-  if (!reference) return { latest, reference: '', lines: [], missing: [] }
+  const projection = table?.projection?.rows ? table.projection : null
+  const empty = { latest: '', reference: '', lines: [], missing: [], current: false, estimated: null }
 
   const keyOf = (row) =>
     [row[cols.instrument], envelope ? row[envelope] : '', broker ? row[broker] : ''].map(lower).join('|')
-  const unitPrice = (row) => {
+
+  // Montants et quantités par date et par ligne ; les lignes du mois prochain (positions actuelles) à part
+  const records = new Map()
+  const current = new Map()
+  for (const row of rowsOf(table)) {
+    const iso = toIsoDate(row[cols.date])
+    if (!iso || !toLabel(row[cols.instrument], '')) continue
+    if (asset && NOT_QUOTED.has(lower(row[asset]))) continue
+    const amount = toNumber(row[cols.value])
     const quantity = toNumber(row[cols.quantity])
-    const value = toNumber(row[cols.value])
-    return quantity > 0 && value > 0 ? value / quantity : null
+    if (!(amount > 0 && quantity > 0)) continue
+    const target = projection && iso === projection.date ? current : records.get(iso) ?? records.set(iso, new Map()).get(iso)
+    const key = keyOf(row)
+    const sum = target.get(key)
+    // Deux lignes identiques le même jour (achats successifs) : on additionne montants et quantités
+    target.set(key, { row, amount: (sum?.amount ?? 0) + amount, quantity: (sum?.quantity ?? 0) + quantity })
   }
 
-  const before = new Map()
-  const after = new Map()
-  for (const row of rows) {
-    const iso = toIsoDate(row[cols.date])
-    if (iso !== latest && iso !== reference) continue
-    if (!toLabel(row[cols.instrument], '')) continue
-    if (asset && NOT_QUOTED.has(lower(row[asset]))) continue
-    const price = unitPrice(row)
-    if (price === null) continue
-    const target = iso === latest ? after : before
-    const key = keyOf(row)
-    const current = target.get(key)
-    // Deux lignes identiques le même jour (achats successifs) : on additionne montants et quantités
-    target.set(key, {
-      row,
-      amount: (current?.amount ?? 0) + toNumber(row[cols.value]),
-      quantity: (current?.quantity ?? 0) + toNumber(row[cols.quantity]),
-    })
+  // Point d'arrivée : positions actuelles à leur date, sinon le dernier relevé
+  const dates = [...records.keys()].sort()
+  const useCurrent = current.size > 0
+  const latest = useCurrent ? projection.source_date : dates[dates.length - 1]
+  if (!latest) return empty
+  const end = useCurrent ? current : records.get(latest)
+  const points = [...dates.filter((iso) => iso < latest).map((iso) => [iso, records.get(iso)]), [latest, end]]
+
+  // Point de départ : le même jour, `months` mois plus tôt, estimé entre les deux relevés qui l'encadrent
+  const reference = monthsBefore(latest, months)
+  const exact = points.find(([iso]) => iso === reference)
+  const previous = [...points].reverse().find(([iso]) => iso < reference)
+  const next = points.find(([iso]) => iso > reference)
+  if (!exact && !previous) return { ...empty, latest, current: useCurrent }
+  const price = (entry) => (entry ? entry.amount / entry.quantity : null)
+  const weight = exact ? 0 : (isoToTimestamp(reference) - isoToTimestamp(previous[0])) / (isoToTimestamp(next[0]) - isoToTimestamp(previous[0]))
+  const priceAtReference = (key) => {
+    if (exact) return price(exact[1].get(key))
+    const before = price(previous[1].get(key))
+    const after = price(next[1].get(key))
+    return before === null || after === null ? null : before + (after - before) * weight
   }
 
   const lines = []
   const missing = []
-  for (const [key, now] of after) {
-    const then = before.get(key)
-    if (!then) {
+  for (const [key, now] of end) {
+    const priceBefore = priceAtReference(key)
+    if (priceBefore === null) {
       const name = envelopeLabel(toLabel(now.row[cols.instrument]))
       missing.push(envelope && toLabel(now.row[envelope], '') ? `${name} (${envelopeLabel(toLabel(now.row[envelope]))})` : name)
       continue
     }
-    const priceAfter = now.amount / now.quantity
-    const priceBefore = then.amount / then.quantity
+    const priceAfter = price(now)
     lines.push({
       name: envelopeLabel(toLabel(now.row[cols.instrument])),
       envelope: envelope ? toLabel(now.row[envelope], '') : '',
@@ -110,7 +123,14 @@ export function priceChanges(table, months) {
     })
   }
   lines.sort((a, b) => a.pct - b.pct)
-  return { latest, reference, lines, missing }
+  return {
+    latest,
+    reference,
+    lines,
+    missing,
+    current: useCurrent,
+    estimated: exact ? null : { before: previous[0], after: next[0] },
+  }
 }
 
 export function bubbleOption(lines) {
@@ -224,6 +244,7 @@ function volatilitySpec({ months, slug }) {
       return t('charts.volatility.summary', { period: period() })
     },
     table: 'history',
+    projection: 'positions', // + positions actuelles (mois prochain du serveur), comptées à leur date : point d'arrivée
     minWidth: 640,
     get explain() {
       return [
@@ -237,7 +258,7 @@ function volatilitySpec({ months, slug }) {
     },
 
     build(table) {
-      const { latest, reference, lines, missing } = priceChanges(table, months)
+      const { latest, reference, lines, missing, current, estimated } = priceChanges(table, months)
       if (!latest) return { empty: t('charts.envelopes.noRecord') }
       if (!reference) return { empty: t('charts.volatility.notYet', { period: period(), date: formatDateLong(latest) }) }
       if (!lines.length) {
@@ -279,6 +300,14 @@ function volatilitySpec({ months, slug }) {
           t('charts.volatility.note', { weighted: signedPercent(weighted), total: formatAmount(total) }),
           missing.length
             ? t('charts.volatility.missing', { date: formatDateLong(reference), names: missing.join(', ') }, missing.length)
+            : '',
+          current ? t('charts.volatility.current', { date: formatDateLong(latest) }) : '',
+          estimated
+            ? t('charts.volatility.estimated', {
+                date: formatDateLong(reference),
+                before: formatDateLong(estimated.before),
+                after: formatDateLong(estimated.after),
+              })
             : '',
         ]
           .filter(Boolean)
