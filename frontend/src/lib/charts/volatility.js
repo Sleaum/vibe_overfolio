@@ -50,7 +50,16 @@ export function monthsBefore(iso, months) {
  * current (prix d'arrivée = positions actuelles), estimated: { before, after } | null (relevés qui encadrent le départ) } ;
  * reference = '' si l'historique ne remonte pas assez loin.
  */
-export function priceChanges(table, months) {
+/** "AAAA-MM-JJ" décalée de `days` jours en arrière. */
+export function daysBefore(iso, days) {
+  return new Date(isoToTimestamp(iso) - days * DAY).toISOString().slice(0, 10)
+}
+
+/**
+ * `referenceOf` (facultatif) : point de départ à partir du point d'arrivée, par défaut le même jour `months` mois plus
+ * tôt ; Snapshot passe un nombre de jours (daysBefore).
+ */
+export function priceChanges(table, months, referenceOf = (latest) => monthsBefore(latest, months)) {
   const cols = requireColumns(table, {
     date: ['Date'],
     instrument: ['Instrument', 'Instruments'],
@@ -60,6 +69,7 @@ export function priceChanges(table, months) {
   const asset = findColumn(table.columns, ['Asset'])
   const envelope = findColumn(table.columns, ['Envelope', 'Enveloppe', 'Account', 'Compte'])
   const broker = findColumn(table.columns, ['Broker', 'Courtier'])
+  const subAsset = findColumn(table.columns, ['Sub Asset', 'SubAsset', 'Sous-type', 'Sous type'])
   const projection = table?.projection?.rows ? table.projection : null
   const empty = { latest: '', reference: '', lines: [], missing: [], current: false, estimated: null }
 
@@ -91,7 +101,7 @@ export function priceChanges(table, months) {
   const end = useCurrent ? current : records.get(latest)
   // Point de départ : le même jour, `months` mois plus tôt. Chaque ligne est estimée entre ses deux relevés à elle qui
   // encadrent ce jour : une ligne peut être datée autrement que les autres (cours du 3 septembre dans un relevé du 6).
-  const reference = monthsBefore(latest, months)
+  const reference = referenceOf(latest)
   if (!dates.some((iso) => iso <= reference)) return { ...empty, latest, current: useCurrent }
   const price = (entry) => entry.amount / entry.quantity
   const before = dates.filter((iso) => iso < latest)
@@ -124,6 +134,8 @@ export function priceChanges(table, months) {
       name: envelopeLabel(toLabel(now.row[cols.instrument])),
       envelope: envelope ? toLabel(now.row[envelope], '') : '',
       asset: asset ? toLabel(now.row[asset]) : t('data.unknown'),
+      subAsset: subAsset ? toLabel(now.row[subAsset], '') : '',
+      instrument: toLabel(now.row[cols.instrument]),
       amount: now.amount,
       before: priceBefore,
       after: priceAfter,

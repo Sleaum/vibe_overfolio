@@ -32,6 +32,25 @@ export const PALE_BLUE = BLUES[6]
 export const NEGATIVE = '#d93025'
 export const NEGATIVE_2 = '#e8710a'
 
+/** Nuances de rouge, de la plus foncée à la plus claire : montants négatifs de plusieurs séries (une par série). */
+export const REDS = [
+  '#a50e0e',
+  '#b31412',
+  '#c5221f',
+  '#d93025', // NEGATIVE
+  '#ea4335',
+  '#ee675c',
+  '#f28b82',
+  '#f6aea9',
+]
+
+/** `count` nuances de rouge, comme blues() : la série i a son bleu (hausse) et son rouge (baisse). */
+export function reds(count) {
+  const n = Math.max(1, Math.min(count, REDS.length))
+  if (n === 1) return [NEGATIVE]
+  return Array.from({ length: n }, (_, i) => REDS[Math.round((i * (REDS.length - 1)) / (n - 1))])
+}
+
 /**
  * `count` nuances de bleu bien séparées, de la plus foncée à la plus claire (au plus BLUES.length).
  * La première catégorie (la plus grosse) est la plus foncée.

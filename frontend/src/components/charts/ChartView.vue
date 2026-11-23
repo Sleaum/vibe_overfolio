@@ -15,7 +15,7 @@
         <div class="rounded-xl border border-line bg-paper shadow-soft">
           <!-- Réglages du graphique et bascule graphique / tableau -->
           <div
-            v-if="controls.length || status === 'ready' || model?.currencies"
+            v-if="controls.length || status === 'ready' || model?.currencies || spec.windows"
             class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-line px-4 py-3 sm:px-6"
           >
             <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -25,6 +25,13 @@
                 :selected="model.currencies.selected"
                 :more="model.currencies.more"
                 @changed="reload"
+              />
+              <WindowsPicker
+                v-if="spec.windows"
+                :store="spec.windows.store"
+                :format="spec.windows.format"
+                :unit="spec.windows.unit"
+                :testid="spec.windows.testid"
               />
               <template v-for="control in controls" :key="control.key">
                 <span class="text-sm text-ink-2">{{ control.label }}</span>
@@ -166,6 +173,7 @@
 
 <script setup>
 import CurrencyPicker from './CurrencyPicker.vue'
+import WindowsPicker from './WindowsPicker.vue'
 import { useI18n } from 'vue-i18n'
 import { computed, reactive, ref } from 'vue'
 import { DataError, findColumn } from '../../lib/aggregate.js'

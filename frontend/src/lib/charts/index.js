@@ -1,6 +1,6 @@
 // Registre des graphiques et du menu de la rubrique Graphiques.
 //
-// - GROUPS : les pages qui réunissent plusieurs graphiques (Portfolio Flow, Enveloppes, Volatilité), chacun dans une carte.
+// - GROUPS : les pages qui réunissent des graphiques (Portfolio Flow, Snapshot, Enveloppes, Volatilité), chacun dans une carte.
 // - allCharts() : tous les graphiques qui ont leur propre page /graphiques/<slug> (Flux du budget et ceux des GROUPS).
 //   Ceux de Volatility suivent les périodes choisies sur la page (lib/volatilityWindows.js) ; l'adresse d'une autre
 //   période (volatilite-6-mois) s'ouvre aussi.
@@ -18,6 +18,7 @@ import flowDebts from './flowDebts.js'
 import flowTrend from './flowTrend.js'
 import flowVariation from './flowVariation.js'
 import inout from './inout.js'
+import subAssetPerformance from './subAssetPerformance.js'
 import { monthsOfSlug, volatilityChart, volatilityCharts } from './volatility.js'
 import { volatilityMonths } from '../volatilityWindows.js'
 import { t } from '../../i18n/index.js'
@@ -27,6 +28,8 @@ import { MENU_NAMES } from '../../i18n/menu.js'
 // (« Tes dettes » ne s'y affiche qu'en mode Brut du bouton Brut / Net)
 export const FLOW_CHARTS = [flowCurrency, flowAllocation, flowAssets, flowDebts, flowVariation, inout, flowTrend]
 export { ENVELOPE_CHARTS }
+// Graphique de la page Snapshot (sous « Ton patrimoine net ») : variation des prix par sous-type
+export const SNAPSHOT_CHARTS = [subAssetPerformance]
 
 /** Graphiques de Volatility des périodes choisies (réactif : à lire dans un computed). */
 export const volatilityChartList = () => volatilityCharts(volatilityMonths.value)
@@ -42,7 +45,8 @@ const VOLATILITY = {
   },
   has: (slug) => monthsOfSlug(slug) !== null, // toute période, même non choisie
 }
-export const GROUPS = [PORTFOLIO_FLOW, ENVELOPES, VOLATILITY]
+const SNAPSHOT = { key: 'portfolio-snapshot', titleKey: 'pages.snapshot', to: '/portfolio-snapshot', charts: SNAPSHOT_CHARTS }
+export const GROUPS = [PORTFOLIO_FLOW, SNAPSHOT, ENVELOPES, VOLATILITY]
 
 const STATIC_CHARTS = [budgetFlow]
 

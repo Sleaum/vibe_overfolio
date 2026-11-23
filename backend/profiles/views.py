@@ -36,6 +36,7 @@ def _serialize(profile):
         "chart_currencies": profile.chart_currencies or [],
         "display_currency": profile.display_currency or "",
         "volatility_months": profile.volatility_months or [],
+        "performance_days": profile.performance_days or [],
         "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
     }
 
@@ -57,20 +58,23 @@ def _clean_asset_colors(value):
 
 
 THEMES = {"", "light", "dark"}
-MAX_WINDOWS = 12  # périodes de Volatility
-MAX_MONTHS = 240  # 20 ans
+# Périodes : (champ, plus grande valeur, nombre au plus, code d'erreur)
+WINDOWS = {
+    "volatility_months": (240, 12, "invalid_volatility_months"),  # Volatility, en mois (20 ans)
+    "performance_days": (3650, 8, "invalid_performance_days"),  # Snapshot, en jours (10 ans)
+}
 
 
-def _clean_months(value):
-    """Périodes de Volatility -> nombres de mois (1 à 240) sans doublon, triés ; None si non valables."""
-    if not isinstance(value, list) or len(value) > MAX_WINDOWS:
+def _clean_windows(value, max_value, max_count):
+    """Périodes -> entiers de 1 à max_value sans doublon, triés ; None si non valables."""
+    if not isinstance(value, list) or len(value) > max_count:
         return None
-    months = set()
+    numbers = set()
     for item in value:
-        if isinstance(item, bool) or not isinstance(item, int) or not 1 <= item <= MAX_MONTHS:
+        if isinstance(item, bool) or not isinstance(item, int) or not 1 <= item <= max_value:
             return None
-        months.add(item)
-    return sorted(months)
+        numbers.add(item)
+    return sorted(numbers)
 CURRENCY_CODE = re.compile(r"^[A-Z]{3}$")
 MAX_CURRENCIES = 40
 
@@ -98,14 +102,15 @@ def profile_detail(request):
       {"theme": "dark"}                   mode ("light", "dark", ou "" pour suivre le système) ;
       {"chart_currencies": ["EUR", "THB"]} devises de « Patrimoine par devise » ([] = toutes) ;
       {"display_currency": "THB"}         devise des pages Charts et Simulation ("" = euro) ;
-      {"volatility_months": [1, 3, 6]}    périodes de Volatility, en mois ([] = 1, 3 et 12).
+      {"volatility_months": [1, 3, 6]}    périodes de Volatility, en mois ([] = 1, 3 et 12) ;
+      {"performance_days": [30, 90]}      périodes de « Variation des prix par sous-type » (Snapshot), en jours.
     Avec une session ouverte, le jeton CSRF est exigé (en-tête X-CSRFToken).
     """
     profile = current_profile(request)
     if request.method == "PUT":
         body = request.data if isinstance(request.data, dict) else {}
         fields = []
-        if "theme" in body or not body.keys() & {"chart_currencies", "display_currency", "volatility_months"}:
+        if "theme" in body or not body.keys() & {"chart_currencies", "display_currency", *WINDOWS}:
             theme = body.get("theme")
             if theme not in THEMES:
                 return error_response("Mode d'affichage non valable", "invalid_theme", 400)
@@ -124,12 +129,13 @@ def profile_detail(request):
                 return error_response("Devise non valable", "invalid_currency", 400)
             profile.display_currency = code
             fields.append("display_currency")
-        if "volatility_months" in body:
-            months = _clean_months(body.get("volatility_months"))
-            if months is None:
-                return error_response("Périodes non valables", "invalid_volatility_months", 400)
-            profile.volatility_months = months
-            fields.append("volatility_months")
+        for field, (max_value, max_count, code) in WINDOWS.items():
+            if field in body:
+                numbers = _clean_windows(body.get(field), max_value, max_count)
+                if numbers is None:
+                    return error_response("Périodes non valables", code, 400)
+                setattr(profile, field, numbers)
+                fields.append(field)
         profile.save(update_fields=[*fields, "updated_at"])
     return JsonResponse(_serialize(profile))
 

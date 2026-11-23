@@ -11,6 +11,7 @@ export const PREFERENCES = {
   amounts: 'overfolio-amounts', // 'gross' | 'net' : bouton Brut / Net de Charts (lib/amounts.js)
   currency: 'overfolio-currency', // devise d'affichage de Charts et Simulation (lib/displayCurrency.js) ; absente = euro
   volatility: 'overfolio-volatility', // périodes de Volatility en mois, « 1,3,6 » (lib/volatilityWindows.js) ; absente = 1,3,12
+  performance: 'overfolio-performance', // périodes de Snapshot en jours, « 30,90 » (lib/performanceWindows.js) ; absente = 30,90,365
   // Ancien emplacement des couleurs des types d'actifs : elles sont désormais sur le profil, en base.
   // Lu une fois pour les recopier sur le profil, puis effacé (applyProfileAssetColors de lib/palette.js).
   assetColors: 'overfolio-asset-colors',
