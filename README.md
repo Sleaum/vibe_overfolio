@@ -79,7 +79,7 @@ overfolio/
 │       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
 │       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue), CurrencySelect (devise d'affichage)
 │       │   ├── landing/            # sections de la page de présentation
-│       │   └── charts/             # AssetColorSettings, CurrencyPicker (devises du graphique par devise), BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
+│       │   └── charts/             # AssetColorSettings, CurrencyPicker (devises du graphique par devise), VolatilityWindows (périodes de Volatility), BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
 │       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes),
 │       │                           #   menu.js (noms des menus, toujours en anglais)
 │       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
@@ -89,11 +89,12 @@ overfolio/
 │           ├── googlePicker.js     # sélecteur de fichiers de Google (mode 3 de la page GoogleSheet)
 │           ├── profile.js          # profil en base au démarrage et après connexion : couleurs, mode, devises
 │           ├── currencies.js       # devises de « Patrimoine par devise » : proposées, cochées, ajoutées, enregistrées sur le profil
+│           ├── volatilityWindows.js # périodes de Volatility : choix (navigateur, profil), ajout, retrait
 │           ├── displayCurrency.js  # devise d'affichage de Charts et Simulation : liste, choix (navigateur, profil), conversion des réglages
 │           ├── aggregate.js, dates.js, format.js   # calculs ; nombres, dates et noms de pays dans la langue active
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
 │           ├── countries.js        # pays de la carte du monde (Strategy) : écritures de la colonne Area, centres
-│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, devise, réglages de la simulation, brut / net
+│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, devise, périodes de Volatility, réglages de la simulation, brut / net
 │           ├── amounts.js          # bouton Brut / Net de Charts : montants bruts, nets ou dettes seules
 │           ├── pdfExport.js        # bouton PDF : tout le site en un PDF, une page web = une page PDF
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
@@ -478,7 +479,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas. `fx` : taux BCE mis à jour et devises recalculées (`rates_latest`, `error` : `fx_unreachable` ou `fx_invalid`, `tables`) |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
-| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon). `PUT {"chart_currencies": ["EUR", "THB"]}` : devises de « Patrimoine par devise » (codes ISO, `[]` = toutes ; 400 `invalid_currencies`). `PUT {"display_currency": "THB"}` : devise d'affichage de Charts et Simulation (`""` = euro ; 400 `invalid_currency`). Seul ce qui est envoyé change |
+| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon). `PUT {"chart_currencies": ["EUR", "THB"]}` : devises de « Patrimoine par devise » (codes ISO, `[]` = toutes ; 400 `invalid_currencies`). `PUT {"display_currency": "THB"}` : devise d'affichage de Charts et Simulation (`""` = euro ; 400 `invalid_currency`). `PUT {"volatility_months": [1, 3, 6]}` : périodes de Volatility en mois (1 à 240, 12 au plus, `[]` = 1, 3 et 12 ; 400 `invalid_volatility_months`). Seul ce qui est envoyé change |
 | PUT | `/api/profile/asset-colors/` | `{"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut). Types mis en minuscules ; 400 `invalid_asset_colors` si une couleur n'est pas au format `#rrggbb`, si un type est vide ou dépasse 100 caractères, ou au-delà de 200 types |
 | GET | `/api/auth/google/start/?next=/page` | Navigation (pas d'appel JSON) : part se connecter chez Google, puis revient sur `next` (une page du site seulement). Sans réglages Google : retour sur `/newpage?error=google_not_configured` |
 | GET | `/api/auth/google/callback/` | Retour de Google (adresse déclarée dans Google Cloud) : vérifie `state`, échange le code (PKCE), vérifie le jeton d'identité, ouvre la session. Échec : `/newpage?error=` `google_denied`, `google_state_invalid`, `google_token_failed`, `google_token_invalid`, `google_email_unverified`, `account_disabled` (compte désactivé dans l'admin) |
@@ -545,6 +546,7 @@ erDiagram
     varchar theme "light, dark ou vide"
     jsonb chart_currencies "devises de Patrimoine par devise"
     varchar display_currency "devise de Charts et Simulation, vide = EUR"
+    jsonb volatility_months "périodes de Volatility en mois, vide = 1, 3, 12"
     timestamp updated_at
   }
   accounts_googleaccount {
@@ -582,7 +584,7 @@ Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessi
 | `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ), `currency` (devise des montants, lue au-dessus de l'en-tête : case M1 de `portfolio`), `rates_applied_at` (dernier calcul des devises) |
 | `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration. `computed` : ce que le site calcule avec les taux BCE à la synchronisation, sans toucher aux valeurs de la feuille (`fx` : le relevé dans chaque devise, pour `history`) |
 | `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur |
-| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes), devise d'affichage de Charts et Simulation (`display_currency`, vide = euro ; gardée ici pour un compte, dans le navigateur pour un visiteur). Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
+| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes), devise d'affichage de Charts et Simulation (`display_currency`, vide = euro) et périodes de Volatility (`volatility_months`, en mois, vide = 1, 3 et 12) : gardées ici pour un compte, dans le navigateur pour un visiteur. Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
 | `accounts_googleaccount` | `GoogleAccount` | Compte Google d'un utilisateur : identifiant Google `sub` (unique), e-mail, nom, photo. Mode 3 : jeton de rafraîchissement Google **chiffré** (`drive_refresh_token`, vide si l'accès n'est pas accordé) |
 | `fx_exchangerate` | `ExchangeRate` | Taux de référence de l'euro publiés par la BCE : une ligne par jour de cotation et par devise (unique), taux = unités de la devise pour 1 EUR. Communs à tous |
 | `auth_user` | `User` (Django) | Comptes Django : l'administrateur (`createsuperuser`) et un utilisateur par compte Google connecté (`google-<sub>`, sans mot de passe) |
@@ -705,7 +707,7 @@ Bibliothèques chargées à la demande seulement : `world-atlas` et `topojson-cl
 | `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Flow, Envelopes ou Volatility (leur fil d'Ariane passe par leur page) |
 | `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les graphiques de Flow sur une seule page (« Tes dettes » en plus en mode Brut), avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone. Montants bruts ou nets selon le bouton Brut / Net |
-| `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Une bulle par placement : montant détenu et variation du prix unitaire sur 1 mois, 3 mois et 1 an |
+| `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Les périodes à afficher (1 mois, 3 mois et 1 an par défaut ; on en ajoute ou on en retire), puis un graphique par période : une bulle par placement, montant détenu et variation du prix unitaire |
 | `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type ; en mode Brut, la liste « Tes dettes ». Voir « Snapshot » |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `components/charts/WorldMapCard.vue`, `lib/strategy.js`, `lib/charts/sunburst.js` et `lib/charts/worldMap.js` | Strategy : une carte du monde des pays de tes actions (colonne `Area`), puis tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
@@ -755,7 +757,7 @@ La classe `dark` sur `<html>` décide de tout : les composants n'utilisent que d
 
 ### Les graphiques
 
-Quinze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de Flow, Envelopes et Volatility. Chacun est un fichier de `frontend/src/lib/charts/`. Les noms de colonnes doivent être ceux de la table ; la casse, les accents et les espaces sont ignorés.
+Chaque graphique a sa propre page `/graphiques/<nom>` : Budget et ceux de Flow, Envelopes et Volatility (un par période choisie ; l'adresse d'une autre période, `volatilite-6-mois`, s'ouvre aussi). Chacun est un fichier de `frontend/src/lib/charts/`. Les noms de colonnes doivent être ceux de la table ; la casse, les accents et les espaces sont ignorés.
 
 | `<nom>` dans l'adresse | Table | Colonnes lues |
 |---|---|---|
@@ -770,7 +772,7 @@ Quinze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de F
 | `enveloppes-instruments` | `portfolio` | `Envelope` (ou `Account`), `Instrument`, `Assets Master Currency`, `Asset` |
 | `enveloppes-evolution` | `history` | `Date`, `Envelope`, `Asset`, `Assets Master Currency` |
 | `enveloppes-types`, `enveloppes-zones` | `portfolio` | `Envelope`, `Sub Asset` (ou `Area`), `Assets Master Currency` |
-| `volatilite-1-mois`, `volatilite-3-mois`, `volatilite-1-an` | `history` et positions actuelles (`portfolio`) | `Date`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Asset`, `Envelope`, `Broker`). Prix unitaire = montant ÷ quantité. Prix actuels (date des positions) comparés à ceux du même jour 1 mois, 3 mois ou 1 an plus tôt : du 23 octobre au 23 novembre, du 23 août au 23 novembre, du 23 novembre 2025 au 23 novembre 2026 (voir « Volatility : prix actuels et prix estimés ») ; liquidités, immobilier, biens qui se déprécient et objets écartés. Chaque bulle porte son nom (avec l'enveloppe quand le même instrument est dans plusieurs enveloppes) ; les noms de bulles presque superposées sont écartés. Une ligne pas encore détenue à la date de référence est nommée dans la note |
+| `volatilite-<n>-mois` (`volatilite-1-an` pour 12 mois) : un par période choisie, `volatilite-1-mois`, `volatilite-3-mois` et `volatilite-1-an` par défaut | `history` et positions actuelles (`portfolio`) | `Date`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Asset`, `Envelope`, `Broker`). Prix unitaire = montant ÷ quantité. Prix actuels (date des positions) comparés à ceux du même jour 1 mois, 3 mois ou 1 an plus tôt : du 23 octobre au 23 novembre, du 23 août au 23 novembre, du 23 novembre 2025 au 23 novembre 2026 (voir « Volatility : prix actuels et prix estimés ») ; liquidités, immobilier, biens qui se déprécient et objets écartés. Chaque bulle porte son nom (avec l'enveloppe quand le même instrument est dans plusieurs enveloppes) ; les noms de bulles presque superposées sont écartés. Une ligne pas encore détenue à la date de référence est nommée dans la note |
 
 Les graphiques de `patrimoine-devises` à `patrimoine-tendance` forment la page `/portfolio-flow`. Ils prennent, pour chaque mois, le **dernier relevé** du mois (plusieurs relevés par mois ne s'additionnent pas). Une date isolée, à plus de 6 mois des autres (un objectif en 2039, un vieux relevé), est écartée des graphiques mensuels, et la page le signale ; le graphique `patrimoine-tendance` garde toutes les dates et affiche les objectifs à part.
 
@@ -784,14 +786,24 @@ Les graphiques de `history` de la page Flow et « Évolution de chaque enveloppe
 - Sous chaque graphique, une phrase le signale : « Relevé du 1er décembre 2026 : tes positions actuelles (onglet portfolio, au 23 novembre 2026). » Avec le filtre d'une année qui ne contient pas ce mois, elle disparaît.
 - Pour l'ajouter à un autre graphique qui lit `history`, sa spécification déclare `projection: true`. Volatility déclare `projection: 'positions'` : elle reçoit les mêmes lignes, mais les compte à la date des positions (voir ci-dessous) et n'affiche pas cette phrase.
 
+#### Volatility : les périodes
+
+En haut de la page Volatility, une pastille par période affichée (`components/charts/VolatilityWindows.vue`, `lib/volatilityWindows.js`) :
+
+- **Retirer** : un clic sur la pastille retire la période et son graphique (la dernière reste).
+- **Ajouter** : un nombre de mois (1 à 240) et « Ajouter » : un graphique de plus, rangé de la plus courte à la plus longue période. 12, 24… mois s'affichent « 1 an », « 2 ans ». 12 périodes au plus.
+- **Par défaut** : 1 mois, 3 mois et 1 an.
+- **Gardées** par le navigateur (préférence `volatility`) ; connecté, aussi sur le profil (`volatility_months`) et retrouvées sur tous tes appareils. À la première connexion, le profil reprend le choix du navigateur.
+- Ajouter ou retirer une période ne relit pas la table : le graphique est calculé dans le navigateur.
+
 #### Volatility : prix actuels et prix estimés
 
-Les trois graphiques de Volatility (`lib/charts/volatility.js`, `priceChanges()`) comparent le prix unitaire de chaque placement entre deux jours :
+Les graphiques de Volatility (`lib/charts/volatility.js`, `priceChanges()`) comparent le prix unitaire de chaque placement entre deux jours :
 
 | Point | Prix |
 |---|---|
 | Arrivée | Tes **positions actuelles** (lignes de `portfolio` reçues avec le mois prochain), à la **date des positions** : le 23 novembre, pas le 1er décembre. Si `history` a déjà un relevé du mois prochain (lignes encore recopiées dans la feuille), le dernier relevé de `history` |
-| Départ | Le **même jour**, 1, 3 ou 12 mois plus tôt (fin de mois ramenée au dernier jour : 31 mars → 28 février). `history` n'ayant qu'un relevé par mois, le prix de ce jour-là est **estimé entre les deux relevés de la ligne qui l'encadrent**, au prorata des jours : le 23 octobre, entre le relevé du 6 octobre (poids 14/31) et celui du 6 novembre (poids 17/31). Chaque ligne a ses propres dates : une ligne datée du 3 septembre dans un relevé du 6 septembre est estimée entre ses dates à elle, sans gêner les autres. Un relevé tombé ce jour-là sert tel quel ; un dernier relevé de plus de 45 jours avant le point de départ compte comme « pas encore détenu » |
+| Départ | Le **même jour**, autant de mois plus tôt que la période (1, 3, 12…) (fin de mois ramenée au dernier jour : 31 mars → 28 février). `history` n'ayant qu'un relevé par mois, le prix de ce jour-là est **estimé entre les deux relevés de la ligne qui l'encadrent**, au prorata des jours : le 23 octobre, entre le relevé du 6 octobre (poids 14/31) et celui du 6 novembre (poids 17/31). Chaque ligne a ses propres dates : une ligne datée du 3 septembre dans un relevé du 6 septembre est estimée entre ses dates à elle, sans gêner les autres. Un relevé tombé ce jour-là sert tel quel ; un dernier relevé de plus de 45 jours avant le point de départ compte comme « pas encore détenu » |
 
 Sous chaque graphique, deux phrases le disent : « Prix du 23 novembre 2026 : tes positions actuelles (onglet portfolio). » et « Prix du 23 octobre 2026 estimé entre tes relevés du 1er octobre 2026 et du 1er novembre 2026, au prorata des jours. » Un placement sans relevé avant le point de départ (acheté depuis) n'a pas de variation et est nommé dans la note. Si les lignes ne sont pas toutes estimées entre les mêmes relevés, la phrase cite les relevés les plus utilisés. Si `history` ne remonte pas assez loin, le graphique le dit.
 
@@ -855,7 +867,7 @@ La page `/strategie` reprend la page « Strategy » de Looker Studio : une carte
 
 Le bouton **PDF** de l'en-tête (entre Simulation et la langue) fabrique un PDF de **tout le site** : une page web = une page PDF, à sa taille réelle, sans découpage en A4. Tout est dans `frontend/src/lib/pdfExport.js` :
 
-- le site parcourt lui-même chaque page (`sitePages()`) : accueil, GoogleSheet, Flow, Snapshot, Envelopes, Strategy, Volatility, la page de chaque graphique (`/graphiques/<nom>`, Budget compris), Simulation et la page de connexion. Une nouvelle page du site y est à ajouter ;
+- le site parcourt lui-même chaque page (`sitePages()`) : accueil, GoogleSheet, Flow, Snapshot, Envelopes, Strategy, Volatility, la page de chaque graphique (`/graphiques/<nom>`, Budget compris, Volatility pour les périodes choisies), Simulation et la page de connexion. Une nouvelle page du site y est à ajouter ;
 - pour chaque page, il attend la fin du chargement (plus aucun élément `role="status"` dans le contenu pendant près d'une seconde, 25 s au plus), puis la photographie en entier telle qu'elle s'affiche (`html2canvas`) : mise en page, largeur de la fenêtre, mode clair ou sombre, brut ou net, langue, en-tête et pied de page compris ;
 - les images sont assemblées en un PDF (`jsPDF`), téléchargé sous le nom `Overfolio AAAA-MM-JJ.pdf` ; la page de départ revient ensuite. Rien n'est envoyé au serveur ;
 - pendant l'export, un bandeau (`components/PdfProgress.vue`) montre la progression et permet d'annuler ; il n'apparaît pas dans le PDF (`data-pdf-ignore`), et les graphiques ne sont pas animés (`BaseChart.vue`) ;

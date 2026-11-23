@@ -309,16 +309,9 @@
       ]
     },
     "volatility": {
-      "period": {
-        "1": "1 month",
-        "3": "3 months",
-        "12": "1 year"
-      },
-      "title": {
-        "1": "Over 1 month",
-        "3": "Over 3 months",
-        "12": "Over 1 year"
-      },
+      "title": "Over {period}",
+      "months": "1 month | {count} months",
+      "years": "1 year | {count} years",
       "summary": "How much the price of each of your investments moved over {period}.",
       "explain1": "One bubble per investment. Horizontally, the amount you hold (log scale: each tick multiplies by 10); vertically, the change in its unit price over {period}. The bigger the bubble, the more the investment weighs in your wealth.",
       "explain2": "The unit price is calculated in {currency} (amount ÷ quantity): it accounts for exchange rates, but not for your purchases or sales. A big bubble far below the zero line is the investment that lost you the most.",
@@ -530,6 +523,17 @@
     "keepOne": "Keep at least one currency",
     "add": "Add a currency"
   },
+  "volatilityWindows": {
+    "label": "Periods",
+    "remove": "Remove {period}",
+    "keepOne": "Keep at least one period",
+    "addLabel": "Add a period, in months",
+    "placeholder": "months",
+    "add": "Add",
+    "invalid": "Enter a number of months between 1 and {max}.",
+    "exists": "This period is already shown.",
+    "full": "{max} periods at most."
+  },
   "chartPage": {
     "breadcrumb": "Breadcrumb",
     "notFoundTitle": "This chart doesn’t exist",
@@ -553,7 +557,7 @@
   },
   "volatilityPage": {
     "lead": "How much the price of each of your investments has moved. One bubble per investment: what you hold most is on the right, what fell most is at the bottom. Prices are in {currency}, exchange rates included, excluding your purchases and sales.",
-    "footer": "Changes compare your current prices (portfolio tab) with those on the same day 1 month, 3 months or 1 year earlier. As the history table has only one record a month, those earlier prices are estimated between the two records around that date: the more records you keep, the more precise they are. The old report also offered “1 week”, which requires weekly records."
+    "footer": "Changes compare your current prices (portfolio tab) with those on the same day 1 month, 3 months or 1 year earlier, or over any other period chosen at the top of the page. As the history table has only one record a month, those earlier prices are estimated between the two records around that date: the more records you keep, the more precise they are."
   },
   "notFound": {
     "text": "The address you opened doesn’t exist, or no longer does. You can start again from the home page.",

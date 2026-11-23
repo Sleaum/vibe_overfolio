@@ -309,16 +309,9 @@
       ]
     },
     "volatility": {
-      "period": {
-        "1": "1 mois",
-        "3": "3 mois",
-        "12": "1 an"
-      },
-      "title": {
-        "1": "Sur 1 mois",
-        "3": "Sur 3 mois",
-        "12": "Sur 1 an"
-      },
+      "title": "Sur {period}",
+      "months": "{count} mois | {count} mois",
+      "years": "1 an | {count} ans",
       "summary": "De combien le prix de chacun de tes placements a bougé sur {period}.",
       "explain1": "Une bulle par placement. Horizontalement, le montant que tu détiens (échelle logarithmique : chaque graduation multiplie par 10) ; verticalement, la variation de son prix unitaire sur {period}. Plus la bulle est grosse, plus le placement pèse dans ton patrimoine.",
       "explain2": "Le prix unitaire est calculé en {currency} (montant ÷ quantité) : il tient compte du change, mais pas de tes achats ni de tes ventes. Une grosse bulle loin sous la ligne du zéro est le placement qui t’a fait perdre le plus.",
@@ -530,6 +523,17 @@
     "keepOne": "Garde au moins une devise",
     "add": "Ajouter une devise"
   },
+  "volatilityWindows": {
+    "label": "Périodes",
+    "remove": "Retirer {period}",
+    "keepOne": "Garde au moins une période",
+    "addLabel": "Ajouter une période, en nombre de mois",
+    "placeholder": "mois",
+    "add": "Ajouter",
+    "invalid": "Entre un nombre de mois entre 1 et {max}.",
+    "exists": "Cette période est déjà affichée.",
+    "full": "{max} périodes au plus."
+  },
   "chartPage": {
     "breadcrumb": "Fil d’Ariane",
     "notFoundTitle": "Ce graphique n’existe pas",
@@ -553,7 +557,7 @@
   },
   "volatilityPage": {
     "lead": "De combien le prix de chacun de tes placements a bougé. Une bulle par placement : à droite ce que tu détiens le plus, en bas ce qui a le plus baissé. Le prix est calculé en {currency}, change compris, sans tes achats ni tes ventes.",
-    "footer": "Les variations comparent tes prix actuels (onglet portfolio) à ceux du même jour il y a 1 mois, 3 mois ou 1 an. La table history n’ayant qu’un relevé par mois, ces prix-là sont estimés entre les deux relevés qui encadrent la date : plus tu fais de relevés, plus ils sont précis. L’ancien rapport proposait aussi « 1 semaine », qui demande des relevés hebdomadaires."
+    "footer": "Les variations comparent tes prix actuels (onglet portfolio) à ceux du même jour il y a 1 mois, 3 mois, 1 an ou toute autre période choisie en haut de la page. La table history n’ayant qu’un relevé par mois, ces prix-là sont estimés entre les deux relevés qui encadrent la date : plus tu fais de relevés, plus ils sont précis."
   },
   "notFound": {
     "text": "L’adresse que tu as ouverte n’existe pas, ou plus. Tu peux repartir de l’accueil.",

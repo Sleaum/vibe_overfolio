@@ -8,7 +8,7 @@
 // et le bandeau de progression (PdfProgress.vue, data-pdf-ignore) n'apparaît pas dans le PDF.
 
 import { nextTick, reactive } from 'vue'
-import { CHARTS } from './charts/index.js'
+import { allCharts } from './charts/index.js'
 
 /** Toutes les pages du site, dans l'ordre des menus ; les pages de chaque graphique à la suite de Charts. */
 export function sitePages() {
@@ -20,7 +20,7 @@ export function sitePages() {
     '/enveloppes',
     '/strategie',
     '/volatilite',
-    ...CHARTS.map((chart) => `/graphiques/${chart.slug}`),
+    ...allCharts().map((chart) => `/graphiques/${chart.slug}`), // Volatility : les périodes choisies
     '/simulation',
     '/newpage',
   ]

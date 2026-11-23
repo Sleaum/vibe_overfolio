@@ -166,6 +166,14 @@ export const saveProfileCurrencies = (codes) =>
     body: JSON.stringify({ chart_currencies: codes }),
   })
 
+// Périodes de Volatility d'un compte connecté, en mois ([] = 1, 3 et 12)
+export const saveProfileVolatility = (months) =>
+  request('/api/profile/', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ volatility_months: months }),
+  })
+
 // Devise d'affichage d'un compte connecté ('' = euro)
 export const saveProfileDisplayCurrency = (code) =>
   request('/api/profile/', {
