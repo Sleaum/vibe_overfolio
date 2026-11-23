@@ -11,12 +11,14 @@
 //
 // Dans la feuille, une ligne est soit un actif (« Assets Master Currency »), soit une dette (« Liabilities Master
 // Currency », négative). Les colonnes de devise (EUR, USD, CHF…) portent les deux : positives pour un actif, négatives
-// pour une dette. Les anciens relevés n'ont que ces colonnes : la colonne EUR sert alors, selon son signe.
+// pour une dette. Les anciens relevés n'ont que ces colonnes : celle de la devise d'affichage (EUR par défaut, menu de
+// l'en-tête) sert alors, selon son signe.
 
 import { ref } from 'vue'
 import { collectDropped, findColumn, toLabel, toNumber } from './aggregate.js'
 import { findCurrencyColumn } from './charts/flowData.js'
 import { readPreference, writePreference } from './preferences.js'
+import { displayCurrency } from './displayCurrency.js'
 import { t } from '../i18n/index.js'
 
 export const AMOUNT_MODES = ['gross', 'net']
@@ -40,15 +42,16 @@ const blank = (value) => value === null || value === undefined || String(value).
 
 /**
  * Actif et dette d'une ligne : { assets (≥ 0), debts (≤ 0) }.
- * Sans aucune des deux colonnes remplies (anciens relevés), la colonne EUR décide : positive = actif, négative = dette.
+ * Sans aucune des deux colonnes remplies (anciens relevés), la colonne de la devise d'affichage décide :
+ * positive = actif, négative = dette.
  * Une ligne sans libellé (un objectif : seulement une date et un montant) n'est ni l'un ni l'autre.
  */
 function rowParts(row, cols) {
   const assets = cols.assets ? toNumber(row[cols.assets]) : 0
   const debts = cols.liabilities ? toNumber(row[cols.liabilities]) : 0
   const empty = (!cols.assets || blank(row[cols.assets])) && (!cols.liabilities || blank(row[cols.liabilities]))
-  if (empty && cols.eur && cols.labels.some((column) => toLabel(row[column], ''))) {
-    const value = toNumber(row[cols.eur])
+  if (empty && cols.legacy && cols.labels.some((column) => toLabel(row[column], ''))) {
+    const value = toNumber(row[cols.legacy])
     return { assets: Math.max(value, 0), debts: Math.min(value, 0) }
   }
   return { assets: Math.max(assets, 0), debts: Math.min(debts, 0) }
@@ -59,7 +62,7 @@ function columnsOf(table) {
   return {
     assets: findColumn(columns, ASSETS),
     liabilities: findColumn(columns, LIABILITIES),
-    eur: findCurrencyColumn(columns, 'EUR'),
+    legacy: findCurrencyColumn(columns, displayCurrency.value), // anciens relevés (le serveur ajoute cette colonne)
     currencies: [
       ...new Set(
         [...CURRENCIES, ...(table?.currencies_available ?? [])].map((code) => findCurrencyColumn(columns, code)).filter(Boolean),
@@ -126,6 +129,25 @@ export function droppedNote(names) {
 export function buildChart(spec, table, values = {}) {
   const mode = modeOf(spec)
   const [model, dropped] = collectDropped(() => spec.build(mode ? amountTable(table, mode) : table, values))
-  if (!mode || !model || model.problem || model.empty) return model
-  return { ...model, note: [amountNote(mode), droppedNote(dropped), model.note].filter(Boolean).join(' ') }
+  if (!model || model.problem || model.empty) return model
+  const notes = mode ? [amountNote(mode), droppedNote(dropped)] : []
+  const note = [...notes, conversionNote(table), model.note].filter(Boolean).join(' ')
+  return note === (model.note ?? '') ? model : { ...model, note }
+}
+
+/**
+ * Phrase sur la conversion des montants par le serveur (devise d'affichage de l'en-tête, ou feuille dans une autre
+ * devise que l'euro), et sur les lignes écartées faute de taux. Vide si les montants sont ceux de la feuille.
+ */
+export function conversionNote(table) {
+  const from = table?.currency
+  const to = table?.display_currency
+  if (!from || !to || from === to) return ''
+  const missing = table.unconverted_rows || 0
+  return [
+    t('displayCurrency.convertedNote', { from, to }),
+    missing ? t('displayCurrency.unconvertedNote', { count: missing, to }, missing) : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 }

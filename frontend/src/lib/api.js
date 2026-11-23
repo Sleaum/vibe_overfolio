@@ -110,7 +110,12 @@ async function request(url, { fieldLabel, ...options } = {}) {
 
 export const listTables = () => request('/api/data/')
 
-export const getTable = (name) => request(`/api/data/${encodeURIComponent(name)}/`)
+// currency : devise d'affichage (lib/displayCurrency.js) ; absente = montants en euros
+export const getTable = (name, currency = '') =>
+  request(`/api/data/${encodeURIComponent(name)}/${currency ? `?currency=${encodeURIComponent(currency)}` : ''}`)
+
+// Devises proposées pour l'affichage, avec leur dernier taux : { date, currencies: [{ code, rate }] }
+export const getCurrencies = () => request('/api/fx/currencies/')
 
 export const syncAll = () => request('/api/data/sync/', { method: 'POST', headers: scopeHeader() })
 
@@ -153,6 +158,14 @@ export const saveProfileCurrencies = (codes) =>
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chart_currencies: codes }),
+  })
+
+// Devise d'affichage d'un compte connecté ('' = euro)
+export const saveProfileDisplayCurrency = (code) =>
+  request('/api/profile/', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ display_currency: code }),
   })
 
 export const saveProfileTheme = (theme) =>

@@ -9,12 +9,7 @@
     <header class="max-w-3xl">
       <h1 class="text-h2 text-ink">{{ t('pages.snapshot') }}</h1>
       <p class="mt-3 text-lead text-ink-2" aria-live="polite">{{ subtitle }}</p>
-      <p v-if="unconverted" class="mt-2 text-sm text-danger" role="status" data-testid="snapshot-unconverted">
-        {{ t('snapshotPage.notConverted', { count: unconverted, currency: convertedFrom }, unconverted) }}
-      </p>
-      <p v-else-if="convertedFrom" class="mt-2 text-sm text-ink-3" data-testid="snapshot-converted">
-        {{ t('snapshotPage.converted', { currency: convertedFrom }) }}
-      </p>
+      <ConversionNote :table="portfolio.data.value" class="mt-2" testid="snapshot-converted" />
     </header>
 
     <div
@@ -102,7 +97,7 @@
       >
         <h2 id="titre-dettes" class="text-h3 text-ink">{{ t('snapshotPage.yourDebts') }}</h2>
         <p class="mt-1 tabular-nums text-ink-2">
-          {{ t('snapshotPage.debtsTotal', { amount: euro(Math.abs(model.liabilities)) }) }}
+          {{ t('snapshotPage.debtsTotal', { amount: formatAmount(Math.abs(model.liabilities)) }) }}
         </p>
         <ShareBars class="mt-4 max-w-2xl" :items="model.debts" :color="DEBT_COLOR" :label="t('snapshotPage.yourDebts')" />
       </section>
@@ -122,12 +117,12 @@
                 {{ type.name }}
               </h3>
               <p class="mt-1 tabular-nums text-ink-2">
-                <span class="font-semibold text-ink">{{ euro(type.value) }}</span> ·
+                <span class="font-semibold text-ink">{{ formatAmount(type.value) }}</span> ·
                 {{ t('snapshotPage.ofWealth', { share: percent(type.share) }) }}
               </p>
               <!-- Mode net : le détail ci-dessous reste celui des actifs du type -->
               <p v-if="type.debts > 0" class="mt-1 text-sm tabular-nums text-ink-3">
-                {{ t('snapshotPage.typeDebts', { amount: euro(type.debts) }) }}
+                {{ t('snapshotPage.typeDebts', { amount: formatAmount(type.debts) }) }}
               </p>
             </div>
             <div class="space-y-6 p-4 sm:p-6">
@@ -169,11 +164,12 @@ import AppButton from '../components/ui/AppButton.vue'
 import BaseChart from '../components/charts/BaseChart.vue'
 import ShareBars from '../components/charts/ShareBars.vue'
 import { useTable } from '../composables/useTable.js'
+import ConversionNote from '../components/ConversionNote.vue'
 import { DataError, collectDropped } from '../lib/aggregate.js'
 import { amountMode, amountNote, droppedNote } from '../lib/amounts.js'
 import { NEGATIVE } from '../lib/palette.js'
 import { donutOption } from '../lib/charts/assetDonut.js'
-import { euro, formatDateLong, percent } from '../lib/format.js'
+import { formatAmount, formatDateLong, percent } from '../lib/format.js'
 import { buildSnapshot, signedPercent2 } from '../lib/snapshot.js'
 
 const { t } = useI18n()
@@ -209,15 +205,6 @@ const status = computed(() => {
 
 const missingTable = computed(() => portfolio.error.value?.status === 404)
 
-// Montants de la feuille dans une autre devise (case M1) : le serveur les a convertis en euros (taux BCE)
-const convertedFrom = computed(() => {
-  const currency = portfolio.data.value?.currency
-  return currency && currency !== 'EUR' ? currency : ''
-})
-
-// Lignes sans taux BCE (base des taux encore vide, BCE injoignable) : montants restés dans la devise de la feuille
-const unconverted = computed(() => (convertedFrom.value ? portfolio.data.value?.unconverted_rows || 0 : 0))
-
 const subtitle = computed(() =>
   model.value?.asOf
     ? t('strategy.positionsAt', { date: formatDateLong(model.value.asOf) })
@@ -234,7 +221,7 @@ const donutSummary = computed(() =>
   status.value === 'ready'
     ? t('snapshotPage.donutA11y', {
         count: model.value.legend.length,
-        total: euro(model.value.total),
+        total: formatAmount(model.value.total),
         biggest: model.value.legend[0].name,
         share: model.value.legend[0].share,
       })
@@ -252,12 +239,12 @@ const kpis = computed(() => {
       ? t('snapshotPage.loadingShort')
       : t('snapshotPage.noHistory')
   return [
-    { label: t('snapshotPage.gross'), value: euro(m.gross), hint: t('chart.totalAssets') },
+    { label: t('snapshotPage.gross'), value: formatAmount(m.gross), hint: t('chart.totalAssets') },
     {
       label: t('chart.netWorth'),
-      value: euro(m.net),
+      value: formatAmount(m.net),
       hint: m.hasLiabilities
-        ? t('snapshotPage.afterDebts', { amount: euro(Math.abs(m.liabilities)) })
+        ? t('snapshotPage.afterDebts', { amount: formatAmount(Math.abs(m.liabilities)) })
         : t('snapshotPage.noDebtColumn'),
     },
     {

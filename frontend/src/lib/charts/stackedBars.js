@@ -2,7 +2,7 @@
 // avec le total écrit au bout. `groups` : [{ name, total }] ; `series` : [{ label, color }] ; `values[g][s]` : montants.
 
 import { axisLabelStyle, baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml } from '../chartTheme.js'
-import { euro, percent } from '../format.js'
+import { formatAmount, percent } from '../format.js'
 import { AXIS, FONT, HOVER_SHADE, INK, SURFACE } from '../palette.js'
 import { t } from '../../i18n/index.js'
 
@@ -30,9 +30,9 @@ export function stackedOption(groups, series, values) {
           .map((item) => ({
             color: item.serie.color,
             label: item.serie.label,
-            value: `${euro(item.value)} (${percent(item.value / group.total)})`,
+            value: `${formatAmount(item.value)} (${percent(item.value / group.total)})`,
           }))
-        rows.push({ label: TOTAL(), value: euro(group.total), strong: true })
+        rows.push({ label: TOTAL(), value: formatAmount(group.total), strong: true })
         return tooltipHtml(group.name, rows)
       },
     }),
@@ -73,7 +73,7 @@ export function stackedOption(groups, series, values) {
           show: true,
           position: 'right',
           distance: 8,
-          formatter: (p) => euro(groups[p.dataIndex].total),
+          formatter: (p) => formatAmount(groups[p.dataIndex].total),
           color: INK,
           fontSize: 12,
           fontWeight: 600,

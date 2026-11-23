@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 
 from . import config
 from .currencies import merged_rows
+from fx.rates import ISO_CODES
 from .models import SheetTable
 from profiles.views import current_profile
 from .errors import error_response
@@ -64,8 +65,12 @@ def table_detail(request, name):
 
     # Valeurs de la feuille + ce que le site calcule avec les taux BCE (googlesheet/currencies.py) :
     # montants convertis en euros, et devises choisies sur le profil (graphique Patrimoine par devise)
+    # ?currency=THB : montants dans la devise d'affichage choisie dans l'en-tête (pages Charts et Simulation)
+    display = (request.GET.get("currency") or "EUR").strip().upper()
+    if display not in ISO_CODES:
+        return error_response("Devise non valable.", "invalid_currency", 400)
     selected = current_profile(request).chart_currencies or []
-    columns, rows, added, available, unconverted = merged_rows(table, selected)
+    columns, rows, added, available, unconverted = merged_rows(table, selected, display)
     return JsonResponse(
         {
             "name": table.name,
@@ -75,7 +80,8 @@ def table_detail(request, name):
             "synced_at": _iso(table.synced_at),
             "rows": rows,
             "currency": table.currency,  # devise des montants dans la feuille ; convertis en euros si ce n'est pas EUR
-            "unconverted_rows": unconverted,  # lignes laissées dans cette devise : pas encore de taux BCE
+            "display_currency": display,  # devise des colonnes de montants de cette réponse
+            "unconverted_rows": unconverted,  # lignes dont les montants sont vidés : pas de taux BCE pour ce jour
             "computed_columns": added,  # colonnes de devises calculées par le site
             "currencies_available": available,  # devises proposées dans « Patrimoine par devise »
             "rates_applied_at": _iso(table.rates_applied_at),

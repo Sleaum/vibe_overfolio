@@ -59,9 +59,9 @@ export const locale = i18n.global.locale
 export const t = (...args) => i18n.global.t(...args)
 
 /** Liste de textes (paragraphes d'une explication…) : tableau JSON → tableau de chaînes traduites. */
-export function tList(key) {
+export function tList(key, params = {}) {
   const list = i18n.global.tm(key)
-  return Array.isArray(list) ? list.map((item) => i18n.global.rt(item)) : []
+  return Array.isArray(list) ? list.map((item) => i18n.global.rt(item, params)) : []
 }
 
 /** Réglage Intl de la langue active ('fr-FR', 'en-GB'…). Lu dans un computed, il le refait au changement de langue. */

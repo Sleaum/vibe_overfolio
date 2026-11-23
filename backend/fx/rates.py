@@ -5,7 +5,9 @@ date antérieure à la devise), pas de taux. Après le dernier jour publié (BCE
 """
 import bisect
 import datetime
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
+
+from django.db.models import Max
 
 from .models import ExchangeRate
 
@@ -29,8 +31,11 @@ def sort_codes(codes) -> List[str]:
 class RateBook:
     """Taux chargés une fois en mémoire : {devise: (dates triées, taux)}. EUR vaut toujours 1."""
 
-    def __init__(self, since: Optional[datetime.date] = None):
+    def __init__(self, since: Optional[datetime.date] = None, codes: Optional[Iterable[str]] = None):
+        """since : premier jour utile (les taux plus anciens ne sont pas chargés) ; codes : seulement ces devises."""
         queryset = ExchangeRate.objects.order_by("currency", "date").values_list("currency", "date", "rate")
+        if codes is not None:
+            queryset = queryset.filter(currency__in=[code for code in codes if code != "EUR"])
         if since is not None:
             queryset = queryset.filter(date__gte=since - datetime.timedelta(days=MAX_GAP_DAYS))
         self._dates: Dict[str, List[datetime.date]] = {}
@@ -40,6 +45,8 @@ class RateBook:
             self._rates.setdefault(code, []).append(float(rate))
         # Dernier jour publié : au-delà (taux du jour pas encore paru, BCE injoignable), le dernier taux sert
         self._latest = max((dates[-1] for dates in self._dates.values()), default=None)
+        if codes is not None:  # quelques devises seulement : le dernier jour publié se lit sur toute la table
+            self._latest = ExchangeRate.objects.aggregate(latest=Max("date"))["latest"]
 
     @property
     def codes(self) -> List[str]:

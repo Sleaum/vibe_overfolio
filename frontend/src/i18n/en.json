@@ -24,6 +24,13 @@
   "language": {
     "label": "Language"
   },
+  "displayCurrency": {
+    "label": "Currency",
+    "title": "Currency of the Charts and Simulation pages",
+    "euros": "euros",
+    "convertedNote": "Amounts converted from {from} to {to} at the ECB rate of each row’s date.",
+    "unconvertedNote": "{count} row without an ECB rate for its date is not counted in {to}; run “Refresh all” on the GoogleSheet page again later. | {count} rows without an ECB rate for their date are not counted in {to}; run “Refresh all” on the GoogleSheet page again later."
+  },
   "footer": {
     "tagline": "Your Google Sheet, turned into charts: how your wealth is spread and how it grows.",
     "pages": "Pages",
@@ -105,7 +112,8 @@
     "scope_changed": "You signed in or out in another tab: nothing was saved. The page will reload.",
     "invalid_currencies": "Invalid currencies.",
     "fx_unreachable": "ECB exchange rates could not be read again: currencies use the latest known rates.",
-    "fx_invalid": "The ECB rates file is unreadable: currencies use the latest known rates."
+    "fx_invalid": "The ECB rates file is unreadable: currencies use the latest known rates.",
+    "invalid_currency": "Invalid currency."
   },
   "data": {
     "unknown": "Not specified",
@@ -227,21 +235,21 @@
       ]
     },
     "trend": {
-      "bars": "Wealth in euros",
+      "bars": "Wealth in {currency}",
       "trend": "Trend",
       "goals": "Goals",
       "goal": "Goal",
-      "noColumn": "Euro amount column not found in the “{table}” table: EUR or Assets Master Currency. Available columns: {available}.",
+      "noColumn": "Amount column not found in the “{table}” table: {code} or Assets Master Currency. Available columns: {available}.",
       "twoRecords": "At least two records are needed in the history table to draw a trend.",
       "nextGoal": "Next goal: {goal} by {date}; at the trend’s pace, you would be at {projected}.",
-      "a11y": "Wealth in euros over {count} records, from {from} to {to}. Last record: {last}. The trend is {perYear} a year.",
+      "a11y": "Wealth in {currency} over {count} records, from {from} to {to}. Last record: {last}. The trend is {perYear} a year.",
       "note": "Column used: {column}. Trend: {perYear} a year on average.",
       "goalCount": "{count} goal (row without Asset or Instrument). | {count} goals (rows without Asset or Instrument).",
       "title": "Wealth and trend",
-      "summary": "Your wealth in euros at each record, with the trend line.",
-      "source": "history table, Date column and euro amount column (EUR, otherwise Assets Master Currency), added up by date. Rows without Asset or Instrument are goals.",
+      "summary": "Your wealth in {currency} at each record, with the trend line.",
+      "source": "history table, Date column and the amount column of the currency chosen in the header (EUR by default, otherwise Assets Master Currency), added up by date. Rows without Asset or Instrument are goals.",
       "explain": [
-        "Each bar is the total of your wealth in euros (gross or net, depending on the menu button) on a record date. The line is the average trend of all records: it shows your past growth rate.",
+        "Each bar is the total of your wealth in {currency} (gross or net, depending on the menu button) on a record date. The line is the average trend of all records: it shows your past growth rate.",
         "The orange diamonds are your goals: in the history table, they are the rows that have only a date and an amount (no asset type, no instrument). The trend is extended as a dotted line to the last goal: if it passes above a diamond, your current pace is enough to reach it.",
         "Goals stretch the time axis: the slider at the bottom lets you zoom in on the records."
       ]
@@ -310,7 +318,7 @@
       },
       "summary": "How much the price of each of your investments moved over {period}.",
       "explain1": "One bubble per investment. Horizontally, the amount you hold (log scale: each tick multiplies by 10); vertically, the change in its unit price over {period}. The bigger the bubble, the more the investment weighs in your wealth.",
-      "explain2": "The unit price is calculated in euros (amount ÷ quantity): it accounts for exchange rates, but not for your purchases or sales. A big bubble far below the zero line is the investment that lost you the most.",
+      "explain2": "The unit price is calculated in {currency} (amount ÷ quantity): it accounts for exchange rates, but not for your purchases or sales. A big bubble far below the zero line is the investment that lost you the most.",
       "explain3": "Cash, real estate and assets without a market price aren’t shown.",
       "source": "history table, columns Date, Instrument, Quantity, Assets Master Currency (and Asset, Envelope, Broker if present): last record compared with the record from {period} earlier.",
       "notYet": "The history doesn’t yet go back {period} before the last record ({date}).",
@@ -539,7 +547,7 @@
     "footer": "For details of your shares by sector, moat or rating, open {strategy}."
   },
   "volatilityPage": {
-    "lead": "How much the price of each of your investments has moved. One bubble per investment: what you hold most is on the right, what fell most is at the bottom. Prices are in euros, exchange rates included, excluding your purchases and sales.",
+    "lead": "How much the price of each of your investments has moved. One bubble per investment: what you hold most is on the right, what fell most is at the bottom. Prices are in {currency}, exchange rates included, excluding your purchases and sales.",
     "footer": "The changes compare two records from the history table: the more records you make, the more precise they are. The old report also offered “1 week”, which needs weekly records."
   },
   "notFound": {
@@ -579,9 +587,7 @@
     "yourNetWorth": "Your net worth",
     "yourDebts": "Your debts",
     "debtsTotal": "{amount} in total, by instrument.",
-    "typeDebts": "After {amount} of debts; the breakdown shows its assets.",
-    "converted": "Your sheet’s amounts are in {currency}, converted to euros at the ECB rate of the positions’ date.",
-    "notConverted": "{count} row in {currency} could not be converted to euros: no ECB rate for that day yet. Run “Refresh all” on the GoogleSheet page again later. | {count} rows in {currency} could not be converted to euros: no ECB rates for those days yet. Run “Refresh all” on the GoogleSheet page again later."
+    "typeDebts": "After {amount} of debts; the breakdown shows its assets."
   },
   "strategyPage": {
     "loading": "Loading your shares…",
@@ -630,8 +636,7 @@
     "tabFailure": "{tab}: {message}",
     "error": "error",
     "removedNotice": "{count} tab from the previous document removed: {names}. | {count} tabs from the previous document removed: {names}.",
-    "computedColumns": "Columns calculated by the site (ECB rates): {columns}.",
-    "convertedFrom": "Amounts converted from {currency} to euros (ECB rates)."
+    "computedColumns": "Columns calculated by the site (ECB rates): {columns}."
   },
   "sheetSettings": {
     "title": "Google Sheets connection",
@@ -753,8 +758,8 @@
     "prepareError": "Couldn’t prepare the simulation",
     "results": "Results",
     "fanTitle": "Simulated net worth",
-    "realNote": "In today’s euros (inflation removed).",
-    "nominalNote": "In nominal euros.",
+    "realNote": "In today’s {currency} (inflation removed).",
+    "nominalNote": "In nominal {currency}.",
     "computing": "Calculating…",
     "unit": "Unit",
     "computingRuns": "Calculating {runs} paths…",
@@ -773,9 +778,9 @@
     "fees": "Annual fees",
     "feesHint": "ETFs, brokers, management: on financial assets.",
     "inflation": "Inflation",
-    "inflationHint": "Used for amounts in today’s euros.",
+    "inflationHint": "Used for amounts in today’s {currency}.",
     "perYear": "% a year",
-    "perMonth": "€ / month",
+    "perMonth": "{currency} / month",
     "fatTails": "Crashes more frequent than a normal distribution",
     "fatTailsHint": "Student’s t-distribution with 5 degrees of freedom: more realistic for shares and crypto. Unchecked, the simulation is more optimistic in bad years.",
     "byType": "By asset type",
@@ -803,13 +808,13 @@
     ],
     "notAdvice": "This is a projection tool, not investment advice.",
     "units": {
-      "real": "Today’s euros",
-      "nominal": "Nominal euros"
+      "real": "Today’s value",
+      "nominal": "Nominal value"
     },
     "noPositive": "The portfolio table has no positive amount in Assets Master Currency.",
     "readFailed": "Couldn’t read the data ({message}).",
-    "realUnitText": "in today’s euros",
-    "nominalUnitText": "in nominal euros",
+    "realUnitText": "in today’s {currency}",
+    "nominalUnitText": "in nominal {currency}",
     "kpi": {
       "chance": "Chance of reaching the goal",
       "chooseGoal": "Choose a goal and a future date.",
@@ -836,8 +841,8 @@
       "debt": "Current debt: {amount}. Enter the principal part of your monthly payments.",
       "noDebt": "No debt in the portfolio table.",
       "goalFromHistory": "Read from history (row without an asset type). {unit}",
-      "real": "Counted in today’s euros.",
-      "nominal": "Counted in nominal euros."
+      "real": "Counted in today’s {currency}.",
+      "nominal": "Counted in nominal {currency}."
     }
   },
   "login": {

@@ -15,7 +15,7 @@
 import { DataError, findColumn, requireColumns, rowsOf, toLabel, toNumber } from '../aggregate.js'
 import { axisLabelStyle, baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { toIsoDate } from '../dates.js'
-import { axisPercent, capitalize, euro, formatDateLong } from '../format.js'
+import { axisPercent, capitalize, currencyLabel, formatAmount, formatDateLong } from '../format.js'
 import { envelopeLabel } from './envelopes.js'
 import { AXIS, GRID, INK_2, SURFACE, assignAssetColors } from '../palette.js'
 import { compactNumber, monthEnds, signedPercent } from './flowData.js'
@@ -161,9 +161,9 @@ export function bubbleOption(lines) {
         if (!line) return ''
         return tooltipHtml(line.envelope ? `${line.name} (${envelopeLabel(line.envelope)})` : line.name, [
           { color: colors.get(line.asset)?.color, label: t('charts.volatility.priceChange'), value: signedPercent(line.pct), strong: true },
-          { label: t('charts.volatility.held'), value: euro(line.amount) },
-          { label: t('charts.volatility.priceBefore'), value: euro(line.before) },
-          { label: t('charts.volatility.priceNow'), value: euro(line.after) },
+          { label: t('charts.volatility.held'), value: formatAmount(line.amount) },
+          { label: t('charts.volatility.priceBefore'), value: formatAmount(line.before) },
+          { label: t('charts.volatility.priceNow'), value: formatAmount(line.after) },
         ])
       },
     }),
@@ -228,7 +228,7 @@ function volatilitySpec({ months, slug }) {
     get explain() {
       return [
         t('charts.volatility.explain1', { period: period() }),
-        t('charts.volatility.explain2'),
+        t('charts.volatility.explain2', { currency: currencyLabel() }),
         t('charts.volatility.explain3'),
       ]
     },
@@ -273,10 +273,10 @@ function volatilitySpec({ months, slug }) {
             t('charts.volatility.priceChange'),
           ],
           numeric: [false, false, false, true, true],
-          rows: lines.map((line) => [line.name, line.envelope ? envelopeLabel(line.envelope) : '', capitalize(line.asset), euro(line.amount), signedPercent(line.pct)]),
+          rows: lines.map((line) => [line.name, line.envelope ? envelopeLabel(line.envelope) : '', capitalize(line.asset), formatAmount(line.amount), signedPercent(line.pct)]),
         },
         note: [
-          t('charts.volatility.note', { weighted: signedPercent(weighted), total: euro(total) }),
+          t('charts.volatility.note', { weighted: signedPercent(weighted), total: formatAmount(total) }),
           missing.length
             ? t('charts.volatility.missing', { date: formatDateLong(reference), names: missing.join(', ') }, missing.length)
             : '',

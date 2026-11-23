@@ -7,7 +7,7 @@
     <header class="max-w-3xl">
       <h1 class="text-h2 text-ink">{{ t('pages.volatility') }}</h1>
       <p class="mt-3 text-lead text-ink-2">
-        {{ t('volatilityPage.lead') }}
+        {{ t('volatilityPage.lead', { currency: currencyLabel() }) }}
       </p>
     </header>
 
@@ -23,6 +23,7 @@
 import { useI18n } from 'vue-i18n'
 import ChartGroup from '../components/charts/ChartGroup.vue'
 import { VOLATILITY_CHARTS } from '../lib/charts/index.js'
+import { currencyLabel } from '../lib/format.js'
 
 const { t } = useI18n()
 </script>

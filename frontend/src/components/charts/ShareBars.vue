@@ -9,7 +9,7 @@
       <div class="flex items-baseline justify-between gap-3 text-sm">
         <span class="min-w-0 break-words text-ink">{{ item.name }}</span>
         <span class="shrink-0 whitespace-nowrap tabular-nums text-ink-2">
-          <span class="font-semibold text-ink">{{ percent(item.share) }}</span> · {{ euro(item.value) }}
+          <span class="font-semibold text-ink">{{ percent(item.share) }}</span> · {{ formatAmount(item.value) }}
         </span>
       </div>
       <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-wash" aria-hidden="true">
@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { euro, percent } from '../../lib/format.js'
+import { formatAmount, percent } from '../../lib/format.js'
 
 defineProps({
   items: { type: Array, required: true }, // [{ name, value, share }] share : fraction de 0 à 1

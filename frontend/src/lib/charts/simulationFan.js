@@ -2,7 +2,7 @@
 // année par année, avec l'objectif en losange.
 
 import { axisLabelStyle, baseOption, legendTop, tooltipBox, tooltipHtml, valueAxis } from '../chartTheme.js'
-import { axisEuroFormatter, euro } from '../format.js'
+import { axisAmountFormatter, formatAmount } from '../format.js'
 import { AXIS, BLUE, NAVY } from '../palette.js'
 import { t } from '../../i18n/index.js'
 
@@ -42,13 +42,13 @@ export function fanOption(points, goal) {
         if (!point) return ''
         const [p10, p25, p50, p75, p90] = point.values
         const rows = [
-          { label: t('simulation.p90'), value: euro(p90) },
-          { label: t('simulation.p75'), value: euro(p75) },
-          { color: BLUE, label: t('simulation.median'), value: euro(p50), strong: true },
-          { label: t('simulation.p25'), value: euro(p25) },
-          { label: t('simulation.p10'), value: euro(p10) },
+          { label: t('simulation.p90'), value: formatAmount(p90) },
+          { label: t('simulation.p75'), value: formatAmount(p75) },
+          { color: BLUE, label: t('simulation.median'), value: formatAmount(p50), strong: true },
+          { label: t('simulation.p25'), value: formatAmount(p25) },
+          { label: t('simulation.p10'), value: formatAmount(p10) },
         ]
-        if (goal && goal.label === point.label) rows.push({ color: NAVY, label: t('simulation.goal'), value: euro(goal.amount), strong: true })
+        if (goal && goal.label === point.label) rows.push({ color: NAVY, label: t('simulation.goal'), value: formatAmount(goal.amount), strong: true })
         return tooltipHtml(point.label, rows)
       },
     }),
@@ -60,7 +60,7 @@ export function fanOption(points, goal) {
       axisLine: { lineStyle: { color: AXIS } },
       axisLabel: { ...axisLabelStyle, hideOverlap: true },
     },
-    yAxis: valueAxis(axisEuroFormatter(max)),
+    yAxis: valueAxis(axisAmountFormatter(max)),
     series: [
       { ...band('base', col(0), 'transparent'), legendHoverLink: false },
       band(t('simulation.range80'), diff(0, 1), OUTER),

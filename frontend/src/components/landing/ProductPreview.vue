@@ -84,7 +84,7 @@ const rows = samplePortfolioRows().map((row) => ({ ...row, amount: formatCell(ro
 
 const { entries, total } = splitBy(sampleAssets(), 'name', 'value')
 const rawParts = assetParts(entries, total)
-const donut = donutOption(rawParts, total)
+const donut = donutOption(rawParts, total, undefined, euro) // données fictives : toujours en euros
 const parts = [...rawParts]
   .sort((a, b) => b.value - a.value)
   .map((part) => ({ name: part.name, color: part.color, share: percent(part.share) }))

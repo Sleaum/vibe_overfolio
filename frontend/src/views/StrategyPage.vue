@@ -10,6 +10,7 @@
     <header class="max-w-3xl">
       <h1 class="text-h2 text-ink">{{ t('pages.strategy') }}</h1>
       <p class="mt-3 text-lead text-ink-2" aria-live="polite">{{ subtitle }}</p>
+      <ConversionNote :table="portfolio.data.value" class="mt-2" />
     </header>
 
     <div
@@ -121,6 +122,7 @@ import AppButton from '../components/ui/AppButton.vue'
 import StrategyCard from '../components/charts/StrategyCard.vue'
 import WorldMapCard from '../components/charts/WorldMapCard.vue'
 import { useTable } from '../composables/useTable.js'
+import ConversionNote from '../components/ConversionNote.vue'
 import { DataError } from '../lib/aggregate.js'
 import { buildStrategy } from '../lib/strategy.js'
 

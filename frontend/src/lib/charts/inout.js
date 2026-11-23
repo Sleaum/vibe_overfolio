@@ -2,7 +2,7 @@
 
 import { buildInOut, findColumn, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
-import { axisEuroFormatter, euro, formatMonthKey } from '../format.js'
+import { axisAmountFormatter, formatAmount, formatMonthKey } from '../format.js'
 import { BLUE, HOVER_SHADE, NEGATIVE, NEGATIVE_2 } from '../palette.js'
 import { dataSubtitle } from './common.js'
 import { t, tList } from '../../i18n/index.js'
@@ -32,16 +32,16 @@ export function inoutOption(months, { hasTax }) {
         const month = months[first?.dataIndex]
         if (!month) return ''
         const rows = [
-          { color: BLUE, label: t('charts.inout.in'), value: euro(month.inflow) },
-          { color: NEGATIVE, label: t('charts.inout.out'), value: euro(month.outflow) },
+          { color: BLUE, label: t('charts.inout.in'), value: formatAmount(month.inflow) },
+          { color: NEGATIVE, label: t('charts.inout.out'), value: formatAmount(month.outflow) },
         ]
-        if (hasTax) rows.push({ color: NEGATIVE_2, label: t('charts.inout.tax'), value: euro(month.tax) })
-        rows.push({ label: t('charts.inout.monthBalance'), value: euro(month.inflow - month.outflow - month.tax), strong: true })
+        if (hasTax) rows.push({ color: NEGATIVE_2, label: t('charts.inout.tax'), value: formatAmount(month.tax) })
+        rows.push({ label: t('charts.inout.monthBalance'), value: formatAmount(month.inflow - month.outflow - month.tax), strong: true })
         return tooltipHtml(formatMonthKey(month.key), rows)
       },
     }),
     xAxis: categoryAxis(months.map((month) => formatMonthKey(month.key))),
-    yAxis: valueAxis(axisEuroFormatter(max)),
+    yAxis: valueAxis(axisAmountFormatter(max)),
     dataZoom: zoom ? [zoomSlider()] : undefined,
     series: [
       bar(t('charts.inout.in'), BLUE, months.map((month) => Math.round(month.inflow))),
@@ -89,9 +89,9 @@ export default {
       summary: t(tax ? 'charts.inout.a11yTax' : 'charts.inout.a11y', {
         from: formatMonthKey(months[0].key),
         to: formatMonthKey(months[months.length - 1].key),
-        in: euro(totalIn),
-        out: euro(totalOut),
-        tax: euro(totalTax),
+        in: formatAmount(totalIn),
+        out: formatAmount(totalOut),
+        tax: formatAmount(totalTax),
       }),
       option: inoutOption(months, { hasTax: Boolean(tax) }),
       height: 400,
@@ -109,12 +109,12 @@ export default {
             .reverse()
             .map((m) => [
               formatMonthKey(m.key),
-              euro(m.inflow),
-              euro(m.outflow),
-              ...(tax ? [euro(m.tax)] : []),
-              euro(m.inflow - m.outflow - m.tax),
+              formatAmount(m.inflow),
+              formatAmount(m.outflow),
+              ...(tax ? [formatAmount(m.tax)] : []),
+              formatAmount(m.inflow - m.outflow - m.tax),
             ]),
-          [t('chart.total'), euro(totalIn), euro(totalOut), ...(tax ? [euro(totalTax)] : []), euro(totalIn - totalOut - totalTax)],
+          [t('chart.total'), formatAmount(totalIn), formatAmount(totalOut), ...(tax ? [formatAmount(totalTax)] : []), formatAmount(totalIn - totalOut - totalTax)],
         ],
       },
     }

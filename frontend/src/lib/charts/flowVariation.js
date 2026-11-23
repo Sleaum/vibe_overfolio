@@ -3,7 +3,7 @@
 
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { axisLabelStyle, baseOption, categoryAxis, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
-import { axisPercent, euro, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
+import { axisPercent, formatAmount, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
 import { AXIS, BLUE, HOVER_SHADE, NEGATIVE } from '../palette.js'
 import { monthEnds, monthsSubtitle, signedPercent, skippedNote, totalsByDate } from './flowData.js'
 import { t, tList } from '../../i18n/index.js'
@@ -24,8 +24,8 @@ export function variationOption(changes) {
         if (!change) return ''
         return tooltipHtml(formatMonthKey(change.key), [
           { color: change.pct >= 0 ? UP : DOWN, label: t('charts.variation.change'), value: signedPercent(change.pct), strong: true },
-          { label: t('charts.variation.gap'), value: `${change.delta > 0 ? '+' : change.delta < 0 ? '-' : ''}${euro(Math.abs(change.delta))}` },
-          { label: t('chart.wealth'), value: euro(change.total) },
+          { label: t('charts.variation.gap'), value: `${change.delta > 0 ? '+' : change.delta < 0 ? '-' : ''}${formatAmount(Math.abs(change.delta))}` },
+          { label: t('chart.wealth'), value: formatAmount(change.total) },
         ])
       },
     }),
@@ -116,8 +116,8 @@ export default {
           .map((change) => [
             formatMonthKey(change.key),
             signedPercent(change.pct),
-            `${change.delta > 0 ? '+' : change.delta < 0 ? '-' : ''}${euro(Math.abs(change.delta))}`,
-            euro(change.total),
+            `${change.delta > 0 ? '+' : change.delta < 0 ? '-' : ''}${formatAmount(Math.abs(change.delta))}`,
+            formatAmount(change.total),
           ]),
       },
       note: [

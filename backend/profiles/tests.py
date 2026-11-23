@@ -75,3 +75,19 @@ class ChartCurrenciesTests(TestCase):
         for value in ("EUR", ["EURO"], [1], ["E1R"], ["EUR"] * 0 + [f"A{chr(65 + i % 26)}{chr(65 + i // 26)}" for i in range(41)]):
             response = self.put({"chart_currencies": value})
             self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_currencies"), value)
+
+
+class DisplayCurrencyTests(TestCase):
+    def put(self, body):
+        return self.client.put("/api/profile/", json.dumps(body), content_type="application/json")
+
+    def test_display_currency(self):
+        self.assertEqual(self.client.get("/api/profile/").json()["display_currency"], "")
+        self.put({"theme": "dark"})
+        response = self.put({"display_currency": "thb"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual((response.json()["display_currency"], response.json()["theme"]), ("THB", "dark"))  # le mode ne change pas
+        self.assertEqual(self.put({"display_currency": ""}).json()["display_currency"], "")  # retour à l'euro
+        for value in ("XYZ", "EURO", 12, None):
+            response = self.put({"display_currency": value})
+            self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_currency"))

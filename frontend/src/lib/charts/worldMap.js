@@ -7,7 +7,7 @@
 import { registerMap } from 'echarts/core'
 import { baseOption, tooltipBox, tooltipHtml } from '../chartTheme.js'
 import { countryCenter, geoName } from '../countries.js'
-import { euro, percent } from '../format.js'
+import { formatAmount, percent } from '../format.js'
 import { BLUE, GRID, INK_2, NAVY, SURFACE } from '../palette.js'
 import { tint } from '../strategy.js'
 import { t } from '../../i18n/index.js'
@@ -74,12 +74,12 @@ export function worldMapOption(model) {
         const shown = country.items.slice(0, MAX_ROWS)
         const rest = country.items.slice(MAX_ROWS)
         const rows = [
-          { color: BLUE, label: t('chart.amount'), value: euro(country.value), strong: true },
+          { color: BLUE, label: t('chart.amount'), value: formatAmount(country.value), strong: true },
           { label: t('chart.shareOfTotal'), value: percent(country.share) },
-          ...shown.map((item) => ({ label: item.name, value: euro(item.value) })),
+          ...shown.map((item) => ({ label: item.name, value: formatAmount(item.value) })),
         ]
         if (rest.length) {
-          rows.push({ label: t('data.othersCount', { count: rest.length }), value: euro(rest.reduce((sum, item) => sum + item.value, 0)) })
+          rows.push({ label: t('data.othersCount', { count: rest.length }), value: formatAmount(rest.reduce((sum, item) => sum + item.value, 0)) })
         }
         return tooltipHtml(country.name, rows)
       },

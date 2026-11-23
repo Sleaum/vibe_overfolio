@@ -1,9 +1,11 @@
 <!--
   En-tête fixe : logo-texte à gauche (vers la page de présentation), menu à droite.
-  À droite du menu : bouton PDF (tout le site en un PDF, lib/pdfExport.js), compte (connexion avec Google,
-  AccountMenu.vue), langue, bouton soleil/lune du mode sombre.
+  À droite du menu : devise d'affichage de Charts et Simulation (CurrencySelect.vue, lib/displayCurrency.js), bouton
+  PDF (tout le site en un PDF, lib/pdfExport.js), compte (connexion avec Google, AccountMenu.vue), langue, bouton
+  soleil/lune du mode sombre.
   Mobile : bouton burger accessible (clavier, aria-expanded, libellé qui change, Échap, fermeture au clic extérieur).
-  Sous 640 px, le compte passe dans le menu burger et le bouton PDF ne garde que son icône (place de l'en-tête).
+  Sous 640 px, le compte passe dans le menu burger et le bouton PDF ne garde que son icône (place de l'en-tête) ;
+  la devise est dans le menu burger tant que le menu de l'ordinateur est caché (sous 768 px).
 -->
 <template>
   <header
@@ -35,7 +37,9 @@
       </nav>
 
       <div class="flex items-center gap-1 md:ml-2">
-        <!-- PDF de tout le site (une page web = une page PDF), puis compte, langue, mode clair / sombre -->
+        <!-- Devise d'affichage (à la suite du menu Simulation), PDF de tout le site (une page web = une page PDF),
+             puis compte, langue, mode clair / sombre -->
+        <CurrencySelect class="hidden md:inline-flex" />
         <button
           type="button"
           class="inline-flex h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-ink-2 hover:bg-wash hover:text-ink disabled:opacity-50"
@@ -49,7 +53,7 @@
             <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
             <path d="M14 3v5h5M12 18v-6M9 15l3 3 3-3" />
           </svg>
-          <span class="hidden sm:inline">{{ t('nav.pdf') }}</span>
+          <span class="hidden sm:inline md:hidden lg:inline">{{ t('nav.pdf') }}</span>
         </button>
         <AccountMenu class="hidden sm:block" />
         <LanguageSelect />
@@ -93,6 +97,10 @@
             {{ link.label }}
           </router-link>
         </li>
+        <!-- Devise d'affichage : dans l'en-tête à partir de 768 px, ici en dessous -->
+        <li>
+          <CurrencySelect variant="mobile" />
+        </li>
         <!-- Compte : dans l'en-tête à partir de 640 px, ici en dessous -->
         <li class="sm:hidden">
           <AccountMenu variant="mobile" />
@@ -109,6 +117,7 @@ import { useI18n } from 'vue-i18n'
 import { MENU_NAMES } from '../i18n/menu.js'
 import AccountMenu from './AccountMenu.vue'
 import LanguageSelect from './ui/LanguageSelect.vue'
+import CurrencySelect from './ui/CurrencySelect.vue'
 import ThemeToggle from './ui/ThemeToggle.vue'
 import { exportSite, pdfExport } from '../lib/pdfExport.js'
 

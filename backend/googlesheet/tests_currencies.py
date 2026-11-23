@@ -78,7 +78,7 @@ class CurrencySyncTests(TestCase):
         finally:
             SHEET["history"][0] = HEADER
             SHEET["history"][1] = SHEET["history"][1][:5]
-        self.assertEqual(history["computed_columns"], ["THB"])  # USD vient de la feuille
+        self.assertEqual(history["computed_columns"], ["THB", "EUR"])  # USD vient de la feuille ; EUR : devise d'affichage
         self.assertEqual(history["rows"][0]["USD"], 999)
 
     def test_portfolio_in_baht_is_converted_to_euros(self):
@@ -101,10 +101,53 @@ class CurrencySyncTests(TestCase):
         self.assertEqual(body["saved"], 2)
         history = self.client.get("/api/data/history/").json()
         self.assertEqual(history["computed_columns"], ["EUR"])  # l'euro ne demande pas de taux
-        # Sans taux THB, portfolio garde ses montants d'origine (pas de conversion inventée)
+        # Sans taux THB, les montants de portfolio sont écartés (jamais des bahts présentés comme des euros)
         portfolio = self.client.get("/api/data/portfolio/").json()
-        self.assertEqual(portfolio["rows"][0]["Assets Master Currency"], 37500)
+        self.assertEqual(portfolio["rows"][0]["Assets Master Currency"], "")
         self.assertEqual(portfolio["unconverted_rows"], 1)  # signalé sur Snapshot et sur la page GoogleSheet
+        # Dans sa propre devise, aucun taux n'est nécessaire
+        portfolio = self.client.get("/api/data/portfolio/?currency=THB").json()
+        self.assertEqual((portfolio["rows"][0]["Assets Master Currency"], portfolio["unconverted_rows"]), (37500, 0))
+
+    def test_display_currency(self):
+        self.sync()
+        history = self.client.get("/api/data/history/?currency=thb").json()
+        self.assertEqual(history["display_currency"], "THB")
+        crypto, loan, cash, goal = history["rows"]
+        self.assertEqual(crypto["Assets Master Currency"], 37500)  # 1000 € au taux du 20 novembre
+        self.assertEqual(loan["Liabilities Master Currency"], -15000)
+        self.assertEqual(cash["Assets Master Currency"], 18750)  # samedi : taux du vendredi
+        self.assertEqual(crypto["THB"], 37500)  # colonne de la devise d'affichage, ajoutée même sans être cochée
+        self.assertEqual(history["unconverted_rows"], 0)
+        # Feuille en bahts, affichée en dollars : en passant par l'euro
+        portfolio = self.client.get("/api/data/portfolio/?currency=USD").json()
+        self.assertEqual(portfolio["rows"][0]["Assets Master Currency"], 1160)
+        portfolio = self.client.get("/api/data/portfolio/?currency=THB").json()
+        self.assertEqual(portfolio["rows"][0]["Assets Master Currency"], 37500)  # valeur de la feuille, sans arrondi
+        # Devise inconnue
+        response = self.client.get("/api/data/history/?currency=XYZ")
+        self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_currency"))
+
+    def test_other_tables(self):
+        inout = SheetTable.objects.create(name="inout", columns=["date", "In", "Sortie", "Taxes", "Note"], row_count=1)
+        SheetRow.objects.create(table=inout, position=0, data={"date": "2026-11-20", "In": 100, "Sortie": -40, "Taxes": "", "Note": 5})
+        budget = SheetTable.objects.create(name="budget", columns=["Source", "Destination", "Valeur"], row_count=1)
+        SheetRow.objects.create(table=budget, position=0, data={"Source": "Salaire", "Destination": "Loyer", "Valeur": "1 000,00"})
+        row = self.client.get("/api/data/inout/?currency=USD").json()["rows"][0]
+        self.assertEqual((row["In"], row["Sortie"], row["Taxes"], row["Note"]), (116, -46.4, "", 5))
+        row = self.client.get("/api/data/budget/?currency=CHF").json()["rows"][0]
+        self.assertEqual(row["Valeur"], 940)  # sans date : dernier taux connu
+
+    def test_currencies_list(self):
+        ExchangeRate.objects.create(date=datetime.date(2026, 11, 19), currency="GBP", rate=Decimal("0.87"))  # plus cotée le 20
+        ExchangeRate.objects.create(date=datetime.date(2026, 11, 20), currency="RUB", rate=Decimal("90"))  # ancienne devise
+        body = self.client.get("/api/fx/currencies/").json()
+        self.assertEqual(body["date"], "2026-11-20")
+        self.assertEqual(body["currencies"], [
+            {"code": "EUR", "rate": 1.0}, {"code": "USD", "rate": 1.16}, {"code": "CHF", "rate": 0.94}, {"code": "THB", "rate": 37.5},
+        ])
+        ExchangeRate.objects.all().delete()
+        self.assertEqual(self.client.get("/api/fx/currencies/").json(), {"date": None, "currencies": [{"code": "EUR", "rate": 1.0}]})
 
 
 class CommandTests(TestCase):

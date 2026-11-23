@@ -3,7 +3,7 @@
 
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
-import { axisPercent, euro, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
+import { axisPercent, formatAmount, formatMonthKey, formatMonthKeyTiny, percent } from '../format.js'
 import { HOVER_SHADE, SURFACE } from '../palette.js'
 import { assetMonthly, monthsSubtitle, skippedNote } from './flowData.js'
 import { t, tList } from '../../i18n/index.js'
@@ -32,9 +32,9 @@ export function allocationOption(model) {
           .map((item) => ({
             color: item.serie.color,
             label: item.serie.label,
-            value: `${percent(item.value / totals[m])} · ${euro(item.value)}`,
+            value: `${percent(item.value / totals[m])} · ${formatAmount(item.value)}`,
           }))
-        rows.push({ label: t('chart.total'), value: euro(totals[m]), strong: true })
+        rows.push({ label: t('chart.total'), value: formatAmount(totals[m]), strong: true })
         return tooltipHtml(formatMonthKey(months[m].key), rows)
       },
     }),
@@ -104,7 +104,7 @@ export default {
           .map((month, m) => [
             formatMonthKey(month.key),
             ...model.series.map((_, s) => (model.values[s][m] > 0 ? percent(model.values[s][m] / model.totals[m]) : '–')),
-            euro(model.totals[m]),
+            formatAmount(model.totals[m]),
           ])
           .reverse(),
       },

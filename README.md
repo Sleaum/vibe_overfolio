@@ -35,7 +35,7 @@ overfolio/
 │   │   ├── admin.py, tests.py, tests_drive.py
 │   │   └── migrations/
 │   ├── profiles/                   # app : profil gardé en base (couleurs des actifs, mode, devises), un par compte
-│   │   ├── models.py               # Profile (utilisateur facultatif, asset_colors, theme, chart_currencies)
+│   │   ├── models.py               # Profile (utilisateur facultatif, asset_colors, theme, chart_currencies, display_currency)
 │   │   ├── views.py, urls.py       # /api/profile/
 │   │   ├── admin.py, tests.py
 │   │   └── migrations/
@@ -43,6 +43,7 @@ overfolio/
 │   │   ├── ecb.py                  # téléchargement : historique complet (zip) ou 90 derniers jours (XML)
 │   │   ├── rates.py                # taux d'une devise à une date (dernier jour de cotation), devises connues
 │   │   ├── models.py               # ExchangeRate (date, devise, taux)
+│   │   ├── views.py, urls.py       # GET /api/fx/currencies/ (devises proposées dans l'en-tête, dernier taux)
 │   │   ├── admin.py, tests.py
 │   │   ├── migrations/
 │   │   └── management/commands/update_fx_rates.py
@@ -69,12 +70,13 @@ overfolio/
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
 │       │   └── NewPage.vue         #   /newpage            connexion avec Google
 │       ├── components/
-│       │   ├── Header.vue, Footer.vue   # en-tête : menus, bouton PDF, compte, langue, clair / sombre
+│       │   ├── Header.vue, Footer.vue   # en-tête : menus, devise, bouton PDF, compte, langue, clair / sombre
+│       │   ├── ConversionNote.vue  # phrase « montants convertis de … en … » sous le titre d'une page
 │       │   ├── AccountMenu.vue     # en-tête : Connexion, ou photo du compte et menu (e-mail, Se déconnecter)
 │       │   ├── PdfProgress.vue     # bandeau de progression de l'export PDF (absent du PDF)
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
 │       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
-│       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue)
+│       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue), CurrencySelect (devise d'affichage)
 │       │   ├── landing/            # sections de la page de présentation
 │       │   └── charts/             # AssetColorSettings, CurrencyPicker (devises du graphique par devise), BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
 │       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes),
@@ -86,10 +88,11 @@ overfolio/
 │           ├── googlePicker.js     # sélecteur de fichiers de Google (mode 3 de la page GoogleSheet)
 │           ├── profile.js          # profil en base au démarrage et après connexion : couleurs, mode, devises
 │           ├── currencies.js       # devises de « Patrimoine par devise » : proposées, cochées, ajoutées, enregistrées sur le profil
+│           ├── displayCurrency.js  # devise d'affichage de Charts et Simulation : liste, choix (navigateur, profil), conversion des réglages
 │           ├── aggregate.js, dates.js, format.js   # calculs ; nombres, dates et noms de pays dans la langue active
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
 │           ├── countries.js        # pays de la carte du monde (Strategy) : écritures de la colonne Area, centres
-│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation, brut / net
+│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, devise, réglages de la simulation, brut / net
 │           ├── amounts.js          # bouton Brut / Net de Charts : montants bruts, nets ou dettes seules
 │           ├── pdfExport.js        # bouton PDF : tout le site en un PDF, une page web = une page PDF
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
@@ -248,8 +251,9 @@ Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx
 5. **Projeter** : page **Simulation**, réglages dans la page.
 6. **Exporter en PDF** : bouton **PDF** de l'en-tête. Tout le site, une page web par page PDF, avec tes réglages du moment (voir « Le PDF »).
 7. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur (et sur ton compte si tu es connecté).
-8. **Se connecter** (facultatif) : bouton **Connexion** de l'en-tête, avec ton compte Google. Tes couleurs et ton mode clair / sombre sont alors enregistrés sur ton compte et retrouvés sur tous tes appareils (voir « Connexion avec Google »).
-9. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Tout le site suit la langue : textes, graphiques, messages d'erreur, nombres et dates (voir « Langues »).
+8. **Se connecter** (facultatif) : bouton **Connexion** de l'en-tête, avec ton compte Google. Tes couleurs, ton mode clair / sombre et ta devise sont alors enregistrés sur ton compte et retrouvés sur tous tes appareils (voir « Connexion avec Google »).
+9. **Devise** : le menu à pièces de l'en-tête (entre Simulation et PDF ; dans le menu burger sur mobile) choisit la devise des pages Charts et Simulation : l'euro par défaut, ou une des devises de la BCE. Les montants sont convertis au taux du jour de chaque relevé ; la page GoogleSheet reste en euros. Le choix est gardé par le navigateur, et sur ton compte si tu es connecté (voir « Devise d'affichage »).
+10. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Tout le site suit la langue : textes, graphiques, messages d'erreur, nombres et dates (voir « Langues »).
 
 ### Créer un compte administrateur
 
@@ -346,7 +350,7 @@ La lecture détecte seule la ligne d'en-tête. Les nombres sont lus en valeurs b
 
 ## Connexion avec Google
 
-La connexion est **facultative** : sans compte, le site marche comme avant (profil du site, préférences du navigateur). Avec un compte Google, chacun a son **profil en base** : couleurs des types d'actifs et mode clair / sombre, retrouvés sur tous ses appareils.
+La connexion est **facultative** : sans compte, le site marche comme avant (profil du site, préférences du navigateur). Avec un compte Google, chacun a son **profil en base** : couleurs des types d'actifs, mode clair / sombre et devise d'affichage, retrouvés sur tous ses appareils.
 
 ### Ce qui se passe
 
@@ -361,13 +365,13 @@ En-tête « Connexion » ──► /newpage ──► « Continuer avec Google �
 ```
 
 - **Compte** : un utilisateur Django par compte Google, retrouvé par `sub` (jamais par l'e-mail, qui peut changer). Pas de mot de passe. E-mail, nom et photo sont remis à jour à chaque connexion (`accounts_googleaccount`).
-- **Première connexion** : le nouveau profil reprend une fois les réglages du profil du site (couleurs), et le mode clair / sombre de ce navigateur s'il en avait un. Ensuite, chaque profil vit sa vie.
+- **Première connexion** : le nouveau profil reprend une fois les réglages du profil du site (couleurs), et le mode clair / sombre et la devise d'affichage de ce navigateur s'il en avait. Ensuite, chaque profil vit sa vie.
 - **Jetons Google** : la connexion ne demande que l'identité (`openid`, e-mail, profil), sans accès hors ligne ; aucun jeton n'est gardé. Seul le mode 3 de la page GoogleSheet, s'il est autorisé, garde un jeton de rafraîchissement, chiffré (voir « Mode 3 : compte Google »).
 - **Session** : cookie `sessionid` (HttpOnly, SameSite=Lax, 30 jours, `Secure` avec `COOKIE_SECURE=True`). Avec une session ouverte, toute requête qui modifie exige le jeton CSRF : le site le lit dans le cookie `csrftoken` (posé par `GET /api/auth/me/`) et l'envoie dans l'en-tête `X-CSRFToken` (`frontend/src/lib/api.js`).
 - **Feuille et données** : chaque compte a sa configuration GoogleSheet et ses données synchronisées, invisibles pour les autres (voir « Par compte »). Sans compte, l'API reste publique, avec la feuille et les données du site.
 - **Déconnexion** : la page est rechargée, pour qu'aucune donnée du compte ne reste affichée.
 - **Administrateur** : une session ouverte sur `/admin/` vaut aussi pour le site (même domaine) : l'administrateur y voit son propre profil, pas celui du site. Se déconnecter de l'admin pour revenir au profil du site.
-- **Petits écrans** : sous 640 px, « Connexion » / « Se déconnecter » passent dans le menu burger.
+- **Petits écrans** : sous 640 px, « Connexion » / « Se déconnecter » passent dans le menu burger. Entre 768 et 1024 px, le bouton Connexion et le bouton PDF ne gardent que leur icône, pour laisser la place au menu de devise.
 
 ### Créer le client OAuth dans Google Cloud
 
@@ -468,11 +472,12 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 |---|---|---|
 | GET | `/api/sheet?doc_name=&sheet_name=&header_row=&refresh=1` | Lit un onglet dans Google Sheets (cache 60 s, `refresh=1` pour le contourner) |
 | GET | `/api/data/` | Liste des tables en base (nom, nombre de lignes, date de synchronisation) : celles du compte connecté, sinon celles du site. Il en va de même pour toutes les routes `/api/data/` et `/api/sheet-config/`. En-tête facultatif `X-Sheet-Scope: account|site` sur les requêtes qui modifient : 401 `session_expired` ou 409 `scope_changed` si la session ne correspond plus |
-| GET | `/api/data/<onglet>/` | Colonnes (dans l'ordre) et lignes d'une table, avec ce que le site calcule (voir « Devises et taux de change ») : `currency` (devise des montants dans la feuille), `unconverted_rows` (lignes restées dans cette devise faute de taux), `computed_columns` (colonnes de devises ajoutées par le site), `currencies_available` (devises proposées par « Patrimoine par devise »), `rates_applied_at` |
+| GET | `/api/data/<onglet>/?currency=THB` | Colonnes (dans l'ordre) et lignes d'une table, avec ce que le site calcule (voir « Devises et taux de change ») : montants dans la devise demandée (`currency`, EUR par défaut ; 400 `invalid_currency` si le code n'est pas une devise de la BCE), `display_currency` (devise des montants de la réponse), `currency` (devise des montants dans la feuille), `unconverted_rows` (lignes dont les montants sont vidés faute de taux), `computed_columns` (colonnes de devises ajoutées par le site), `currencies_available` (devises proposées par « Patrimoine par devise »), `rates_applied_at` |
+| GET | `/api/fx/currencies/` | Devises proposées dans l'en-tête : `{ date, currencies: [{ code, rate }] }`, l'euro puis celles cotées par la BCE le dernier jour publié, avec ce taux (unités pour 1 EUR). Communes à tous |
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas. `fx` : taux BCE mis à jour et devises recalculées (`rates_latest`, `error` : `fx_unreachable` ou `fx_invalid`, `tables`) |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
-| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon). `PUT {"chart_currencies": ["EUR", "THB"]}` : devises de « Patrimoine par devise » (codes ISO, `[]` = toutes ; 400 `invalid_currencies`). Seul ce qui est envoyé change |
+| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon). `PUT {"chart_currencies": ["EUR", "THB"]}` : devises de « Patrimoine par devise » (codes ISO, `[]` = toutes ; 400 `invalid_currencies`). `PUT {"display_currency": "THB"}` : devise d'affichage de Charts et Simulation (`""` = euro ; 400 `invalid_currency`). Seul ce qui est envoyé change |
 | PUT | `/api/profile/asset-colors/` | `{"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut). Types mis en minuscules ; 400 `invalid_asset_colors` si une couleur n'est pas au format `#rrggbb`, si un type est vide ou dépasse 100 caractères, ou au-delà de 200 types |
 | GET | `/api/auth/google/start/?next=/page` | Navigation (pas d'appel JSON) : part se connecter chez Google, puis revient sur `next` (une page du site seulement). Sans réglages Google : retour sur `/newpage?error=google_not_configured` |
 | GET | `/api/auth/google/callback/` | Retour de Google (adresse déclarée dans Google Cloud) : vérifie `state`, échange le code (PKCE), vérifie le jeton d'identité, ouvre la session. Échec : `/newpage?error=` `google_denied`, `google_state_invalid`, `google_token_failed`, `google_token_invalid`, `google_email_unverified`, `account_disabled` (compte désactivé dans l'admin) |
@@ -519,7 +524,7 @@ erDiagram
     bigint table_id FK
     int position "unique par table"
     jsonb data "colonne vers valeur"
-    jsonb computed "calculé par le site : eur, fx"
+    jsonb computed "calculé par le site : fx"
   }
   googlesheet_sheetconfig {
     bigint id PK
@@ -538,6 +543,7 @@ erDiagram
     jsonb asset_colors "type vers couleur"
     varchar theme "light, dark ou vide"
     jsonb chart_currencies "devises de Patrimoine par devise"
+    varchar display_currency "devise de Charts et Simulation, vide = EUR"
     timestamp updated_at
   }
   accounts_googleaccount {
@@ -573,9 +579,9 @@ Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessi
 | Table | Modèle | Contenu |
 |---|---|---|
 | `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ), `currency` (devise des montants, lue au-dessus de l'en-tête : case M1 de `portfolio`), `rates_applied_at` (dernier calcul des devises) |
-| `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration. `computed` : ce que le site calcule avec les taux BCE, sans toucher aux valeurs de la feuille (`eur` : montants convertis en euros ; `fx` : le relevé dans chaque devise, pour `history`) |
+| `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration. `computed` : ce que le site calcule avec les taux BCE à la synchronisation, sans toucher aux valeurs de la feuille (`fx` : le relevé dans chaque devise, pour `history`) |
 | `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur |
-| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes). Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
+| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes), devise d'affichage de Charts et Simulation (`display_currency`, vide = euro ; gardée ici pour un compte, dans le navigateur pour un visiteur). Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
 | `accounts_googleaccount` | `GoogleAccount` | Compte Google d'un utilisateur : identifiant Google `sub` (unique), e-mail, nom, photo. Mode 3 : jeton de rafraîchissement Google **chiffré** (`drive_refresh_token`, vide si l'accès n'est pas accordé) |
 | `fx_exchangerate` | `ExchangeRate` | Taux de référence de l'euro publiés par la BCE : une ligne par jour de cotation et par devise (unique), taux = unités de la devise pour 1 EUR. Communs à tous |
 | `auth_user` | `User` (Django) | Comptes Django : l'administrateur (`createsuperuser`) et un utilisateur par compte Google connecté (`google-<sub>`, sans mot de passe) |
@@ -628,7 +634,7 @@ Sous WSL, le service cron doit être démarré (`sudo service cron start`), et l
 
 ## Devises et taux de change
 
-Le site garde en base les **taux de référence de l'euro publiés par la BCE** (Banque centrale européenne) : 29 devises, chaque jour ouvré vers 16 h (heure de Francfort), depuis 1999. Il s'en sert à chaque synchronisation pour deux calculs. Les valeurs de la feuille ne sont jamais modifiées : le résultat va dans `SheetRow.computed`, et l'API le fusionne avec les valeurs de la feuille (`backend/googlesheet/currencies.py`).
+Le site garde en base les **taux de référence de l'euro publiés par la BCE** (Banque centrale européenne) : 29 devises, chaque jour ouvré vers 16 h (heure de Francfort), depuis 1999. Il s'en sert pour deux calculs (`backend/googlesheet/currencies.py`). Les valeurs de la feuille ne sont jamais modifiées.
 
 ```
    BCE (www.ecb.europa.eu)                     onglets synchronisés
@@ -636,23 +642,39 @@ Le site garde en base les **taux de référence de l'euro publiés par la BCE** 
              ▼                                          ▼
    fx_exchangerate (date, devise, taux)      googlesheet_sheetrow.data (feuille)
              └──────────────┬───────────────────────────┘
-                            ▼  currencies.py (après chaque synchronisation)
-                googlesheet_sheetrow.computed
-                  ├─ fx  : history, le relevé dans chaque devise
-                  └─ eur : portfolio dans une autre devise, montants en euros
-                            ▼  GET /api/data/<onglet>/ (fusion)
-             graphiques, Snapshot, page GoogleSheet
+                            ▼  currencies.py
+        après chaque synchronisation : googlesheet_sheetrow.computed["fx"]
+                                       (history, le relevé dans chaque devise)
+        à chaque lecture : montants de la feuille convertis dans la devise demandée
+                            ▼  GET /api/data/<onglet>/?currency=THB (fusion)
+   Charts, Simulation (devise de l'en-tête) ; page GoogleSheet (euros)
 ```
 
 | Table | Calcul |
 |---|---|
 | `history` | Les montants (`Assets Master Currency`, `Liabilities Master Currency`) sont en euros. Pour chaque relevé, le site calcule actifs + dettes (une dette est négative) dans chaque devise, au taux du jour du relevé. Les colonnes `EUR`, `USD`, `CHF`, `THB` de la feuille ne sont donc plus nécessaires ; une colonne de devise encore présente dans la feuille l'emporte sur le calcul. Une ligne d'avant ces deux colonnes, qui n'a que `EUR`, part de `EUR` |
-| `portfolio` (ou toute table dont la devise n'est pas l'euro) | La devise est lue au-dessus de la ligne d'en-tête : le code de devise le plus proche de la colonne `Assets Master Currency` (case M1). Sans code, EUR. Si ce n'est pas EUR, `Assets Master Currency` et `Liabilities Master Currency` sont convertis en euros au taux du jour du relevé, et l'API envoie les montants en euros. Snapshot et la page GoogleSheet l'indiquent. Sans taux pour ce jour, les montants restent dans leur devise et les deux pages le signalent en rouge |
+| Toutes, à chaque lecture | Devise de la feuille : lue au-dessus de la ligne d'en-tête, le code de devise le plus proche de la colonne `Assets Master Currency` (case M1 de `portfolio`) ; sans code, EUR. Si la devise demandée (`?currency=`, EUR par défaut) est une autre, les colonnes de montants sont converties, en passant par l'euro, au taux du jour de chaque ligne (sans date, au dernier taux) : `Assets Master Currency` et `Liabilities Master Currency` partout, plus `in`, `out`, `tax` pour `inout` et `Valeur` pour `budget`. Sans taux pour un jour, le montant est vidé plutôt que faux, et la page le signale en rouge |
 
 - **Taux d'un jour** : celui du jour, sinon du dernier jour de cotation (week-ends, jours fériés), au plus 7 jours avant (`fx/rates.py`). Après le dernier jour publié (taux du jour pas encore paru, BCE injoignable), le dernier taux sert. Les anciennes devises de l'historique (RUB, HRK, BGN…) sont gardées mais pas proposées.
 - **Mise à jour des taux** : à chaque synchronisation (Tout actualiser, `sync_sheets`), au plus une fois par heure. Base vide, ou dernier taux de plus de 80 jours : tout l'historique (un fichier zip) ; sinon, les 90 derniers jours (un petit fichier XML), seuls les jours manquants sont ajoutés. Le backend doit pouvoir joindre `www.ecb.europa.eu`.
 - **BCE injoignable** : la synchronisation se fait quand même, avec les taux déjà en base ; la page GoogleSheet affiche le message.
-- **Devises affichées** : « Patrimoine par devise » montre celles du profil (`chart_currencies`), par défaut EUR, USD, CHF et THB. « Ajouter une devise » propose les autres devises de la BCE ; la page se recharge avec la nouvelle colonne.
+- **Devises affichées** : « Patrimoine par devise » montre celles du profil (`chart_currencies`), par défaut EUR, USD, CHF et THB. « Ajouter une devise » propose les autres devises de la BCE ; la page se recharge avec la nouvelle colonne. Ce graphique ne dépend pas de la devise d'affichage.
+
+### Devise d'affichage
+
+Le menu à pièces de l'en-tête (`components/ui/CurrencySelect.vue`), entre le menu Simulation et le bouton PDF, choisit la devise des pages **Charts** et **Simulation**. Sous 768 px, il est dans le menu burger.
+
+| Où | Quoi |
+|---|---|
+| Liste | `GET /api/fx/currencies/` : l'euro, puis les devises cotées par la BCE le dernier jour publié. Avant la première synchronisation (aucun taux en base), seulement l'euro |
+| Choix | Euro par défaut. Gardé par le navigateur (préférence `currency` de `lib/preferences.js`) ; connecté, aussi sur le profil (`display_currency`) et retrouvé sur tous tes appareils. À la première connexion, le profil reprend le choix du navigateur (comme le mode clair / sombre) |
+| Données | `useTable` demande chaque table avec `?currency=` : le serveur convertit les montants au taux du jour de chaque ligne. La page GoogleSheet (`useTable(…, { raw: true })`) reste en euros |
+| Écriture | `formatAmount()` et `axisAmountFormatter()` de `lib/format.js` écrivent les montants dans la devise choisie (« 1 312 500 THB », « ฿1.3M »…). `euro()` reste pour les données fictives de la page de présentation |
+| Textes | « en euros » devient « en THB » (`currencyLabel()`) ; sous chaque graphique et sous le titre de Snapshot, Strategy et Simulation, une phrase dit de quelle devise les montants ont été convertis (`ConversionNote.vue`, `conversionNote()` de `lib/amounts.js`) |
+| Simulation | Les montants retenus (versement, remboursement, objectif) gardent leur devise ; après un changement, ils sont convertis au dernier taux |
+| Changement | La page affichée est refaite (`App.vue`, comme au changement de langue) et ses tables relues |
+
+Une même valeur en euros n'a pas la même évolution en bahts : les graphiques en THB montrent aussi l'effet du change (variation mensuelle, volatilité, tendance).
 
 ```bash
 # Taux manquants seulement
@@ -923,6 +945,7 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 | compte / profil | account / profile | บัญชี / โปรไฟล์ |
 | sélecteur de fichiers (de Google) / autoriser l'accès | (Google) file picker / allow access | ตัวเลือกไฟล์ (ของ Google) / อนุญาตการเข้าถึง |
 | devise / taux de change / taux de la BCE | currency / exchange rate / ECB rate | สกุลเงิน / อัตราแลกเปลี่ยน / อัตรา ECB |
+| devise (menu de l'en-tête) / valeur d'aujourd'hui / valeur courante | currency / today's value / nominal value | สกุลเงิน / มูลค่าปัจจุบัน / มูลค่าในอนาคต |
 
 ## Commandes utiles
 
@@ -988,7 +1011,8 @@ cd frontend && npm audit && npm outdated
 | `google_not_authorized` après un changement de `FIELD_ENCRYPTION_KEY` | Les jetons gardés ne se déchiffrent plus | Autoriser de nouveau l'accès (carte 3) |
 | « Onglet 'history' introuvable » après la mise à jour | L'onglet s'appelle encore `_history` dans la feuille | Le renommer `history` dans Google Sheets, puis Tout actualiser |
 | Page GoogleSheet : « Les taux de change de la BCE n'ont pas pu être relus » | Le backend n'accède pas à `www.ecb.europa.eu` (réseau, pare-feu) | Les taux déjà en base servent ; vérifier l'accès Internet du backend, puis `update_fx_rates --recompute` |
-| Snapshot : « lignes en THB n'ont pas pu être converties » | Pas encore de taux en base (première synchronisation sans accès à la BCE) | Rétablir l'accès à la BCE, puis Tout actualiser |
+| Phrase en rouge « lignes sans taux de la BCE pour leur jour ne sont pas comptées » | Pas de taux en base pour ces jours (première synchronisation sans accès à la BCE, ou date antérieure à la devise) | Rétablir l'accès à la BCE, puis Tout actualiser |
+| Le menu de devise de l'en-tête ne propose que EUR | Aucun taux en base | Tout actualiser (ou `update_fx_rates`), puis recharger la page |
 | « Patrimoine par devise » sans USD, CHF ni THB | Aucun taux en base, ou relevés sans `Assets Master Currency` ni `EUR` | `update_fx_rates --recompute`, vérifier les colonnes de `history` |
 | `git push` : mot de passe refusé | GitHub n'accepte plus les mots de passe | Clé SSH ou token d'accès personnel |
 

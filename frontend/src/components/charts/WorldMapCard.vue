@@ -38,14 +38,14 @@
             <li v-for="country in map.countries" :key="country.code" class="py-1.5">
               <span class="block text-ink">{{ country.name }}</span>
               <span class="block text-sm tabular-nums text-ink-2">
-                <span class="font-semibold text-ink">{{ percent(country.share) }}</span> · {{ euro(country.value) }} ·
+                <span class="font-semibold text-ink">{{ percent(country.share) }}</span> · {{ formatAmount(country.value) }} ·
                 {{ country.items.map((item) => item.name).join(', ') }}
               </span>
             </li>
           </ul>
         </template>
         <p v-if="map.unplaced.length" class="mt-4 text-sm text-ink-2">
-          {{ t('strategyMap.unplaced', { list: map.unplaced.map((item) => `${item.name} (${percent(item.share)} · ${euro(item.value)})`).join(', ') }) }}
+          {{ t('strategyMap.unplaced', { list: map.unplaced.map((item) => `${item.name} (${percent(item.share)} · ${formatAmount(item.value)})`).join(', ') }) }}
         </p>
         <p class="mt-2 text-sm text-ink-3">{{ t('strategyMap.source') }}</p>
       </template>
@@ -57,7 +57,7 @@
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
 import { loadWorldMap, worldMapOption } from '../../lib/charts/worldMap.js'
-import { euro, percent } from '../../lib/format.js'
+import { formatAmount, percent } from '../../lib/format.js'
 import AppButton from '../ui/AppButton.vue'
 import SegmentedControl from '../ui/SegmentedControl.vue'
 import BaseChart from './BaseChart.vue'
@@ -92,7 +92,7 @@ onMounted(load)
 const option = computed(() => worldMapOption(props.map))
 
 const subtitle = computed(() =>
-  [euro(props.map.total), t('strategyMap.countryCount', { count: props.map.countries.length }, props.map.countries.length)].join(' · '),
+  [formatAmount(props.map.total), t('strategyMap.countryCount', { count: props.map.countries.length }, props.map.countries.length)].join(' · '),
 )
 
 const summary = computed(() => {
@@ -100,7 +100,7 @@ const summary = computed(() => {
   return biggest
     ? t('strategyMap.a11y', {
         count: props.map.countries.length,
-        total: euro(props.map.total),
+        total: formatAmount(props.map.total),
         biggest: biggest.name,
         share: percent(biggest.share),
       })
@@ -113,10 +113,10 @@ const table = computed(() => ({
   numeric: [false, false, true, true],
   rows: [
     ...props.map.countries.flatMap((country) => [
-      [country.name, t('chart.total'), euro(country.value), percent(country.share)],
-      ...country.items.map((item) => ['', item.name, euro(item.value), percent(item.value / props.map.total)]),
+      [country.name, t('chart.total'), formatAmount(country.value), percent(country.share)],
+      ...country.items.map((item) => ['', item.name, formatAmount(item.value), percent(item.value / props.map.total)]),
     ]),
-    ...props.map.unplaced.map((item) => [item.name, t('strategyMap.notACountry'), euro(item.value), percent(item.share)]),
+    ...props.map.unplaced.map((item) => [item.name, t('strategyMap.notACountry'), formatAmount(item.value), percent(item.share)]),
   ],
 }))
 </script>
