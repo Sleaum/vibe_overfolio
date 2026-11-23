@@ -224,7 +224,7 @@ class ProjectionTests(TestCase):
         self.assertEqual(body["projection"], {"date": "2026-12-01", "rows": 2, "unconverted": 0, "source_date": "2026-11-20"})
         self.assertEqual(body["row_count"], 0)  # rien n'est écrit en base (compteur de la synchronisation)
         btc, loan = body["rows"][-2:]
-        self.assertEqual((btc["Date"], btc["Asset"], btc["Envelope"]), ("2026-12-01", "crypto", ""))  # Enveloppe ≠ Envelope
+        self.assertEqual((btc["Date"], btc["Asset"], btc["Envelope"]), ("2026-12-01", "crypto", "Wallet"))  # Enveloppe -> Envelope
         self.assertEqual(btc["Assets Master Currency"], 1000)  # 37 500 THB au taux du 20 novembre
         self.assertEqual(loan["Liabilities Master Currency"], -200)
         self.assertEqual(btc["EUR"], 1000)  # colonne EUR de la feuille : remplie avec le montant calculé
@@ -253,3 +253,17 @@ class ProjectionTests(TestCase):
         self.assertEqual(body["rows"][-2]["Assets Master Currency"], "")
         self.portfolio.delete()
         self.assertIsNone(self.get()["projection"])
+
+    def test_column_names_of_the_real_sheet(self):
+        """Noms de la vraie feuille : Account (portfolio) / Envelope (history), Equity / Equity Price, espaces en trop."""
+        from .projection import column_mapping
+
+        history = ["Date", "Area", "Asset", "Sub Asset", "Envelope", "Broker", "Instrument", "Ticker ", "Quantity", "Unit Price ",
+                   "Equity Price", "Currency Price", "Assets Master Currency", "Liabilities Master Currency"]
+        portfolio = ["Source", "Date", "Area", "Asset", "Sub Asset", "Account", "Broker", "Instrument", "Ticker", "Quantity",
+                     "Unit Price", "Equity", "Currency Price", "Assets Master Currency", "Liabilities Master Currency"]
+        mapping = column_mapping(history, portfolio)
+        self.assertEqual(mapping["Envelope"], "Account")
+        self.assertEqual(mapping["Equity Price"], "Equity")
+        self.assertEqual((mapping["Ticker "], mapping["Unit Price "]), ("Ticker", "Unit Price"))
+        self.assertTrue(all(mapping[column] for column in history))  # toutes les colonnes de history sont remplies

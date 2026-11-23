@@ -35,6 +35,33 @@ from .models import SheetTable
 PORTFOLIO_TABLE = "portfolio"
 LABELS = ["Asset", "Instrument"]
 
+# Même colonne sous un autre nom dans portfolio et dans history (mêmes listes que les graphiques du site) :
+# « Account » dans portfolio, « Envelope » dans history ; « Equity » et « Equity Price »…
+SYNONYMS = [
+    ["Envelope", "Enveloppe", "Account", "Compte"],
+    ["Broker", "Courtier"],
+    ["Instrument", "Instruments"],
+    ["Quantity", "Quantité", "Quantite", "Qty"],
+    ["Unit Price", "Prix unitaire"],
+    ["Equity Price", "Equity"],
+]
+
+
+def column_mapping(history_columns: List[str], portfolio_columns: List[str]) -> dict:
+    """
+    Colonne de portfolio pour chaque colonne de history : même nom (sans casse, accents ni espaces en trop), sinon un
+    nom de la même famille (SYNONYMS, dans l'ordre de la liste), sinon None.
+    """
+    by_name = {normalize(column): column for column in portfolio_columns}
+    mapping = {}
+    for column in history_columns:
+        found = by_name.get(normalize(column))
+        if found is None:
+            group = next((names for names in SYNONYMS if normalize(column) in {normalize(name) for name in names}), [])
+            found = next((by_name[normalize(name)] for name in group if normalize(name) in by_name), None)
+        mapping[column] = found
+    return mapping
+
 
 def next_month(day: datetime.date) -> datetime.date:
     """1er du mois suivant : 23 novembre 2026 -> 1er décembre 2026."""
@@ -78,9 +105,8 @@ def projected_rows(history: SheetTable, today: Optional[datetime.date] = None) -
         if day and (day.year, day.month) == (target.year, target.month) and _labelled(data or {}, h_labels):
             return [], None
 
-    # Colonnes de history remplies depuis portfolio (même nom, sans tenir compte de la casse ni des accents)
-    by_name = {normalize(column): column for column in p_columns}
-    mapping = {column: by_name.get(normalize(column)) for column in columns}
+    # Colonnes de history remplies depuis portfolio (même nom, ou nom de la même famille : Account -> Envelope)
+    mapping = column_mapping(columns, p_columns)
     amounts = amount_columns(history.name, columns)
     sheet_currencies = {
         column: code for column in columns for code in ISO_CODES if currency_token(column, code)
