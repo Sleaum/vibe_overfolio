@@ -6,7 +6,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
 from . import config
-from .currencies import merged_rows
+from .currencies import HISTORY_TABLE, merged_rows
+from .projection import projected_rows
 from fx.rates import ISO_CODES
 from .models import SheetTable
 from profiles.views import current_profile
@@ -69,8 +70,12 @@ def table_detail(request, name):
     display = (request.GET.get("currency") or "EUR").strip().upper()
     if display not in ISO_CODES:
         return error_response("Devise non valable.", "invalid_currency", 400)
+    # ?projection=1 (graphiques de Flow) : history reçoit en plus le mois prochain, tiré de portfolio (projection.py)
+    extra, projection = [], None
+    if table.name == HISTORY_TABLE and request.GET.get("projection") == "1":
+        extra, projection = projected_rows(table)
     selected = current_profile(request).chart_currencies or []
-    columns, rows, added, available, unconverted = merged_rows(table, selected, display)
+    columns, rows, added, available, unconverted = merged_rows(table, selected, display, extra=extra)
     return JsonResponse(
         {
             "name": table.name,
@@ -85,6 +90,7 @@ def table_detail(request, name):
             "computed_columns": added,  # colonnes de devises calculées par le site
             "currencies_available": available,  # devises proposées dans « Patrimoine par devise »
             "rates_applied_at": _iso(table.rates_applied_at),
+            "projection": projection,  # mois prochain ajouté : {date, rows, unconverted, source_date}, sinon null
         }
     )
 

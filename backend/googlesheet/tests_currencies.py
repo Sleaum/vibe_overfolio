@@ -189,3 +189,67 @@ class HelpersTests(TestCase):
             SheetRow.objects.create(table=table, position=position, data={"Date": day, "EUR": 1})
         self.assertEqual(earliest_date([table]), datetime.date(2025, 1, 2))
         self.assertIsNone(earliest_date([SheetTable.objects.create(name="vide", columns=["Asset"])]))
+
+
+@mock.patch.dict("os.environ", ENV, clear=False)
+class ProjectionTests(TestCase):
+    """Mois prochain de history, tiré de portfolio (graphiques de Flow)."""
+
+    def setUp(self):
+        cache.clear()
+        for day in (18, 20):
+            ExchangeRate.objects.create(date=datetime.date(2026, 11, day), currency="THB", rate=Decimal("37.5"))
+            ExchangeRate.objects.create(date=datetime.date(2026, 11, day), currency="USD", rate=Decimal("1.16"))
+        self.history = SheetTable.objects.create(
+            name="history", columns=["Date", "Asset", "Instrument", "Envelope", "Assets Master Currency", "Liabilities Master Currency", "EUR"]
+        )
+        SheetRow.objects.create(table=self.history, position=0, data={"Date": "2026-11-01", "Asset": "crypto", "Instrument": "BTC", "Assets Master Currency": 900})
+        SheetRow.objects.create(table=self.history, position=1, data={"Date": "2039-01-01", "Assets Master Currency": 1000000})  # objectif
+        self.portfolio = SheetTable.objects.create(
+            name="portfolio", currency="THB",
+            columns=["Date", "Asset", "Instrument", "Enveloppe", "Quantity", "Assets Master Currency", "Liabilities Master Currency"],
+        )
+        for position, data in enumerate([
+            {"Date": "2026-11-20", "Asset": "crypto", "Instrument": "BTC", "Enveloppe": "Wallet", "Quantity": 0.1, "Assets Master Currency": 37500},
+            {"Date": "2026-11-19", "Asset": "real estate", "Instrument": "Prêt", "Liabilities Master Currency": -7500},
+            {"Date": "", "Asset": "", "Instrument": "", "Assets Master Currency": 99999},  # ligne de total : ignorée
+        ]):
+            SheetRow.objects.create(table=self.portfolio, position=position, data=data)
+
+    def get(self, query="?projection=1"):
+        return self.client.get(f"/api/data/history/{query}").json()
+
+    def test_next_month_from_portfolio(self):
+        body = self.get()
+        self.assertEqual(body["projection"], {"date": "2026-12-01", "rows": 2, "unconverted": 0, "source_date": "2026-11-20"})
+        self.assertEqual(body["row_count"], 0)  # rien n'est écrit en base (compteur de la synchronisation)
+        btc, loan = body["rows"][-2:]
+        self.assertEqual((btc["Date"], btc["Asset"], btc["Envelope"]), ("2026-12-01", "crypto", ""))  # Enveloppe ≠ Envelope
+        self.assertEqual(btc["Assets Master Currency"], 1000)  # 37 500 THB au taux du 20 novembre
+        self.assertEqual(loan["Liabilities Master Currency"], -200)
+        self.assertEqual(btc["EUR"], 1000)  # colonne EUR de la feuille : remplie avec le montant calculé
+        self.assertEqual(loan["EUR"], -200)
+        self.assertNotIn("Quantity", btc)  # seulement les colonnes de history
+        self.assertEqual(SheetRow.objects.filter(table=self.history).count(), 2)
+
+    def test_display_currency_and_currency_chart(self):
+        btc = self.get("?projection=1&currency=THB")["rows"][-2]
+        self.assertEqual(btc["Assets Master Currency"], 37500)
+        self.assertEqual(btc["USD"], 1160)  # colonne calculée de « Patrimoine par devise »
+
+    def test_only_when_asked_and_month_not_recorded(self):
+        self.assertIsNone(self.get("")["projection"])
+        self.assertEqual(len(self.get("")["rows"]), 2)
+        # Relevé de décembre encore dans la feuille : pas de doublon
+        SheetRow.objects.create(table=self.history, position=2, data={"Date": "01/12/2026", "Asset": "crypto", "Instrument": "BTC", "Assets Master Currency": 950})
+        body = self.get()
+        self.assertIsNone(body["projection"])
+        self.assertEqual(len(body["rows"]), 3)
+
+    def test_without_portfolio_or_rate(self):
+        ExchangeRate.objects.all().delete()
+        body = self.get()
+        self.assertEqual(body["projection"]["unconverted"], 2)  # bahts sans taux : montants écartés
+        self.assertEqual(body["rows"][-2]["Assets Master Currency"], "")
+        self.portfolio.delete()
+        self.assertIsNone(self.get()["projection"])

@@ -131,46 +131,65 @@ def _round(value: float) -> float:
     return round(value, 2)
 
 
+def history_columns(columns: List[str]) -> Dict[str, Optional[str]]:
+    """Colonnes de history utiles au calcul des devises : date, actifs, dettes, ancienne colonne EUR."""
+    return {
+        "date": find_column(columns, "Date"),
+        "assets": find_column(columns, ASSETS),
+        "liabilities": find_column(columns, LIABILITIES),
+        "legacy_eur": find_column(columns, "EUR"),
+    }
+
+
+def row_fx(data: dict, cols: Dict[str, Optional[str]], book: RateBook, source: str = "EUR"):
+    """
+    Relevé d'une ligne de history dans chaque devise connue : ({devise: montant}, devises par défaut sans taux),
+    ou (None, 0) si la ligne n'a ni date ni montant, (None, 1) s'il manque le taux de sa devise.
+    """
+    day = to_date(data.get(cols["date"])) if cols["date"] else None
+    if day is None:
+        return None, 0
+    assets = to_number(data.get(cols["assets"])) if cols["assets"] else None
+    debts = to_number(data.get(cols["liabilities"])) if cols["liabilities"] else None
+    if assets is None and debts is None and cols["legacy_eur"]:
+        value = to_number(data.get(cols["legacy_eur"]))  # anciens relevés : seule la colonne EUR, signée
+        rate = 1.0
+    else:
+        value = None if assets is None and debts is None else (assets or 0) + (debts or 0)
+        rate = book.rate(source, day)  # history est en euros ; une autre devise passe par l'euro
+    if value is None:
+        return None, 0
+    if not rate:
+        return None, 1
+    fx, missing = {}, 0
+    for code in book.codes:
+        code_rate = book.rate(code, day)
+        if code_rate:
+            fx[code] = _round(value / rate * code_rate)
+        elif code in DEFAULT_CODES:
+            missing += 1
+    return fx, missing
+
+
 def apply_currencies(table: SheetTable, book: RateBook) -> Dict[str, int]:
     """
     history : calcule et enregistre SheetRow.computed["fx"] (le relevé dans chaque devise connue). Les autres tables
     n'ont rien à garder (conversion à la demande, merged_rows). Renvoie {rows, converted, missing_rate}.
     """
-    columns = table.columns or []
-    date_col = find_column(columns, "Date")
-    assets_col = find_column(columns, ASSETS)
-    liabilities_col = find_column(columns, LIABILITIES)
-    legacy_eur = find_column(columns, "EUR")
+    cols = history_columns(table.columns or [])
     is_history = table.name == HISTORY_TABLE
     source = (table.currency or "EUR").upper()
     stats = {"rows": 0, "converted": 0, "missing_rate": 0}
 
     rows = list(table.rows.all())
     for row in rows:
-        data = row.data or {}
         computed = {}
-        day = to_date(data.get(date_col)) if date_col else None
-        if is_history and day is not None:
-            assets = to_number(data.get(assets_col)) if assets_col else None
-            debts = to_number(data.get(liabilities_col)) if liabilities_col else None
-            if assets is None and debts is None and legacy_eur:
-                value = to_number(data.get(legacy_eur))  # anciens relevés : seule la colonne EUR, signée
-                rate = 1.0
-            else:
-                value = None if assets is None and debts is None else (assets or 0) + (debts or 0)
-                rate = book.rate(source, day)  # history est en euros ; une autre devise passe par l'euro
-            if value is not None and rate:
-                fx = {}
-                for code in book.codes:
-                    code_rate = book.rate(code, day)
-                    if code_rate:
-                        fx[code] = _round(value / rate * code_rate)
-                    elif code in DEFAULT_CODES:
-                        stats["missing_rate"] += 1
+        if is_history:
+            fx, missing = row_fx(row.data or {}, cols, book, source)
+            stats["missing_rate"] += missing
+            if fx is not None:
                 computed["fx"] = fx
                 stats["converted"] += 1
-            elif value is not None:
-                stats["missing_rate"] += 1
         row.computed = computed
         stats["rows"] += 1
 
@@ -198,20 +217,27 @@ def tables_to_compute(owner=None, names: Optional[Iterable[str]] = None):
     return [table for table in queryset if table.name == HISTORY_TABLE or (table.currency or "EUR") != "EUR"]
 
 
-def merged_rows(table: SheetTable, selected: List[str], display: str = "EUR", today: Optional[datetime.date] = None):
+def merged_rows(
+    table: SheetTable,
+    selected: List[str],
+    display: str = "EUR",
+    today: Optional[datetime.date] = None,
+    extra: Optional[List[tuple]] = None,
+):
     """
     Lignes et colonnes envoyées au site :
     - valeurs de la feuille, colonnes de montants converties dans la devise `display` (de la devise de la feuille,
       au taux du jour de chaque ligne ; sans date, au dernier taux). Sans taux, le montant est vidé (jamais un
       montant faux) et la ligne est comptée dans `unconverted` ;
-    - pour history, les devises choisies (et `display`) qui n'ont pas de colonne dans la feuille.
+    - pour history, les devises choisies (et `display`) qui n'ont pas de colonne dans la feuille ;
+    - `extra` : lignes ajoutées après celles de la base, [(data, computed)] (mois prochain, projection.py).
     Renvoie (colonnes, lignes, devises ajoutées, devises disponibles, lignes non converties).
     """
     today = today or timezone.localdate()
     display = (display or "EUR").upper()
     source = (table.currency or "EUR").upper()
     columns = list(table.columns or [])
-    pairs = list(table.rows.order_by("position").values_list("data", "computed"))
+    pairs = list(table.rows.order_by("position").values_list("data", "computed")) + list(extra or [])
 
     computed_codes = set()
     for _, computed in pairs:

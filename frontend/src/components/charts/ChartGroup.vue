@@ -27,14 +27,20 @@ const props = defineProps({
   transform: { type: Function, default: null }, // (table, spec) -> table
 })
 
-// Une seule requête par table, même si plusieurs graphiques la lisent
-const tables = Object.fromEntries([...new Set(props.charts.map((spec) => spec.table))].map((name) => [name, useTable(name)]))
+// Une seule requête par table, même si plusieurs graphiques la lisent (history avec le mois prochain à part)
+const tableKey = (spec) => (spec.projection ? `${spec.table}+projection` : spec.table)
+const tables = Object.fromEntries(
+  [...new Map(props.charts.map((spec) => [tableKey(spec), spec])).entries()].map(([key, spec]) => [
+    key,
+    useTable(spec.table, { projection: Boolean(spec.projection) }),
+  ]),
+)
 
 const cards = computed(() =>
   props.charts
     .filter((spec) => !spec.hidden?.()) // graphique qui ne s'affiche que dans un mode (ex. « Tes dettes » en Brut)
     .map((spec) => {
-      const table = tables[spec.table]
+      const table = tables[tableKey(spec)]
       const data = table.data.value
       return {
         spec,

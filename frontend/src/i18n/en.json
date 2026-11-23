@@ -31,6 +31,9 @@
     "convertedNote": "Amounts converted from {from} to {to} at the ECB rate of each row’s date.",
     "unconvertedNote": "{count} row without an ECB rate for its date is not counted in {to}; run “Refresh all” on the GoogleSheet page again later. | {count} rows without an ECB rate for their date are not counted in {to}; run “Refresh all” on the GoogleSheet page again later."
   },
+  "projection": {
+    "note": "Record of {date}: your current positions (portfolio tab, as of {positions})."
+  },
   "footer": {
     "tagline": "Your Google Sheet, turned into charts: how your wealth is spread and how it grows.",
     "pages": "Pages",

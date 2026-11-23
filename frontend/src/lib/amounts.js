@@ -19,6 +19,8 @@ import { collectDropped, findColumn, toLabel, toNumber } from './aggregate.js'
 import { findCurrencyColumn } from './charts/flowData.js'
 import { readPreference, writePreference } from './preferences.js'
 import { displayCurrency } from './displayCurrency.js'
+import { toIsoDate } from './dates.js'
+import { formatDateLong } from './format.js'
 import { t } from '../i18n/index.js'
 
 export const AMOUNT_MODES = ['gross', 'net']
@@ -131,8 +133,20 @@ export function buildChart(spec, table, values = {}) {
   const [model, dropped] = collectDropped(() => spec.build(mode ? amountTable(table, mode) : table, values))
   if (!model || model.problem || model.empty) return model
   const notes = mode ? [amountNote(mode), droppedNote(dropped)] : []
-  const note = [...notes, conversionNote(table), model.note].filter(Boolean).join(' ')
+  const note = [...notes, projectionNote(table), conversionNote(table), model.note].filter(Boolean).join(' ')
   return note === (model.note ?? '') ? model : { ...model, note }
+}
+
+/**
+ * Phrase sur le mois prochain ajouté à history par le serveur (positions actuelles de portfolio, graphiques de Flow).
+ * Vide s'il n'y en a pas, ou si ses lignes ne sont plus dans la table (filtre d'une année sur la page Flow).
+ */
+export function projectionNote(table) {
+  const projection = table?.projection
+  if (!projection?.rows) return ''
+  const date = findColumn(table.columns ?? [], ['Date'])
+  if (!date || !(table.rows ?? []).some((row) => toIsoDate(row[date]) === projection.date)) return ''
+  return t('projection.note', { date: formatDateLong(projection.date), positions: formatDateLong(projection.source_date) })
 }
 
 /**
