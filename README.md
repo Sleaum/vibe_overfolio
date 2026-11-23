@@ -19,7 +19,7 @@ overfolio/
 │   │   ├── data_urls.py
 │   │   ├── middleware.py           # DisableCSPMiddleware
 │   │   ├── errors.py               # forme commune des erreurs de l'API (message, code, params)
-│   │   ├── models.py               # SheetTable, SheetRow, SheetConfig
+│   │   ├── models.py               # SheetTable, SheetRow, SheetConfig (voir « Base de données »)
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
 │   │   ├── sync.py                 # copie des onglets vers la base
 │   │   ├── admin.py
@@ -380,12 +380,66 @@ Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "
 
 ## Base de données
 
-La synchronisation recopie chaque onglet dans deux tables :
+PostgreSQL, tables créées par les migrations Django (lancées au démarrage du backend).
 
-| Table | Contenu |
-|---|---|
-| `googlesheet_sheettable` | Une ligne par onglet : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ) |
-| `googlesheet_sheetrow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` |
+### Schéma
+
+```mermaid
+erDiagram
+  googlesheet_sheettable ||--o{ googlesheet_sheetrow : "contient"
+  auth_user |o--o| profiles_profile : "un profil par compte (à venir)"
+  googlesheet_sheettable {
+    bigint id PK
+    varchar name UK "nom de l'onglet"
+    jsonb columns "ordre des colonnes"
+    int header_row "ligne d'en-tête"
+    int row_count
+    timestamp synced_at
+    varchar source "document d'origine"
+  }
+  googlesheet_sheetrow {
+    bigint id PK
+    bigint table_id FK
+    int position "unique par table"
+    jsonb data "colonne vers valeur"
+  }
+  googlesheet_sheetconfig {
+    bigint id PK "une seule ligne"
+    varchar client_email "compte de service"
+    text private_key
+    varchar sheet_id
+    varchar doc_name
+    varchar sync_tabs
+    timestamp updated_at
+  }
+  profiles_profile {
+    bigint id PK
+    int user_id FK "vide = profil du site"
+    jsonb asset_colors "type vers couleur"
+    timestamp updated_at
+  }
+  auth_user {
+    int id PK
+    varchar username
+    varchar email
+  }
+```
+
+Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessions, admin, permissions, migrations). `googlesheet_sheetconfig` n'a pas de lien : elle ne contient qu'une ligne. Pour `auth_user`, seules les colonnes utiles ici sont montrées.
+
+### Tables
+
+| Table | Modèle | Contenu |
+|---|---|---|
+| `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ) |
+| `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration |
+| `googlesheet_sheetconfig` | `SheetConfig` | Une seule ligne : paramètres d'accès saisis sur la page GoogleSheet (compte de service, document, onglets à synchroniser). Absente tant que rien n'est enregistré : les valeurs du `.env` s'appliquent. La clé privée n'est jamais renvoyée au navigateur |
+| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`). Un seul profil, sans utilisateur, tant qu'il n'y a pas de comptes ; un par utilisateur ensuite (voir « Couleurs des graphiques ») |
+| `auth_user` | `User` (Django) | Comptes Django : pour l'instant seulement le compte administrateur (`createsuperuser`) ; servira à la connexion (page `/newpage`) |
+
+### Synchronisation
+
+La synchronisation recopie chaque onglet dans `googlesheet_sheettable` et `googlesheet_sheetrow`.
 
 Chaque synchronisation remplace le contenu d'un onglet en une seule transaction. Un onglet en erreur n'empêche pas les autres, et un onglet qui renvoie zéro ligne n'écrase pas des données existantes.
 
