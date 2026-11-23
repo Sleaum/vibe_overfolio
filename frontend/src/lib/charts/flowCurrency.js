@@ -1,5 +1,5 @@
 // Portfolio Flow 1 : patrimoine exprimé en CHF, EUR et USD, un groupe de barres par mois.
-// Table `_history` : une colonne de montants par devise (par exemple « Assets CHF »).
+// Table `history` : une colonne de montants par devise (par exemple « Assets CHF »).
 
 import { DataError, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
@@ -58,7 +58,7 @@ export default {
   get summary() {
     return t('charts.currency.summary')
   },
-  table: '_history',
+  table: 'history',
   minWidth: 720,
   get explain() {
     return tList('charts.currency.explain')
@@ -77,7 +77,7 @@ export default {
     if (!found.length) {
       throw new DataError(
         t('charts.currency.noColumn', {
-          table: table?.name ?? '_history',
+          table: table?.name ?? 'history',
           available: (table?.columns ?? []).join(', ') || t('data.none'),
         }),
       )
@@ -85,7 +85,7 @@ export default {
 
     const rows = rowsOf(table)
     const months = monthEnds(rows, cols.date)
-    if (!months.length) return { empty: t('errors.noDates', { table: '_history' }) }
+    if (!months.length) return { empty: t('errors.noDates', { table: 'history' }) }
 
     const series = found.map((currency) => {
       const totals = totalsByDate(rows, cols.date, currency.column)

@@ -1,5 +1,5 @@
 // Portfolio Flow 3 : montant de chaque type d'actif, une courbe par type, mois par mois.
-// Table `_history`, colonnes Date, Asset et Assets Master Currency.
+// Table `history`, colonnes Date, Asset et Assets Master Currency.
 
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
@@ -59,7 +59,7 @@ export default {
   get summary() {
     return t('charts.assets.summary')
   },
-  table: '_history',
+  table: 'history',
   minWidth: 720,
   get explain() {
     return tList('charts.assets.explain')
@@ -71,7 +71,7 @@ export default {
   build(table) {
     const cols = requireColumns(table, { date: ['Date'], asset: ['Asset'], value: ['Assets Master Currency'] })
     const model = assetMonthly(rowsOf(table), cols.date, cols.asset, cols.value)
-    if (model.months.length < 2) return { empty: t('errors.twoMonths', { table: '_history' }) }
+    if (model.months.length < 2) return { empty: t('errors.twoMonths', { table: 'history' }) }
 
     const last = model.months.length - 1
     return {

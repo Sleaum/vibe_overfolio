@@ -2,7 +2,7 @@
   Page « Portfolio Snapshot » (/portfolio-snapshot) : où en est ton patrimoine aujourd'hui.
   Haut : patrimoine brut et net, variation de l'année et du mois, anneau des types d'actifs.
   Bas : pour chaque type d'actif, ses sous-types, instruments, enveloppes, courtiers et zones.
-  Calculs dans lib/snapshot.js. La table _history ne sert qu'aux deux variations : si elle manque, la page s'affiche quand même.
+  Calculs dans lib/snapshot.js. La table history ne sert qu'aux deux variations : si elle manque, la page s'affiche quand même.
 -->
 <template>
   <div>
@@ -176,7 +176,7 @@ const { t } = useI18n()
 const DEBT_COLOR = NEGATIVE
 
 const portfolio = useTable('portfolio')
-const history = useTable('_history') // facultative : sert aux variations de l'année et du mois
+const history = useTable('history') // facultative : sert aux variations de l'année et du mois
 
 // Une DataError (colonne absente…) devient un message lisible ; toute autre erreur est un bug à voir en console.
 const model = computed(() => {

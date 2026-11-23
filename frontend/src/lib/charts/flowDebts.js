@@ -1,5 +1,5 @@
 // Portfolio Flow : tes dettes, une courbe par type d'actif, mois par mois (mode Brut du bouton Brut / Net).
-// Table `_history` : la dette de chaque ligne (« Liabilities Master Currency », ou la colonne EUR négative des anciens
+// Table `history` : la dette de chaque ligne (« Liabilities Master Currency », ou la colonne EUR négative des anciens
 // relevés) est comptée en valeur positive dans son type d'actif (le prêt de la maison dans « real estate »).
 // En mode Net, les dettes sont déjà retirées des autres graphiques : celui-ci n'est pas affiché sur la page Flow.
 
@@ -18,7 +18,7 @@ export default {
   get summary() {
     return t('charts.debts.summary')
   },
-  table: '_history',
+  table: 'history',
   minWidth: 720,
   get explain() {
     return tList('charts.debts.explain')

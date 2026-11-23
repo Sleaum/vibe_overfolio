@@ -1,5 +1,5 @@
 // Portfolio Flow 4 : variation du patrimoine d'un mois à l'autre, en %.
-// Table `_history`, colonnes Date et Assets Master Currency : total des actifs au dernier relevé de chaque mois.
+// Table `history`, colonnes Date et Assets Master Currency : total des actifs au dernier relevé de chaque mois.
 
 import { requireColumns, rowsOf } from '../aggregate.js'
 import { axisLabelStyle, baseOption, categoryAxis, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
@@ -72,7 +72,7 @@ export default {
   get summary() {
     return t('charts.variation.summary')
   },
-  table: '_history',
+  table: 'history',
   minWidth: 720,
   get explain() {
     return tList('charts.variation.explain')
@@ -95,7 +95,7 @@ export default {
       const delta = months[i].total - previous
       changes.push({ key: months[i].key, total: months[i].total, delta, pct: (delta / previous) * 100 })
     }
-    if (!changes.length) return { empty: t('errors.twoMonths', { table: '_history' }) }
+    if (!changes.length) return { empty: t('errors.twoMonths', { table: 'history' }) }
 
     const last = changes[changes.length - 1]
     return {

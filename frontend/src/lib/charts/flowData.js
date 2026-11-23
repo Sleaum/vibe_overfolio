@@ -1,4 +1,4 @@
-// Calculs communs aux graphiques « Portfolio Flow » : table `_history`, des relevés datés (plusieurs lignes par date).
+// Calculs communs aux graphiques « Portfolio Flow » : table `history`, des relevés datés (plusieurs lignes par date).
 // Fonctions pures. Un mois est représenté par son dernier relevé, jamais par la somme de ses relevés.
 
 import { findColumn, noteDropped, rowsOf, toLabel, toNumber } from '../aggregate.js'

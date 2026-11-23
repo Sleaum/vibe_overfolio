@@ -250,7 +250,7 @@ const PAGE_SIZE = 50
 
 // Onglets à synchroniser (section Onglet, SyncTabs.vue). Un onglet qui n'est pas encore en base reste choisissable :
 // on peut le synchroniser. Liste par défaut en attendant les paramètres.
-const knownTabs = ref(['portfolio', 'inout', 'stock', 'budget', '_history'])
+const knownTabs = ref(['portfolio', 'inout', 'stock', 'budget', 'history'])
 // Document en vigueur : quand il change, la liste « Onglets du document » déjà lue est oubliée
 const docKey = ref('')
 // Vrai quand un autre document vient d'être enregistré : ses onglets sont lus tout de suite (la liste les suit)

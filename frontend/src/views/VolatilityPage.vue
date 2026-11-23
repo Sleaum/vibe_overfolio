@@ -1,6 +1,6 @@
 <!--
   Page « Volatilité » (/volatilite) : la variation du prix de chaque placement sur 1 mois, 3 mois et 1 an, comme la page
-  « Portfolio Volatility » de l'ancien rapport Data Studio. Graphiques : lib/charts/volatility.js (table _history seule).
+  « Portfolio Volatility » de l'ancien rapport Data Studio. Graphiques : lib/charts/volatility.js (table history seule).
 -->
 <template>
   <div>

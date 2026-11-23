@@ -70,7 +70,7 @@ export function averageContribution(table, today = new Date().toISOString().slic
   return months.reduce((sum, month) => sum + month.inflow - month.outflow - month.tax, 0) / months.length
 }
 
-/** Objectifs de `_history` (lignes sans Asset ni Instrument) postérieurs à `fromIso` : [{ iso, amount }]. */
+/** Objectifs de `history` (lignes sans Asset ni Instrument) postérieurs à `fromIso` : [{ iso, amount }]. */
 export function readGoals(table, fromIso) {
   if (!table) return []
   const date = findColumn(table.columns, ['Date'])

@@ -1,5 +1,5 @@
 // Page « Portfolio Snapshot » : un instantané du patrimoine, calculé à partir de la table `portfolio`
-// (positions actuelles) et, pour les variations de l'année et du mois, de la table `_history`.
+// (positions actuelles) et, pour les variations de l'année et du mois, de la table `history`.
 // Fonctions pures : testables sans navigateur. Seules Asset et Assets Master Currency sont obligatoires ;
 // les autres découpages (sous-type, instrument, enveloppe, courtier, zone) n'apparaissent que si la colonne existe.
 
@@ -30,7 +30,7 @@ export function signedPercent2(fraction) {
 }
 
 /**
- * Variation du patrimoine depuis le début de l'année et du mois, d'après `_history` (total des actifs par date).
+ * Variation du patrimoine depuis le début de l'année et du mois, d'après `history` (total des actifs par date).
  * Référence : le dernier relevé avant le 1er du mois / de l'année, sinon le premier relevé de la période.
  * La variation inclut les versements et retraits : ce n'est pas un rendement de placement.
  * Renvoie { year, month } ; chaque valeur est { fraction, since } ou null si on ne peut pas la calculer.
@@ -77,7 +77,7 @@ function topItems(rows, column, valueColumn, total) {
 /**
  * Construit tout ce qu'affiche la page.
  * @param portfolio table `portfolio` de l'API
- * @param history   table `_history` (ou null) : sert seulement aux variations de l'année et du mois
+ * @param history   table `history` (ou null) : sert seulement aux variations de l'année et du mois
  * @param today     "AAAA-MM-JJ" : date de référence si la table n'a pas de colonne Date
  * @param mode      'gross' ou 'net' (bouton Brut / Net de Charts, lib/amounts.js) : montants de l'anneau, du détail
  *                  par type et des variations. Les repères « Patrimoine brut » et « Patrimoine net » ne changent pas.

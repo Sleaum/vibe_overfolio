@@ -20,7 +20,7 @@
           type="text"
           autocomplete="off"
           spellcheck="false"
-          placeholder="portfolio, inout, stock, budget, _history"
+          placeholder="portfolio, inout, stock, budget, history"
           :aria-invalid="!!error"
           aria-describedby="sync-tabs-help"
           class="h-11 w-full rounded-lg border bg-paper px-3.5 text-[0.9375rem] text-ink placeholder:text-ink-3 sm:max-w-xl"

@@ -2,7 +2,7 @@
   Page « Simulation » (/simulation), à part de la rubrique Graphiques : simulation de Monte-Carlo du patrimoine net, avec la probabilité d'atteindre ton
   objectif. Calculs dans lib/simulation.js, exécutés dans un Web Worker (lib/simulation.worker.js).
   Point de départ lu dans la base : portfolio (montants par type d'actif et dettes), inout (versement moyen, facultatif),
-  _history (objectifs, facultatif). Toutes les hypothèses se modifient dans la page et sont retenues par le navigateur.
+  history (objectifs, facultatif). Toutes les hypothèses se modifient dans la page et sont retenues par le navigateur.
 -->
 <template>
   <div class="page-container py-12 sm:py-16">
@@ -234,7 +234,7 @@ const NumberField = defineComponent({
 
 const portfolio = useTable('portfolio')
 const inout = useTable('inout') // facultative
-const history = useTable('_history') // facultative
+const history = useTable('history') // facultative
 
 const start = computed(() => {
   if (!portfolio.data.value) return null

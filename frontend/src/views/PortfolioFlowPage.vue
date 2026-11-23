@@ -57,8 +57,8 @@ const route = useRoute()
 const router = useRouter()
 const group = ref(null)
 
-// Années proposées : celles des relevés de _history (la table est déjà chargée par les graphiques)
-const years = computed(() => yearsOf(group.value?.tables?._history?.data?.value))
+// Années proposées : celles des relevés de history (la table est déjà chargée par les graphiques)
+const years = computed(() => yearsOf(group.value?.tables?.history?.data?.value))
 const year = computed(() => {
   const asked = String(route.query.annee ?? '')
   return /^\d{4}$/.test(asked) ? asked : ''

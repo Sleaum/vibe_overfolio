@@ -163,7 +163,7 @@
     "currency": {
       "title": "Patrimoine par devise",
       "summary": "La valeur de ton patrimoine exprimée en CHF, en euros et en dollars, mois par mois.",
-      "source": "Table _history, colonne Date et une colonne de montants pour chaque devise (CHF, EUR, USD), additionnées par date.",
+      "source": "Table history, colonne Date et une colonne de montants pour chaque devise (CHF, EUR, USD), additionnées par date.",
       "explain": [
         "Pour chaque mois, trois barres donnent la valeur totale de ton patrimoine exprimée dans chaque devise. Ce n’est pas une répartition : c’est le même patrimoine, converti trois fois.",
         "Les barres changent donc ensemble ; leur écart ne bouge qu’avec les taux de change. Le montant d’un mois est celui du dernier relevé de ce mois."
@@ -176,7 +176,7 @@
       "a11y": "Répartition par type d’actif entre {from} et {to}. Au dernier mois, {asset} pèse {share}.",
       "title": "Répartition par type d’actif, mois par mois",
       "summary": "La part de chaque type d’actif dans ton patrimoine, à chaque mois.",
-      "source": "Table _history, colonnes Date, Asset et Assets Master Currency (montants supérieurs à 0), dernier relevé de chaque mois.",
+      "source": "Table history, colonnes Date, Asset et Assets Master Currency (montants supérieurs à 0), dernier relevé de chaque mois.",
       "explain": [
         "Chaque barre représente 100 % de ton patrimoine à la fin d’un mois, découpé par type d’actif. Les couleurs sont celles de l’anneau des types d’actifs.",
         "Les montants suivent le bouton Brut / Net du menu : en brut, les dettes ne comptent pas ; en net, chaque dette est retirée de son type d’actif. Passe la souris sur une barre pour lire la part et le montant de chaque type."
@@ -186,7 +186,7 @@
       "a11y": "Courbes de {count} types d’actifs entre {from} et {to}. Total au dernier mois : {total}.",
       "title": "Évolution par type d’actif",
       "summary": "Le montant de chaque type d’actif, mois après mois.",
-      "source": "Table _history, colonnes Date, Asset et Assets Master Currency (montants supérieurs à 0), dernier relevé de chaque mois.",
+      "source": "Table history, colonnes Date, Asset et Assets Master Currency (montants supérieurs à 0), dernier relevé de chaque mois.",
       "explain": [
         "Chaque courbe suit un type d’actif, avec la même couleur que dans les autres graphiques. Elle monte quand tu verses ou quand le marché progresse, et baisse quand il recule ou que tu retires.",
         "Passe la souris sur un mois : l’infobulle classe les types d’actifs du plus gros au plus petit. Cliquer sur un nom de la légende masque ou affiche sa courbe."
@@ -199,7 +199,7 @@
       "average": "Moyenne mensuelle : {value}.",
       "title": "Variation mensuelle",
       "summary": "De combien ton patrimoine monte ou baisse, en %, d’un mois à l’autre.",
-      "source": "Table _history, colonnes Date et Assets Master Currency, additionnées par date ; dernier relevé de chaque mois.",
+      "source": "Table history, colonnes Date et Assets Master Currency, additionnées par date ; dernier relevé de chaque mois.",
       "explain": [
         "Chaque barre compare le total de ton patrimoine (brut ou net, selon le bouton du menu) à la fin d’un mois avec celui du mois précédent. Les barres bleues au-dessus du zéro sont des hausses, les barres orange en dessous sont des baisses.",
         "Cette variation mélange deux causes : ce que tu as versé ou retiré, et ce que le marché a fait. Pour les séparer, il faut l’onglet inout, qui n’est pas encore utilisé ici."
@@ -227,17 +227,17 @@
       "goals": "Objectifs",
       "goal": "Objectif",
       "noColumn": "Colonne de montants en euros introuvable dans la table « {table} » : EUR ou Assets Master Currency. Colonnes disponibles : {available}.",
-      "twoRecords": "Il faut au moins deux relevés dans la table _history pour tracer une tendance.",
+      "twoRecords": "Il faut au moins deux relevés dans la table history pour tracer une tendance.",
       "nextGoal": "Prochain objectif : {goal} au {date} ; au rythme de la tendance, tu serais à {projected}.",
       "a11y": "Patrimoine en euros sur {count} relevés, du {from} au {to}. Dernier relevé : {last}. La tendance est de {perYear} par an.",
       "note": "Colonne utilisée : {column}. Tendance : {perYear} par an en moyenne.",
       "goalCount": "{count} objectif (ligne sans Asset ni Instrument). | {count} objectifs (lignes sans Asset ni Instrument).",
       "title": "Patrimoine et tendance",
       "summary": "Ton patrimoine en euros à chaque relevé, avec la droite de tendance.",
-      "source": "Table _history, colonne Date et colonne de montants en euros (EUR, sinon Assets Master Currency), additionnées par date. Les lignes sans Asset ni Instrument sont des objectifs.",
+      "source": "Table history, colonne Date et colonne de montants en euros (EUR, sinon Assets Master Currency), additionnées par date. Les lignes sans Asset ni Instrument sont des objectifs.",
       "explain": [
         "Chaque barre est le total de ton patrimoine en euros (brut ou net, selon le bouton du menu) à la date d’un relevé. La droite est la tendance moyenne de tous les relevés : elle montre le rythme de croissance passé.",
-        "Les losanges orange sont tes objectifs : dans la table _history, ce sont les lignes qui n’ont qu’une date et un montant (ni type d’actif, ni instrument). La tendance est prolongée en pointillés jusqu’au dernier objectif : si elle passe au-dessus d’un losange, ton rythme actuel suffit pour l’atteindre.",
+        "Les losanges orange sont tes objectifs : dans la table history, ce sont les lignes qui n’ont qu’une date et un montant (ni type d’actif, ni instrument). La tendance est prolongée en pointillés jusqu’au dernier objectif : si elle passe au-dessus d’un losange, ton rythme actuel suffit pour l’atteindre.",
         "Les objectifs étirent l’axe du temps : le curseur du bas permet de zoomer sur les relevés."
       ]
     },
@@ -250,7 +250,7 @@
       "months": "{count} mois | {count} mois",
       "ringA11y": "{envelopes} pour {total} : {shares}.",
       "total": "Total des enveloppes de placement : {total}.",
-      "noRecord": "Aucun relevé daté dans la table _history.",
+      "noRecord": "Aucun relevé daté dans la table history.",
       "historyA11y": "Montant de {envelopes} sur {months}. Dernier relevé : {last}.",
       "missingColumn": "Colonne {column} introuvable dans la table « {table} ». Colonnes disponibles : {available}.",
       "mixSource": "Table portfolio, colonnes Envelope (ou Account), {column} et Assets Master Currency, au dernier relevé."
@@ -286,7 +286,7 @@
     "envelopeHistory": {
       "title": "Évolution de chaque enveloppe",
       "summary": "Le montant de chaque enveloppe de placement, mois après mois.",
-      "source": "Table _history, colonnes Date, Envelope (ou Account), Asset et Assets Master Currency ; dernier relevé de chaque mois. Les enveloppes retenues sont celles qui contiennent des actions, des ETF ou des fonds au dernier relevé.",
+      "source": "Table history, colonnes Date, Envelope (ou Account), Asset et Assets Master Currency ; dernier relevé de chaque mois. Les enveloppes retenues sont celles qui contiennent des actions, des ETF ou des fonds au dernier relevé.",
       "explain": [
         "Une courbe par enveloppe de placement, au dernier relevé de chaque mois. Elle monte quand tu verses ou quand le marché progresse.",
         "Cliquer sur un nom de la légende masque ou affiche sa courbe ; l’infobulle classe les enveloppes de la plus grosse à la plus petite."
@@ -307,7 +307,7 @@
       "explain1": "Une bulle par placement. Horizontalement, le montant que tu détiens (échelle logarithmique : chaque graduation multiplie par 10) ; verticalement, la variation de son prix unitaire sur {period}. Plus la bulle est grosse, plus le placement pèse dans ton patrimoine.",
       "explain2": "Le prix unitaire est calculé en euros (montant ÷ quantité) : il tient compte du change, mais pas de tes achats ni de tes ventes. Une grosse bulle loin sous la ligne du zéro est le placement qui t’a fait perdre le plus.",
       "explain3": "Les liquidités, l’immobilier et les biens sans cours de marché ne sont pas affichés.",
-      "source": "Table _history, colonnes Date, Instrument, Quantity, Assets Master Currency (et Asset, Envelope, Broker si présentes) : dernier relevé comparé au relevé d’il y a {period}.",
+      "source": "Table history, colonnes Date, Instrument, Quantity, Assets Master Currency (et Asset, Envelope, Broker si présentes) : dernier relevé comparé au relevé d’il y a {period}.",
       "notYet": "L’historique ne remonte pas encore à {period} avant le dernier relevé ({date}).",
       "noCommon": "Aucun placement commun au {from} et au {to} avec une quantité et un montant renseignés.",
       "range": "Du {from} au {to}.",
@@ -326,8 +326,8 @@
     "debts": {
       "title": "Tes dettes",
       "summary": "Le montant de tes dettes, par type d’actif, mois après mois.",
-      "source": "Table _history, colonnes Date, Asset et Liabilities Master Currency (pour les anciens relevés sans cette colonne : la colonne EUR quand elle est négative).",
-      "none": "Aucune dette dans la table _history.",
+      "source": "Table history, colonnes Date, Asset et Liabilities Master Currency (pour les anciens relevés sans cette colonne : la colonne EUR quand elle est négative).",
+      "none": "Aucune dette dans la table history.",
       "explain": [
         "Chaque courbe suit les dettes d’un type d’actif : le prêt de la maison dans l’immobilier, le crédit de la voiture dans les biens qui se déprécient… Elle baisse à mesure que tu rembourses.",
         "Ce graphique n’apparaît qu’en mode Brut : en mode Net, les dettes sont déjà retirées des autres graphiques."
@@ -430,7 +430,7 @@
       "title": "Comment ça marche",
       "connect": {
         "title": "Connecte ta feuille",
-        "text": "Partage ton Google Sheet, en lecture seule, avec l’adresse d’Overfolio. Les onglets portfolio, inout, stock, budget et _history sont repérés par leur nom."
+        "text": "Partage ton Google Sheet, en lecture seule, avec l’adresse d’Overfolio. Les onglets portfolio, inout, stock, budget et history sont repérés par leur nom."
       },
       "sync": {
         "title": "Synchronise",
@@ -445,7 +445,7 @@
       "title": "Questions fréquentes",
       "sheet": {
         "q": "Que doit contenir ma feuille Google Sheets ?",
-        "a": "Overfolio cherche cinq onglets par leur nom : portfolio, inout, stock, budget et _history. Chaque page indique les colonnes dont elle a besoin. S’il en manque une, elle te dit laquelle, et les autres pages continuent de s’afficher."
+        "a": "Overfolio cherche cinq onglets par leur nom : portfolio, inout, stock, budget et history. Chaque page indique les colonnes dont elle a besoin. S’il en manque une, elle te dit laquelle, et les autres pages continuent de s’afficher."
       },
       "access": {
         "q": "Overfolio peut-il modifier ma feuille ou voir mes comptes bancaires ?",
@@ -530,7 +530,7 @@
   },
   "volatilityPage": {
     "lead": "De combien le prix de chacun de tes placements a bougé. Une bulle par placement : à droite ce que tu détiens le plus, en bas ce qui a le plus baissé. Le prix est calculé en euros, change compris, sans tes achats ni tes ventes.",
-    "footer": "Les variations comparent deux relevés de la table _history : plus tu fais de relevés, plus elles sont précises. L’ancien rapport proposait aussi « 1 semaine », qui demande des relevés hebdomadaires."
+    "footer": "Les variations comparent deux relevés de la table history : plus tu fais de relevés, plus elles sont précises. L’ancien rapport proposait aussi « 1 semaine », qui demande des relevés hebdomadaires."
   },
   "notFound": {
     "text": "L’adresse que tu as ouverte n’existe pas, ou plus. Tu peux repartir de l’accueil.",
@@ -554,11 +554,11 @@
     "noData": "Sans données : {types}.",
     "columnsRead": "Colonnes lues pour le détail : {columns}.",
     "noColumnFor": "Pas de colonne pour : {dims}.",
-    "footer": "Les variations de l’année et du mois comparent le patrimoine (brut ou net, selon le bouton du menu de Charts) aux relevés de la table _history ; elles incluent tes versements et retraits. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
+    "footer": "Les variations de l’année et du mois comparent le patrimoine (brut ou net, selon le bouton du menu de Charts) aux relevés de la table history ; elles incluent tes versements et retraits. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
     "defaultSubtitle": "Ton patrimoine aujourd’hui, type d’actif par type d’actif.",
     "donutA11y": "Anneau de {count} types d’actifs pour {total} au total. Le plus gros : {biggest}, {share}.",
     "since": "Depuis le {date}",
-    "notEnough": "Pas assez de relevés dans _history",
+    "notEnough": "Pas assez de relevés dans history",
     "loadingShort": "Chargement…",
     "noHistory": "Historique indisponible",
     "gross": "Patrimoine brut",
@@ -821,7 +821,7 @@
       "contributionAverage": "Moyenne des 12 derniers mois de l’onglet inout : {amount}.",
       "debt": "Dette actuelle : {amount}. Indique la part capital de tes mensualités.",
       "noDebt": "Aucune dette dans la table portfolio.",
-      "goalFromHistory": "Lu dans _history (ligne sans type d’actif). {unit}",
+      "goalFromHistory": "Lu dans history (ligne sans type d’actif). {unit}",
       "real": "Compté en euros d’aujourd’hui.",
       "nominal": "Compté en euros courants."
     }
