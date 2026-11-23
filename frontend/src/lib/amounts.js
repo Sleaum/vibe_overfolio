@@ -133,7 +133,9 @@ export function buildChart(spec, table, values = {}) {
   const [model, dropped] = collectDropped(() => spec.build(mode ? amountTable(table, mode) : table, values))
   if (!model || model.problem || model.empty) return model
   const notes = mode ? [amountNote(mode), droppedNote(dropped)] : []
-  const note = [...notes, projectionNote(table), conversionNote(table), model.note].filter(Boolean).join(' ')
+  // projection: 'positions' (Volatility) : le graphique dit lui-même ce qu'il fait des positions actuelles
+  const projected = spec.projection === true ? projectionNote(table) : ''
+  const note = [...notes, projected, conversionNote(table), model.note].filter(Boolean).join(' ')
   return note === (model.note ?? '') ? model : { ...model, note }
 }
 

@@ -323,8 +323,8 @@
       "explain1": "One bubble per investment. Horizontally, the amount you hold (log scale: each tick multiplies by 10); vertically, the change in its unit price over {period}. The bigger the bubble, the more the investment weighs in your wealth.",
       "explain2": "The unit price is calculated in {currency} (amount ÷ quantity): it accounts for exchange rates, but not for your purchases or sales. A big bubble far below the zero line is the investment that lost you the most.",
       "explain3": "Cash, real estate and assets without a market price aren’t shown.",
-      "source": "history table, columns Date, Instrument, Quantity, Assets Master Currency (and Asset, Envelope, Broker if present): last record compared with the record from {period} earlier.",
-      "notYet": "The history doesn’t yet go back {period} before the last record ({date}).",
+      "source": "history table with your current positions (portfolio tab), columns Date, Instrument, Quantity, Assets Master Currency (and Asset, Envelope, Broker if present): current prices compared with those on the same day {period} earlier.",
+      "notYet": "The history doesn’t go back {period} before {date} yet.",
       "noCommon": "No investment present on both {from} and {to} with a quantity and an amount filled in.",
       "range": "From {from} to {to}.",
       "count": "{count} investment compared | {count} investments compared",
@@ -337,7 +337,9 @@
       "priceNow": "Unit price now",
       "investment": "Investment",
       "type": "Type",
-      "missing": "Not yet held on {date}, so no change to show: {names}. | Not yet held on {date}, so no change to show: {names}."
+      "missing": "Not yet held on {date}, so no change to show: {names}. | Not yet held on {date}, so no change to show: {names}.",
+      "current": "Prices on {date}: your current positions (portfolio tab).",
+      "estimated": "Prices on {date} estimated between your records of {before} and {after}, pro rata by day."
     },
     "debts": {
       "title": "Your debts",
@@ -551,7 +553,7 @@
   },
   "volatilityPage": {
     "lead": "How much the price of each of your investments has moved. One bubble per investment: what you hold most is on the right, what fell most is at the bottom. Prices are in {currency}, exchange rates included, excluding your purchases and sales.",
-    "footer": "The changes compare two records from the history table: the more records you make, the more precise they are. The old report also offered “1 week”, which needs weekly records."
+    "footer": "Changes compare your current prices (portfolio tab) with those on the same day 1 month, 3 months or 1 year earlier. As the history table has only one record a month, those earlier prices are estimated between the two records around that date: the more records you keep, the more precise they are. The old report also offered “1 week”, which requires weekly records."
   },
   "notFound": {
     "text": "The address you opened doesn’t exist, or no longer does. You can start again from the home page.",

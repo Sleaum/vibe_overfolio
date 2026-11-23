@@ -770,7 +770,7 @@ Quinze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de F
 | `enveloppes-instruments` | `portfolio` | `Envelope` (ou `Account`), `Instrument`, `Assets Master Currency`, `Asset` |
 | `enveloppes-evolution` | `history` | `Date`, `Envelope`, `Asset`, `Assets Master Currency` |
 | `enveloppes-types`, `enveloppes-zones` | `portfolio` | `Envelope`, `Sub Asset` (ou `Area`), `Assets Master Currency` |
-| `volatilite-1-mois`, `volatilite-3-mois`, `volatilite-1-an` | `history` | `Date`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Asset`, `Envelope`, `Broker`). Prix unitaire = montant ÷ quantité ; liquidités, immobilier, biens qui se déprécient et objets écartés. Chaque bulle porte son nom (avec l'enveloppe quand le même instrument est dans plusieurs enveloppes) ; les noms de bulles presque superposées sont écartés. Une ligne pas encore détenue à la date de référence est nommée dans la note |
+| `volatilite-1-mois`, `volatilite-3-mois`, `volatilite-1-an` | `history` et positions actuelles (`portfolio`) | `Date`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Asset`, `Envelope`, `Broker`). Prix unitaire = montant ÷ quantité. Prix actuels (date des positions) comparés à ceux du même jour 1 mois, 3 mois ou 1 an plus tôt : du 23 octobre au 23 novembre, du 23 août au 23 novembre, du 23 novembre 2025 au 23 novembre 2026 (voir « Volatility : prix actuels et prix estimés ») ; liquidités, immobilier, biens qui se déprécient et objets écartés. Chaque bulle porte son nom (avec l'enveloppe quand le même instrument est dans plusieurs enveloppes) ; les noms de bulles presque superposées sont écartés. Une ligne pas encore détenue à la date de référence est nommée dans la note |
 
 Les graphiques de `patrimoine-devises` à `patrimoine-tendance` forment la page `/portfolio-flow`. Ils prennent, pour chaque mois, le **dernier relevé** du mois (plusieurs relevés par mois ne s'additionnent pas). Une date isolée, à plus de 6 mois des autres (un objectif en 2039, un vieux relevé), est écartée des graphiques mensuels, et la page le signale ; le graphique `patrimoine-tendance` garde toutes les dates et affiche les objectifs à part.
 
@@ -782,7 +782,18 @@ Les graphiques de `history` de la page Flow et « Évolution de chaque enveloppe
 - Montants en euros, comme le reste de `history` : un `portfolio` dans une autre devise (case M1) est converti au taux du jour des positions. Les colonnes de devise (« Patrimoine par devise », colonnes `EUR`, `USD`… encore présentes dans la feuille) sont calculées comme pour les autres relevés.
 - **Pas de doublon** : si `history` a déjà des relevés ce mois-là (lignes recopiées à la main pas encore effacées, ou vrai relevé), la feuille fait foi et rien n'est ajouté.
 - Sous chaque graphique, une phrase le signale : « Relevé du 1er décembre 2026 : tes positions actuelles (onglet portfolio, au 23 novembre 2026). » Avec le filtre d'une année qui ne contient pas ce mois, elle disparaît.
-- Pour l'ajouter à un autre graphique qui lit `history`, sa spécification déclare `projection: true` (Volatility ne le fait pas).
+- Pour l'ajouter à un autre graphique qui lit `history`, sa spécification déclare `projection: true`. Volatility déclare `projection: 'positions'` : elle reçoit les mêmes lignes, mais les compte à la date des positions (voir ci-dessous) et n'affiche pas cette phrase.
+
+#### Volatility : prix actuels et prix estimés
+
+Les trois graphiques de Volatility (`lib/charts/volatility.js`, `priceChanges()`) comparent le prix unitaire de chaque placement entre deux jours :
+
+| Point | Prix |
+|---|---|
+| Arrivée | Tes **positions actuelles** (lignes de `portfolio` reçues avec le mois prochain), à la **date des positions** : le 23 novembre, pas le 1er décembre. Si `history` a déjà un relevé du mois prochain (lignes encore recopiées dans la feuille), le dernier relevé de `history` |
+| Départ | Le **même jour**, 1, 3 ou 12 mois plus tôt (fin de mois ramenée au dernier jour : 31 mars → 28 février). `history` n'ayant qu'un relevé par mois, le prix de ce jour-là est **estimé entre les deux relevés qui l'encadrent**, au prorata des jours : le 23 octobre, entre le relevé du 1er octobre (poids 9/31) et celui du 1er novembre (poids 22/31). Un relevé tombé ce jour-là sert tel quel |
+
+Sous chaque graphique, deux phrases le disent : « Prix du 23 novembre 2026 : tes positions actuelles (onglet portfolio). » et « Prix du 23 octobre 2026 estimé entre tes relevés du 1er octobre 2026 et du 1er novembre 2026, au prorata des jours. » Un placement absent de l'un des deux relevés (acheté depuis) n'a pas de variation et est nommé dans la note. Si `history` ne remonte pas assez loin, le graphique le dit.
 
 Les anciens graphiques à part (évolution du patrimoine, répartition par type d'actif, par zone, par compte, plus grosses positions) ont été retirés : Snapshot et Strategy couvrent la répartition. Le fichier `lib/charts/evolution.js` reste, mais seulement comme courbe de l'aperçu de la page d'accueil.
 
