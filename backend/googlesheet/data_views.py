@@ -70,7 +70,7 @@ def table_detail(request, name):
     display = (request.GET.get("currency") or "EUR").strip().upper()
     if display not in ISO_CODES:
         return error_response("Devise non valable.", "invalid_currency", 400)
-    # ?projection=1 (graphiques de Flow) : history reçoit en plus le mois prochain, tiré de portfolio (projection.py)
+    # ?projection=1 (graphiques de Flow et Envelopes) : history reçoit en plus le mois prochain, tiré de portfolio (projection.py)
     extra, projection = [], None
     if table.name == HISTORY_TABLE and request.GET.get("projection") == "1":
         extra, projection = projected_rows(table)

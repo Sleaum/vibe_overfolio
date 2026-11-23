@@ -1,5 +1,5 @@
 """
-Mois prochain dans history, pour les graphiques de la page Flow (GET /api/data/history/?projection=1).
+Mois prochain dans history, pour les graphiques de Flow et « Évolution de chaque enveloppe » (GET /api/data/history/?projection=1).
 
 Les positions actuelles (table portfolio) deviennent le relevé du mois suivant : chaque ligne de portfolio est
 recopiée dans les colonnes de history, datée du 1er du mois qui suit la date des positions. Rien n'est écrit en base :
