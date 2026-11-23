@@ -108,3 +108,11 @@ class VolatilityMonthsTests(TestCase):
         for value in ([0], [241], ["3"], [1.5], [True], "1,3", list(range(1, 14))):
             response = self.put({"volatility_months": value})
             self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_volatility_months"), value)
+
+    def test_performance_days(self):
+        self.put({"volatility_months": [6]})
+        body = self.put({"performance_days": [365, 30, 7]}).json()
+        self.assertEqual((body["performance_days"], body["volatility_months"]), ([7, 30, 365], [6]))
+        for value in ([0], [3651], list(range(1, 10)), ["30"]):
+            response = self.put({"performance_days": value})
+            self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_performance_days"), value)

@@ -30,6 +30,8 @@ class Profile(models.Model):
     # Périodes de la page Volatility, en mois : [1, 3, 12…] ; vide = 1 mois, 3 mois et 1 an.
     # Gardées ici pour un compte connecté ; un visiteur les garde dans son navigateur (lib/preferences.js).
     volatility_months = models.JSONField(default=list, blank=True)
+    # Périodes du graphique « Variation des prix par sous-type » de Snapshot, en jours : [30, 90, 365…] ; vide = défaut
+    performance_days = models.JSONField(default=list, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

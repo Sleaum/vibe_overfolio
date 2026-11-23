@@ -523,16 +523,41 @@
     "keepOne": "Garde au moins une devise",
     "add": "Ajouter une devise"
   },
-  "volatilityWindows": {
+  "windowsPicker": {
     "label": "Périodes",
     "remove": "Retirer {period}",
     "keepOne": "Garde au moins une période",
-    "addLabel": "Ajouter une période, en nombre de mois",
-    "placeholder": "mois",
     "add": "Ajouter",
-    "invalid": "Entre un nombre de mois entre 1 et {max}.",
     "exists": "Cette période est déjà affichée.",
-    "full": "{max} périodes au plus."
+    "full": "{max} périodes au plus.",
+    "months": {
+      "addLabel": "Ajouter une période, en nombre de mois",
+      "placeholder": "mois",
+      "invalid": "Entre un nombre de mois entre 1 et {max}."
+    },
+    "days": {
+      "addLabel": "Ajouter une période, en nombre de jours",
+      "placeholder": "jours",
+      "invalid": "Entre un nombre de jours entre 1 et {max}."
+    }
+  },
+  "subAssetPerformance": {
+    "title": "Variation des prix par sous-type",
+    "summary": "De combien le prix de tes actions, ETF, bitcoin, or… a bougé sur les périodes choisies, en jours.",
+    "explain": [
+      "Une barre par période choisie au-dessus du graphique, pour chaque sous-type de placement (colonne Sub Asset). Les ETF sont séparés par instrument : ETF msci world, ETF dbmfe…",
+      "La variation d’un sous-type est celle de sa valeur à quantités constantes : tes quantités d’aujourd’hui, au prix actuel et au prix du jour de départ. Tes achats et tes ventes ne comptent donc pas.",
+      "Le prix actuel vient de l’onglet portfolio. Le prix du jour de départ est estimé entre les deux relevés de history qui l’encadrent, au prorata des jours : sur une courte période, c’est une estimation. Les liquidités, l’immobilier et les biens sans cours de marché ne sont pas comptés."
+    ],
+    "source": "Table history avec tes positions actuelles (onglet portfolio), colonnes Date, Sub Asset, Instrument, Quantity, Assets Master Currency (et Account, Broker si présentes).",
+    "range": "Prix au {date}, comparés à {periods} plus tôt.",
+    "days": "{count} jour | {count} jours",
+    "group": "Sous-type",
+    "noPrice": "pas de prix de départ",
+    "noCommon": "Aucun placement avec un prix au {date} et un prix de départ.",
+    "a11y": "Variation des prix par sous-type au {date} : {groups}.",
+    "note": "Prix actuels : tes positions au {date} (onglet portfolio) ; prix de départ estimés entre tes relevés de history.",
+    "missing": "Sans prix de départ sur {period}, donc pas compté : {names}. | Sans prix de départ sur {period}, donc pas comptés : {names}."
   },
   "chartPage": {
     "breadcrumb": "Fil d’Ariane",

@@ -1,7 +1,7 @@
 <!--
   Page « Volatilité » (/volatilite) : la variation du prix de chaque placement sur les périodes choisies (1 mois, 3 mois
   et 1 an par défaut), comme la page « Portfolio Volatility » de l'ancien rapport Data Studio. Un graphique par période :
-  on en ajoute ou on en retire avec VolatilityWindows.vue (lib/volatilityWindows.js). Calculs : lib/charts/volatility.js.
+  on en ajoute ou on en retire avec WindowsPicker.vue (lib/volatilityWindows.js). Calculs : lib/charts/volatility.js.
 -->
 <template>
   <div>
@@ -12,7 +12,7 @@
       </p>
     </header>
 
-    <VolatilityWindows class="mt-6" />
+    <WindowsPicker class="mt-6" :store="volatilityWindows" :format="periodLabel" unit="months" testid="volatility-windows" />
 
     <ChartGroup class="mt-8" :charts="charts" />
 
@@ -26,7 +26,9 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChartGroup from '../components/charts/ChartGroup.vue'
-import VolatilityWindows from '../components/charts/VolatilityWindows.vue'
+import WindowsPicker from '../components/charts/WindowsPicker.vue'
+import { periodLabel } from '../lib/charts/volatility.js'
+import { volatilityWindows } from '../lib/volatilityWindows.js'
 import { volatilityChartList } from '../lib/charts/index.js'
 import { currencyLabel } from '../lib/format.js'
 

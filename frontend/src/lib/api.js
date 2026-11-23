@@ -166,12 +166,13 @@ export const saveProfileCurrencies = (codes) =>
     body: JSON.stringify({ chart_currencies: codes }),
   })
 
-// Périodes de Volatility d'un compte connecté, en mois ([] = 1, 3 et 12)
-export const saveProfileVolatility = (months) =>
+// Réglages du profil d'un compte connecté : seuls les champs envoyés changent
+// (périodes de Volatility et de Snapshot : lib/windows.js)
+export const saveProfileSettings = (values) =>
   request('/api/profile/', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ volatility_months: months }),
+    body: JSON.stringify(values),
   })
 
 // Devise d'affichage d'un compte connecté ('' = euro)

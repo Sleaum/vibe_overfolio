@@ -20,6 +20,15 @@
         :more="model.currencies.more"
         @changed="reload"
       />
+      <!-- Périodes au choix (graphique de Snapshot, en jours) : pastilles, ajout et retrait -->
+      <WindowsPicker
+        v-if="spec.windows"
+        class="w-full"
+        :store="spec.windows.store"
+        :format="spec.windows.format"
+        :unit="spec.windows.unit"
+        :testid="spec.windows.testid"
+      />
     </header>
 
     <div class="p-4 sm:p-6">
@@ -95,6 +104,7 @@
 
 <script setup>
 import CurrencyPicker from './CurrencyPicker.vue'
+import WindowsPicker from './WindowsPicker.vue'
 import { useI18n } from 'vue-i18n'
 import { computed, ref } from 'vue'
 import { DataError } from '../../lib/aggregate.js'

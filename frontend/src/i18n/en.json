@@ -523,16 +523,41 @@
     "keepOne": "Keep at least one currency",
     "add": "Add a currency"
   },
-  "volatilityWindows": {
+  "windowsPicker": {
     "label": "Periods",
     "remove": "Remove {period}",
     "keepOne": "Keep at least one period",
-    "addLabel": "Add a period, in months",
-    "placeholder": "months",
     "add": "Add",
-    "invalid": "Enter a number of months between 1 and {max}.",
     "exists": "This period is already shown.",
-    "full": "{max} periods at most."
+    "full": "{max} periods at most.",
+    "months": {
+      "addLabel": "Add a period, in months",
+      "placeholder": "months",
+      "invalid": "Enter a number of months between 1 and {max}."
+    },
+    "days": {
+      "addLabel": "Add a period, in days",
+      "placeholder": "days",
+      "invalid": "Enter a number of days between 1 and {max}."
+    }
+  },
+  "subAssetPerformance": {
+    "title": "Price change by sub-type",
+    "summary": "How much the price of your stocks, ETFs, bitcoin, gold… has moved over the chosen periods, in days.",
+    "explain": [
+      "One bar per period chosen above the chart, for each investment sub-type (Sub Asset column). ETFs are split by instrument: ETF msci world, ETF dbmfe…",
+      "A sub-type’s change is the change in its value at constant quantities: today’s quantities, at the current price and at the start date’s price. Your purchases and sales therefore don’t count.",
+      "The current price comes from the portfolio tab. The start date’s price is estimated between the two history records around it, pro rata by day: over a short period, it is an estimate. Cash, real estate and goods without a market price are not counted."
+    ],
+    "source": "history table with your current positions (portfolio tab), columns Date, Sub Asset, Instrument, Quantity, Assets Master Currency (and Account, Broker if present).",
+    "range": "Prices on {date}, compared with {periods} earlier.",
+    "days": "{count} day | {count} days",
+    "group": "Sub-type",
+    "noPrice": "no start price",
+    "noCommon": "No investment with a price on {date} and a start price.",
+    "a11y": "Price change by sub-type on {date}: {groups}.",
+    "note": "Current prices: your positions on {date} (portfolio tab); start prices estimated between your history records.",
+    "missing": "No start price over {period}, so not counted: {names}. | No start price over {period}, so not counted: {names}."
   },
   "chartPage": {
     "breadcrumb": "Breadcrumb",

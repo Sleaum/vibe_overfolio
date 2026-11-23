@@ -79,7 +79,7 @@ overfolio/
 │       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
 │       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue), CurrencySelect (devise d'affichage)
 │       │   ├── landing/            # sections de la page de présentation
-│       │   └── charts/             # AssetColorSettings, CurrencyPicker (devises du graphique par devise), VolatilityWindows (périodes de Volatility), BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
+│       │   └── charts/             # AssetColorSettings, CurrencyPicker (devises du graphique par devise), WindowsPicker (pastilles de périodes : Volatility, Snapshot), BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
 │       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes),
 │       │                           #   menu.js (noms des menus, toujours en anglais)
 │       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
@@ -89,12 +89,13 @@ overfolio/
 │           ├── googlePicker.js     # sélecteur de fichiers de Google (mode 3 de la page GoogleSheet)
 │           ├── profile.js          # profil en base au démarrage et après connexion : couleurs, mode, devises
 │           ├── currencies.js       # devises de « Patrimoine par devise » : proposées, cochées, ajoutées, enregistrées sur le profil
-│           ├── volatilityWindows.js # périodes de Volatility : choix (navigateur, profil), ajout, retrait
+│           ├── windows.js          # choix de périodes (navigateur, profil), ajout, retrait : createWindows()
+│           ├── volatilityWindows.js, performanceWindows.js   # périodes de Volatility (mois) et de Snapshot (jours)
 │           ├── displayCurrency.js  # devise d'affichage de Charts et Simulation : liste, choix (navigateur, profil), conversion des réglages
 │           ├── aggregate.js, dates.js, format.js   # calculs ; nombres, dates et noms de pays dans la langue active
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
 │           ├── countries.js        # pays de la carte du monde (Strategy) : écritures de la colonne Area, centres
-│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, devise, périodes de Volatility, réglages de la simulation, brut / net
+│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, devise, périodes de Volatility et de Snapshot, réglages de la simulation, brut / net
 │           ├── amounts.js          # bouton Brut / Net de Charts : montants bruts, nets ou dettes seules
 │           ├── pdfExport.js        # bouton PDF : tout le site en un PDF, une page web = une page PDF
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
@@ -479,7 +480,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas. `fx` : taux BCE mis à jour et devises recalculées (`rates_latest`, `error` : `fx_unreachable` ou `fx_invalid`, `tables`) |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
-| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon). `PUT {"chart_currencies": ["EUR", "THB"]}` : devises de « Patrimoine par devise » (codes ISO, `[]` = toutes ; 400 `invalid_currencies`). `PUT {"display_currency": "THB"}` : devise d'affichage de Charts et Simulation (`""` = euro ; 400 `invalid_currency`). `PUT {"volatility_months": [1, 3, 6]}` : périodes de Volatility en mois (1 à 240, 12 au plus, `[]` = 1, 3 et 12 ; 400 `invalid_volatility_months`). Seul ce qui est envoyé change |
+| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon). `PUT {"chart_currencies": ["EUR", "THB"]}` : devises de « Patrimoine par devise » (codes ISO, `[]` = toutes ; 400 `invalid_currencies`). `PUT {"display_currency": "THB"}` : devise d'affichage de Charts et Simulation (`""` = euro ; 400 `invalid_currency`). `PUT {"volatility_months": [1, 3, 6]}` : périodes de Volatility en mois (1 à 240, 12 au plus, `[]` = 1, 3 et 12 ; 400 `invalid_volatility_months`). `PUT {"performance_days": [30, 90]}` : périodes de « Variation des prix par sous-type » de Snapshot, en jours (1 à 3650, 8 au plus, `[]` = 30, 90 et 365 ; 400 `invalid_performance_days`). Seul ce qui est envoyé change |
 | PUT | `/api/profile/asset-colors/` | `{"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut). Types mis en minuscules ; 400 `invalid_asset_colors` si une couleur n'est pas au format `#rrggbb`, si un type est vide ou dépasse 100 caractères, ou au-delà de 200 types |
 | GET | `/api/auth/google/start/?next=/page` | Navigation (pas d'appel JSON) : part se connecter chez Google, puis revient sur `next` (une page du site seulement). Sans réglages Google : retour sur `/newpage?error=google_not_configured` |
 | GET | `/api/auth/google/callback/` | Retour de Google (adresse déclarée dans Google Cloud) : vérifie `state`, échange le code (PKCE), vérifie le jeton d'identité, ouvre la session. Échec : `/newpage?error=` `google_denied`, `google_state_invalid`, `google_token_failed`, `google_token_invalid`, `google_email_unverified`, `account_disabled` (compte désactivé dans l'admin) |
@@ -547,6 +548,7 @@ erDiagram
     jsonb chart_currencies "devises de Patrimoine par devise"
     varchar display_currency "devise de Charts et Simulation, vide = EUR"
     jsonb volatility_months "périodes de Volatility en mois, vide = 1, 3, 12"
+    jsonb performance_days "périodes de Snapshot en jours, vide = 30, 90, 365"
     timestamp updated_at
   }
   accounts_googleaccount {
@@ -584,7 +586,7 @@ Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessi
 | `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ), `currency` (devise des montants, lue au-dessus de l'en-tête : case M1 de `portfolio`), `rates_applied_at` (dernier calcul des devises) |
 | `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration. `computed` : ce que le site calcule avec les taux BCE à la synchronisation, sans toucher aux valeurs de la feuille (`fx` : le relevé dans chaque devise, pour `history`) |
 | `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur |
-| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes), devise d'affichage de Charts et Simulation (`display_currency`, vide = euro) et périodes de Volatility (`volatility_months`, en mois, vide = 1, 3 et 12) : gardées ici pour un compte, dans le navigateur pour un visiteur. Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
+| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes), devise d'affichage de Charts et Simulation (`display_currency`, vide = euro) et périodes de Volatility (`volatility_months`, en mois, vide = 1, 3 et 12) et de Snapshot (`performance_days`, en jours, vide = 30, 90 et 365) : gardées ici pour un compte, dans le navigateur pour un visiteur. Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
 | `accounts_googleaccount` | `GoogleAccount` | Compte Google d'un utilisateur : identifiant Google `sub` (unique), e-mail, nom, photo. Mode 3 : jeton de rafraîchissement Google **chiffré** (`drive_refresh_token`, vide si l'accès n'est pas accordé) |
 | `fx_exchangerate` | `ExchangeRate` | Taux de référence de l'euro publiés par la BCE : une ligne par jour de cotation et par devise (unique), taux = unités de la devise pour 1 EUR. Communs à tous |
 | `auth_user` | `User` (Django) | Comptes Django : l'administrateur (`createsuperuser`) et un utilisateur par compte Google connecté (`google-<sub>`, sans mot de passe) |
@@ -772,6 +774,7 @@ Chaque graphique a sa propre page `/graphiques/<nom>` : Budget et ceux de Flow, 
 | `enveloppes-instruments` | `portfolio` | `Envelope` (ou `Account`), `Instrument`, `Assets Master Currency`, `Asset` |
 | `enveloppes-evolution` | `history` | `Date`, `Envelope`, `Asset`, `Assets Master Currency` |
 | `enveloppes-types`, `enveloppes-zones` | `portfolio` | `Envelope`, `Sub Asset` (ou `Area`), `Assets Master Currency` |
+| `performance-sous-types` | `history` et positions actuelles (`portfolio`) | `Date`, `Sub Asset`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Account`, `Broker`). Sur la page Snapshot, voir « Snapshot : variation des prix par sous-type » |
 | `volatilite-<n>-mois` (`volatilite-1-an` pour 12 mois) : un par période choisie, `volatilite-1-mois`, `volatilite-3-mois` et `volatilite-1-an` par défaut | `history` et positions actuelles (`portfolio`) | `Date`, `Instrument`, `Quantity`, `Assets Master Currency` (et `Asset`, `Envelope`, `Broker`). Prix unitaire = montant ÷ quantité. Prix actuels (date des positions) comparés à ceux du même jour 1 mois, 3 mois ou 1 an plus tôt : du 23 octobre au 23 novembre, du 23 août au 23 novembre, du 23 novembre 2025 au 23 novembre 2026 (voir « Volatility : prix actuels et prix estimés ») ; liquidités, immobilier, biens qui se déprécient et objets écartés. Chaque bulle porte son nom (avec l'enveloppe quand le même instrument est dans plusieurs enveloppes) ; les noms de bulles presque superposées sont écartés. Une ligne pas encore détenue à la date de référence est nommée dans la note |
 
 Les graphiques de `patrimoine-devises` à `patrimoine-tendance` forment la page `/portfolio-flow`. Ils prennent, pour chaque mois, le **dernier relevé** du mois (plusieurs relevés par mois ne s'additionnent pas). Une date isolée, à plus de 6 mois des autres (un objectif en 2039, un vieux relevé), est écartée des graphiques mensuels, et la page le signale ; le graphique `patrimoine-tendance` garde toutes les dates et affiche les objectifs à part.
@@ -788,7 +791,7 @@ Les graphiques de `history` de la page Flow et « Évolution de chaque enveloppe
 
 #### Volatility : les périodes
 
-En haut de la page Volatility, une pastille par période affichée (`components/charts/VolatilityWindows.vue`, `lib/volatilityWindows.js`) :
+En haut de la page Volatility, une pastille par période affichée (`components/charts/WindowsPicker.vue`, `lib/volatilityWindows.js` sur `lib/windows.js`) :
 
 - **Retirer** : un clic sur la pastille retire la période et son graphique (la dernière reste).
 - **Ajouter** : un nombre de mois (1 à 240) et « Ajouter » : un graphique de plus, rangé de la plus courte à la plus longue période. 12, 24… mois s'affichent « 1 an », « 2 ans ». 12 périodes au plus.
@@ -837,9 +840,24 @@ La page `/portfolio-snapshot` lit la table `portfolio` (et `history` pour deux c
 | Anneau, montants par type | Selon le bouton Brut / Net (voir « Brut ou net »). En net, un type négatif est écarté et signalé |
 | Tes dettes | Mode Brut : les dettes par instrument, en positif, avec leur part du total des dettes |
 | Cette année, Ce mois-ci | Variation du total (brut ou net, selon le bouton) de `history` entre le dernier relevé avant le 1er janvier (ou le 1er du mois) et le dernier relevé jusqu'à la date des positions. Elle inclut tes versements et retraits : ce n'est pas un rendement. Sans assez de relevés, elle affiche « – » |
+| Variation des prix par sous-type | Sous « Tes actifs » / « Ton patrimoine net » : voir ci-dessous |
 | Détail par type d'actif | Un bloc par valeur de `Asset`, avec des barres pour chaque découpage dont la colonne existe : Sous-type (`Sub Asset`), Instrument (`Instrument`), Enveloppe (`Envelope`, `Enveloppe`, sinon `Account`), Courtier (`Broker`), Zone (`Area`). Les 6 plus gros sont affichés, le reste est regroupé en « Autres ». Le détail montre toujours les actifs du type ; en net, l'en-tête du type donne son montant net et les dettes retirées |
 
 Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en bas les colonnes réellement lues pour chaque découpage, ce qui permet de vérifier d'un coup d'œil. Pour accepter un autre nom de colonne, ajouter ce nom dans la liste `DIMENSIONS` de `snapshot.js`. Sur Snapshot, les zones restent une liste ; la carte du monde est sur la page Strategy.
+
+#### Snapshot : variation des prix par sous-type
+
+Sous le bloc « Tes actifs » (« Ton patrimoine net » en mode Net), le graphique `performance-sous-types` (`lib/charts/subAssetPerformance.js`) montre de combien le prix de chaque sous-type de placement a bougé, une barre par période :
+
+| Point | Règle |
+|---|---|
+| Groupes | Colonne `Sub Asset` (stock, bitcoin, gold…) ; les **ETF sont séparés par instrument** : ETF msci world (toutes enveloppes), ETF dbmfe. Liquidités, immobilier, biens qui se déprécient et objets écartés (comme Volatility). Rangés du plus gros montant au plus petit |
+| Périodes | En **jours**, 30, 90 et 365 par défaut ; pastilles pour en retirer, champ « jours » pour en ajouter (`WindowsPicker.vue`, `lib/performanceWindows.js` : préférence `performance`, profil `performance_days` si connecté). 8 au plus |
+| Prix | Même calcul que Volatility (`priceChanges()`) : prix actuels de `portfolio` à la date des positions, prix de départ N jours plus tôt estimés entre les deux relevés de `history` de chaque placement qui encadrent ce jour (voir « Volatility : prix actuels et prix estimés ») |
+| Variation d'un groupe | À quantités constantes (celles d'aujourd'hui) : somme des montants actuels ÷ somme des montants au prix de départ − 1. Tes achats et tes ventes ne comptent pas. Un placement sans prix de départ (acheté depuis) n'est pas compté pour cette période et est nommé dans la note |
+| Couleurs | Une nuance de bleu par période ; une baisse prend la nuance de rouge du même rang (`blues()`, `reds()` de `lib/palette.js`) |
+
+Ce graphique ne dépend pas du bouton Brut / Net. Comme pour Volatility, une courte période (7 jours) entre deux relevés mensuels est une estimation : elle répartit l'écart entre les deux relevés au prorata des jours.
 
 ### Strategy
 

@@ -1,6 +1,7 @@
 <!--
   Page « Portfolio Snapshot » (/portfolio-snapshot) : où en est ton patrimoine aujourd'hui.
-  Haut : patrimoine brut et net, variation de l'année et du mois, anneau des types d'actifs.
+  Haut : patrimoine brut et net, variation de l'année et du mois, anneau des types d'actifs ; puis la variation des prix
+  par sous-type sur les périodes choisies (lib/charts/subAssetPerformance.js).
   Bas : pour chaque type d'actif, ses sous-types, instruments, enveloppes, courtiers et zones.
   Calculs dans lib/snapshot.js. La table history ne sert qu'aux deux variations : si elle manque, la page s'affiche quand même.
 -->
@@ -89,6 +90,9 @@
         </div>
       </section>
 
+      <!-- Variation des prix par sous-type (stock, bitcoin, gold, ETF…), périodes en jours au choix -->
+      <ChartGroup class="mt-10" :charts="SNAPSHOT_CHARTS" />
+
       <!-- Tes dettes (mode Brut) : par instrument, en positif -->
       <section
         v-if="model.debts.length"
@@ -165,6 +169,8 @@ import BaseChart from '../components/charts/BaseChart.vue'
 import ShareBars from '../components/charts/ShareBars.vue'
 import { useTable } from '../composables/useTable.js'
 import ConversionNote from '../components/ConversionNote.vue'
+import ChartGroup from '../components/charts/ChartGroup.vue'
+import { SNAPSHOT_CHARTS } from '../lib/charts/index.js'
 import { DataError, collectDropped } from '../lib/aggregate.js'
 import { amountMode, amountNote, droppedNote } from '../lib/amounts.js'
 import { NEGATIVE } from '../lib/palette.js'
