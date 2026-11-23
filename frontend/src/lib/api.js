@@ -8,6 +8,7 @@
 //   PUT    /api/sheet-config/       -> enregistre les paramètres saisis
 //   DELETE /api/sheet-config/       -> revient aux valeurs du .env
 //   GET    /api/sheet-config/tabs/  -> onglets du document : { mode, tabs[], selected[] }
+//   PUT    /api/sheet-config/tab-map/ { tab_map } -> correspondance des onglets (nom du site -> onglet du document)
 //   GET    /api/profile/            -> réglages gardés en base : { asset_colors: { type: '#rrggbb' }, theme, updated_at }
 //   PUT    /api/profile/            { theme } -> mode clair / sombre du profil ('light', 'dark', '' = système)
 //   PUT    /api/profile/asset-colors/ { asset_colors } -> remplace les couleurs des types d'actifs ({} = par défaut)
@@ -129,6 +130,14 @@ export const resetSheetConfig = () => request('/api/sheet-config/', { method: 'D
 export const getSheetTabs = () => request('/api/sheet-config/tabs/')
 
 // Enregistre seulement la liste des onglets à synchroniser ("portfolio, budget") ; renvoie la configuration
+// Correspondance des onglets : { nom attendu par le site: onglet du document } ; renvoie la configuration
+export const saveTabMap = (tabMap) =>
+  request('/api/sheet-config/tab-map/', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...scopeHeader() },
+    body: JSON.stringify({ tab_map: tabMap }),
+  })
+
 export const saveSyncTabs = (syncTabs) =>
   request('/api/sheet-config/tabs/', {
     fieldLabel: (field) => t(`sheetSettings.fields.${field}`),

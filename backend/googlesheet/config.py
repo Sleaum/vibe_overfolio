@@ -24,6 +24,9 @@ from typing import Dict, List, Optional
 from .models import SheetConfig
 
 DEFAULT_TABS = ["portfolio", "inout", "stock", "budget", "_history"]
+# Onglets attendus par le site (les graphiques lisent ces noms de table) : table de correspondance de la page GoogleSheet
+SITE_TABS = ["portfolio", "_history", "inout", "budget", "stock"]
+MAX_TAB_NAME = 100
 DEFAULT_DOC_NAME = "overfolio"
 
 # Champ du modèle -> variable du .env
@@ -219,6 +222,68 @@ def account_to_load(values: Optional[Dict[str, str]] = None, env: Optional[Dict[
     return {"source": None, "values": {field: "" for field in ACCOUNT_VIEW_FIELDS}, "private_key_set": False}
 
 
+def clean_tab_map(raw) -> Dict[str, str]:
+    """
+    Correspondance reçue -> {nom attendu par le site: onglet du document}. Les lignes vides ou au même nom
+    (le défaut) sont retirées. Erreur si un nom du site est inconnu, ou si un onglet sert à deux noms.
+    """
+    if not isinstance(raw, dict):
+        raise ConfigInvalid({"tab_map": "Correspondance des onglets non valable."}, {"tab_map": "invalid_tab_map"})
+    mapping = {}
+    for site_tab, doc_tab in raw.items():
+        if site_tab not in SITE_TABS or not (doc_tab is None or isinstance(doc_tab, str)):
+            raise ConfigInvalid({"tab_map": "Correspondance des onglets non valable."}, {"tab_map": "invalid_tab_map"})
+        doc_tab = (doc_tab or "").strip()
+        if len(doc_tab) > MAX_TAB_NAME:
+            raise ConfigInvalid({"tab_map": "Nom d'onglet trop long."}, {"tab_map": "invalid_tab_map"})
+        if doc_tab and doc_tab != site_tab:
+            mapping[site_tab] = doc_tab
+    if len(set(mapping.values())) != len(mapping):
+        raise ConfigInvalid({"tab_map": "Un même onglet ne peut servir qu'à un seul nom."}, {"tab_map": "tab_map_duplicate"})
+    return mapping
+
+
+def tab_map(owner=None) -> Dict[str, str]:
+    """Correspondance en vigueur de ce propriétaire (vide : chaque onglet porte le nom attendu par le site)."""
+    config = saved_config(owner)
+    try:
+        return clean_tab_map(config.tab_map or {}) if config else {}
+    except ConfigInvalid:
+        return {}
+
+
+def table_names(tabs: List[str], mapping: Dict[str, str]):
+    """
+    Nom de table de chaque onglet du document à synchroniser : le nom attendu par le site s'il est relié par
+    la correspondance, sinon son propre nom. Renvoie ({onglet: table}, [onglets écartés]) : un onglet qui porte
+    le nom d'un onglet du site déjà relié à un autre onglet est écarté (sinon les deux écriraient la même table).
+    """
+    site_of = {doc_tab: site_tab for site_tab, doc_tab in mapping.items()}
+    names, shadowed = {}, []
+    for tab in tabs:
+        if tab in site_of:
+            names[tab] = site_of[tab]
+        elif tab in mapping:
+            shadowed.append(tab)
+        else:
+            names[tab] = tab
+    return names, shadowed
+
+
+def save_tab_map(raw, owner=None) -> SheetConfig:
+    """Enregistre seulement la correspondance des onglets (comme save_tabs pour la liste des onglets)."""
+    mapping = clean_tab_map(raw)
+    config = saved_config(owner)
+    if config is None:
+        values = current_values(owner)
+        if values["private_key"].strip():
+            values["private_key"] = values["private_key"].strip() + "\n"
+        return _store(owner, {**values, "tab_map": mapping})
+    config.tab_map = mapping
+    config.save()
+    return config
+
+
 def google_view(owner=None) -> dict:
     """Mode 3 (compte Google) : disponible sur ce serveur ? personne connectée ? accès à une feuille accordé ?"""
     from accounts import drive  # import différé : accounts dépend des modèles
@@ -244,6 +309,9 @@ def public_view(owner=None) -> dict:
         "mode": access_mode(values),
         "method": values.get("method", ""),
         "google": google_view(owner),
+        # Correspondance des onglets : {nom attendu par le site: onglet du document}, et la liste de ces noms
+        "tab_map": tab_map(owner),
+        "site_tabs": SITE_TABS,
         "updated_at": config.updated_at.isoformat() if config else None,
         "values": {field: values[field] for field in FIELDS if field not in SECRET_FIELDS},
         "private_key_set": bool(values["private_key"].strip()),

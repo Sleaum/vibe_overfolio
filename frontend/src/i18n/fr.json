@@ -102,7 +102,10 @@
     "google_drive_not_configured": "Le mode compte Google n’est pas configuré sur ce serveur.",
     "google_requires_account": "Le mode compte Google demande d’être connecté avec Google.",
     "session_expired": "Ta session a expiré : rien n’a été enregistré. La page va se recharger.",
-    "scope_changed": "Tu t’es connecté ou déconnecté dans un autre onglet : rien n’a été enregistré. La page va se recharger."
+    "scope_changed": "Tu t’es connecté ou déconnecté dans un autre onglet : rien n’a été enregistré. La page va se recharger.",
+    "invalid_tab_map": "Correspondance des onglets non valable.",
+    "tab_map_duplicate": "Un même onglet ne peut servir qu’à un seul nom du site.",
+    "tab_shadowed": "Onglet « {tab} » ignoré : ce nom est déjà donné à un autre onglet dans la correspondance."
   },
   "data": {
     "unknown": "Non renseigné",
@@ -854,6 +857,25 @@
     "legend": "Onglets du document",
     "instant": "Cocher ou décocher un onglet enregistre la liste aussitôt.",
     "removed": "Liste enregistrée. Absent du document, retiré : {tabs} | Liste enregistrée. Absents du document, retirés : {tabs}"
+  },
+  "tabMap": {
+    "title": "Correspondance des onglets",
+    "lead": "Si un onglet de ta feuille porte un autre nom que celui attendu par le site, choisis-le ici : à la synchronisation, il est enregistré sous le nom de la 2e colonne, et les graphiques le retrouvent. La liste propose les onglets à synchroniser.",
+    "docTab": "Onglet de ta feuille",
+    "siteName": "Nom utilisé par le site",
+    "content": "Contenu attendu",
+    "selectLabel": "Onglet de ta feuille pour {name}",
+    "sameName": "{name} (même nom)",
+    "none": "— aucun —",
+    "notSynced": "{name} (pas dans les onglets à synchroniser)",
+    "saved": "Correspondance enregistrée. Clique sur Tout actualiser pour l’appliquer.",
+    "explain": {
+      "portfolio": "Positions actuelles : une ligne par placement (type d’actif, instrument, enveloppe, montant). Sert à Snapshot, Strategy, Envelopes et au point de départ de Simulation.",
+      "history": "Historique des relevés, mois par mois, et tes objectifs. Sert à Flow, Envelopes, Volatility, aux variations de Snapshot et à l’objectif de Simulation.",
+      "inout": "Entrées et sorties d’argent (date, entrées, sorties, impôts). Sert au graphique Entrées, sorties et impôts de Flow et au versement proposé par Simulation.",
+      "budget": "Ton budget : de quelle source vers quelle destination va l’argent. Sert à Budget.",
+      "stock": "Valeurs suivies : secteur, moat, note, localisation… Sert à Strategy."
+    }
   },
   "amounts": {
     "label": "Montants",

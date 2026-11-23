@@ -29,6 +29,7 @@ class TabResult:
     header_row: int = 0
     columns: List[str] = field(default_factory=list)
     rows: int = 0
+    table: str = ""  # nom de la table en base : celui attendu par le site si l'onglet est relié (correspondance)
     message: str = ""
     code: str = ""  # même erreur que message, pour le site (voir errors.py)
     params: dict = field(default_factory=dict)
@@ -95,11 +96,18 @@ def sync_sheets(
     header_rows = header_rows or {}
     spreadsheet = open_spreadsheet(doc_name, owner)
     source = document_source(doc_name, owner)
+    # Correspondance des onglets : un onglet relié est enregistré sous le nom attendu par le site
+    names, shadowed = config.table_names(tabs, config.tab_map(owner))
 
     results = SyncResults()
     for tab in tabs:
-        result = TabResult(tab=tab)
+        result = TabResult(tab=tab, table=names.get(tab, tab))
         results.append(result)
+
+        if tab in shadowed:
+            result.message = f"onglet '{tab}' ignoré : ce nom est déjà donné à un autre onglet dans la correspondance"
+            result.code, result.params = "tab_shadowed", {"tab": tab}
+            continue
 
         try:
             values = read_worksheet_values(spreadsheet, tab)
@@ -110,7 +118,7 @@ def sync_sheets(
 
         result.header_row, result.columns, result.rows = header_row, columns, len(rows)
 
-        if not rows and not allow_empty and SheetTable.objects.filter(user=owner, name=tab, row_count__gt=0).exists():
+        if not rows and not allow_empty and SheetTable.objects.filter(user=owner, name=result.table, row_count__gt=0).exists():
             result.message = "aucune ligne lue : données existantes conservées (--allow-empty pour forcer)"
             result.code = "empty_kept"
             continue
@@ -122,7 +130,10 @@ def sync_sheets(
             continue
 
         try:
-            _save_table(tab, header_row, columns, rows, source, owner)
+            _save_table(result.table, header_row, columns, rows, source, owner)
+            if result.table != tab:
+                # Copie faite avant la correspondance, sous le nom du document : remplacée par celle-ci
+                SheetTable.objects.filter(user=owner, name=tab, source=source).delete()
         except Exception as exc:
             logger.exception("Écriture en base impossible pour l'onglet %s", tab)
             result.message = f"erreur base de données : {exc}"

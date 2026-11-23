@@ -36,7 +36,9 @@ def _iso(value):
 def table_list(request):
     """GET /api/data/ : liste des tables recopiées en base (celles du compte connecté, sinon celles du site)."""
     owner = config.request_owner(request)
-    order = configured_tabs(owner)
+    tabs = configured_tabs(owner)
+    names, _ = config.table_names(tabs, config.tab_map(owner))
+    order = [names.get(tab, tab) for tab in tabs]
     tables = sorted(SheetTable.objects.filter(user=owner), key=lambda table: _sort_key(table, order))
     return JsonResponse(
         [
@@ -137,7 +139,7 @@ def sync_all(request):
         return error_response(str(exc), exc.code, exc.status, exc.params)
 
     tabs = [
-        {"name": r.tab, "ok": r.ok, "row_count": r.rows, "message": r.message, "code": r.code, "params": r.params}
+        {"name": r.tab, "table": r.table, "ok": r.ok, "row_count": r.rows, "message": r.message, "code": r.code, "params": r.params}
         for r in results
     ]
     saved = sum(1 for r in results if r.ok)
@@ -176,6 +178,27 @@ def sheet_config(request):
             return error_response("Formulaire incomplet", "form_incomplete", 400, fields=exc.errors, field_codes=exc.codes)
     elif request.method == "DELETE":
         config.reset(owner)
+    return JsonResponse(config.public_view(owner))
+
+
+@api_view(["PUT"])
+@permission_classes([AllowAny])
+def sheet_tab_map(request):
+    """
+    PUT /api/sheet-config/tab-map/ {"tab_map": {"_history": "history"}} : correspondance des onglets
+    (nom attendu par le site -> onglet du document). Renvoie les paramètres comme GET /api/sheet-config/.
+    400 invalid_tab_map (nom du site inconnu…) ou tab_map_duplicate (un onglet relié à deux noms).
+    """
+    try:
+        owner = config.owner_for_change(request)
+    except config.ScopeMismatch as exc:
+        return error_response(str(exc), exc.code, exc.status)
+    body = request.data if isinstance(request.data, dict) else {}
+    try:
+        config.save_tab_map(body.get("tab_map"), owner)
+    except config.ConfigInvalid as exc:
+        code = exc.codes.get("tab_map", "invalid_tab_map")
+        return error_response(exc.errors.get("tab_map", "Correspondance non valable"), code, 400)
     return JsonResponse(config.public_view(owner))
 
 

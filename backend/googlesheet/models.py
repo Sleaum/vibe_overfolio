@@ -86,6 +86,9 @@ class SheetConfig(models.Model):
     sheet_id = models.CharField(max_length=200, blank=True, default="")
     doc_name = models.CharField(max_length=200, blank=True, default="")
     sync_tabs = models.CharField(max_length=500, blank=True, default="")  # séparés par des virgules
+    # Correspondance des onglets : {nom attendu par le site: onglet du document}, ex. {"_history": "history"}.
+    # Absent = l'onglet du document porte le même nom que celui attendu par le site.
+    tab_map = models.JSONField(default=dict, blank=True)
 
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -20,9 +20,9 @@ overfolio/
 │   │   ├── middleware.py           # DisableCSPMiddleware
 │   │   ├── errors.py               # forme commune des erreurs de l'API (message, code, params)
 │   │   ├── models.py               # SheetTable, SheetRow, SheetConfig, par propriétaire (voir « Base de données »)
-│   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
-│   │   ├── sync.py                 # copie des onglets vers la base
-│   │   ├── admin.py
+│   │   ├── config.py               # paramètres d'accès (page GoogleSheet, sinon .env), correspondance des onglets
+│   │   ├── sync.py                 # copie des onglets vers la base (sous le nom du site si l'onglet est relié)
+│   │   ├── admin.py, tests.py, tests_tab_map.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
 │   ├── accounts/                   # app : connexion avec Google (session Django)
@@ -66,6 +66,7 @@ overfolio/
 │       │   ├── PdfProgress.vue     # bandeau de progression de l'export PDF (absent du PDF)
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
 │       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
+│       │   ├── TabMapping.vue      # « Correspondance des onglets » : onglet de ta feuille -> nom attendu par le site (page /sheet)
 │       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue)
 │       │   ├── landing/            # sections de la page de présentation
 │       │   └── charts/             # AssetColorSettings, BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
@@ -283,6 +284,14 @@ compte Google + feuille choisie ──► API Google Sheets (gspread) ───�
 
 **Onglets** : ils se règlent sur la page **GoogleSheet**, juste au-dessus de **Tout actualiser**, à part du formulaire de connexion. Le champ « Onglets à synchroniser » (noms séparés par des virgules, bouton Enregistrer) et, juste en dessous, « Proposer les onglets du document », qui lit les onglets de la feuille enregistrée (dans les deux modes) et les présente en cases à cocher. Cocher ou décocher une case enregistre la liste aussitôt. La liste **suit le document** : dès que ses onglets sont lus, ceux qui n'y existent pas (ceux d'un ancien document) sont retirés de « Onglets à synchroniser », et s'il n'en reste aucun, tous les onglets du document sont pris ; c'est enregistré aussitôt. Quand tu enregistres un autre document dans la connexion, ses onglets sont lus tout de suite. Les tables de l'ancien document disparaissent de la base au prochain Tout actualiser.
 
+**Correspondance des onglets** : le site lit des tables aux noms fixes (`portfolio`, `_history`, `inout`, `budget`, `stock` : voir « Onglets utilisés » ci-dessous). Si un onglet de ta feuille porte un autre nom (par exemple `history` au lieu de `_history`), le tableau « Correspondance des onglets », sous « Onglets à synchroniser », le relie au nom attendu : une ligne par onglet du site, avec l'onglet de ta feuille (menu déroulant des onglets à synchroniser), le nom utilisé par le site et ce que l'onglet doit contenir. Chaque choix est enregistré aussitôt ; au prochain Tout actualiser, l'onglet choisi est enregistré sous le nom du site, et les graphiques le retrouvent sans rien changer à la feuille. « — aucun — » (ou « même nom ») revient au défaut : l'onglet qui porte le nom du site.
+
+- La correspondance fait partie de la configuration GoogleSheet : une pour le site, une par compte connecté (`tab_map` de `googlesheet_sheetconfig`, `PUT /api/sheet-config/tab-map/`).
+- Un onglet ne sert qu'à un seul nom du site ; les menus ne proposent que les onglets libres.
+- Une ancienne copie de l'onglet sous son propre nom (synchronisée avant la correspondance) est remplacée.
+- Si ta feuille a aussi un onglet au nom exact du site alors que ce nom est relié à un autre onglet (par exemple `portfolio` alors que `portfolio` ← `Positions`), il est ignoré à la synchronisation (`tab_shadowed`), pour ne pas écraser la table.
+- Les autres onglets (ceux de Data Studio, par exemple) ne sont pas concernés : le site ne les lit que s'ils sont dans « Onglets à synchroniser ».
+
 ### Par compte
 
 Sans connexion, la page GoogleSheet règle la **feuille du site** (repli sur le `.env`) et montre les **données du site**. Connecté avec Google, chacun a **sa propre configuration et ses propres données** : sa ligne `googlesheet_sheetconfig`, ses tables `googlesheet_sheettable`, invisibles pour les autres comptes et pour les visiteurs. Un compte part de zéro : il n'hérite ni du `.env`, ni de la configuration ou des données du site (sinon tout compte pourrait lire la feuille du site). Le compte de service du `.env` n'est jamais proposé à un compte, et sa clé jamais reprise. Côté serveur, tout passe par le propriétaire de la requête (`config.request_owner(request)` : l'utilisateur connecté, sinon `None` pour le site) : `config.py`, `sync.py`, `services.open_spreadsheet()` et `data_views.py`. La commande `sync_sheets` et `/api/sheet` travaillent pour le site.
@@ -469,6 +478,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/auth/google/drive/revoke/` | Retire l'accès aux feuilles (chez Google et en base) |
 | GET | `/api/auth/me/` | `{ configured, authenticated, user?: { email, name, picture }, first_login? }`. Pose le cookie `csrftoken` |
 | POST | `/api/auth/logout/` | Ferme la session (jeton CSRF exigé si une session est ouverte) |
+| PUT | `/api/sheet-config/tab-map/` | `{"tab_map": {"_history": "history"}}` : correspondance des onglets (nom attendu par le site → onglet de la feuille ; même nom ou vide = défaut). Renvoie les paramètres comme `/api/sheet-config/`, qui donne aussi `tab_map` et `site_tabs`. 400 `invalid_tab_map` (nom du site inconnu, valeur non valable) ou `tab_map_duplicate` (un onglet relié à deux noms) |
 | GET, PUT | `/api/sheet-config/tabs/` | `GET` : onglets du document, `{ mode, tabs, selected }`, dans les deux modes. `PUT {"sync_tabs": "portfolio, budget"}` : enregistre seulement la liste des onglets à synchroniser et renvoie les paramètres comme `/api/sheet-config/` (400 `sync_tabs_required` si la liste est vide) |
 
 Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "code_stable", "params": {…}}` (`backend/googlesheet/errors.py`) : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google). Le site affiche le message dans la langue choisie à partir de `code` et `params` (rubrique `apiErrors` de `frontend/src/i18n/*.json`) ; `error` reste en français pour la ligne de commande. Un formulaire invalide (`400`) ajoute `fields` (messages par champ) et `field_codes` (codes par champ). Le résultat de chaque onglet d'une synchronisation porte aussi `code` et `params`.
@@ -515,6 +525,7 @@ erDiagram
     varchar sheet_id
     varchar doc_name
     varchar sync_tabs
+    jsonb tab_map "nom du site vers onglet"
     timestamp updated_at
   }
   profiles_profile {
@@ -551,7 +562,7 @@ Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessi
 |---|---|---|
 | `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ) |
 | `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration |
-| `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur |
+| `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3, `tab_map` = correspondance des onglets. La clé privée n'est jamais renvoyée au navigateur |
 | `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`). Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
 | `accounts_googleaccount` | `GoogleAccount` | Compte Google d'un utilisateur : identifiant Google `sub` (unique), e-mail, nom, photo. Mode 3 : jeton de rafraîchissement Google **chiffré** (`drive_refresh_token`, vide si l'accès n'est pas accordé) |
 | `auth_user` | `User` (Django) | Comptes Django : l'administrateur (`createsuperuser`) et un utilisateur par compte Google connecté (`google-<sub>`, sans mot de passe) |
@@ -613,7 +624,7 @@ Bibliothèques chargées à la demande seulement : `world-atlas` et `topojson-cl
 | Adresse | Fichier | Contenu |
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, questions fréquentes |
-| `/sheet` | `views/SourcePage.vue` | Connexion (`SheetSettings.vue`), onglets à synchroniser (`SyncTabs.vue`), menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
+| `/sheet` | `views/SourcePage.vue` | Connexion (`SheetSettings.vue`), onglets à synchroniser (`SyncTabs.vue`), correspondance des onglets (`TabMapping.vue`), menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
 | `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : en haut à gauche le bouton Brut / Net (`lib/amounts.js`), puis le menu en colonne (liste `MENU` de `lib/charts/index.js` : Flow, Snapshot, Envelopes, Strategy, Volatility, Budget), puis « Couleurs des actifs » (`components/charts/AssetColorSettings.vue`, voir « Couleurs des graphiques »), page choisie à droite. `/graphiques` ouvre Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
 | `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Flow, Envelopes ou Volatility (leur fil d'Ariane passe par leur page) |
 | `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les graphiques de Flow sur une seule page (« Tes dettes » en plus en mode Brut), avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
@@ -857,6 +868,7 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 | pays / carte du monde | country / world map | ประเทศ / แผนที่โลก |
 | Connexion / se connecter / se déconnecter | Sign in / sign in / sign out | เข้าสู่ระบบ / เข้าสู่ระบบ / ออกจากระบบ |
 | compte / profil | account / profile | บัญชี / โปรไฟล์ |
+| correspondance des onglets | tab mapping | การจับคู่แท็บ |
 | sélecteur de fichiers (de Google) / autoriser l'accès | (Google) file picker / allow access | ตัวเลือกไฟล์ (ของ Google) / อนุญาตการเข้าถึง |
 
 ## Commandes utiles

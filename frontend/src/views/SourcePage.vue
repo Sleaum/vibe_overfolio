@@ -4,6 +4,7 @@
   - Bouton Tout actualiser : relit tous les onglets de la liste dans Google Sheets (POST), puis recharge la liste et le tableau.
   - Connexion à Google Sheets : formulaire des paramètres d'accès (préremplis avec le .env), voir SheetSettings.vue.
   - Onglets à synchroniser : champ et onglets du document à cocher, juste au-dessus de Tout actualiser, voir SyncTabs.vue.
+  - Correspondance des onglets : quel onglet de la feuille remplit chaque onglet attendu par le site, voir TabMapping.vue.
   - Tableau : en-tête fixe, nombres alignés à droite, recherche, pagination par 50 lignes, défilement horizontal sur mobile.
 -->
 <template>
@@ -31,7 +32,9 @@
 
     <template v-else>
       <!-- Onglets à synchroniser (champ + onglets du document à cocher), juste au-dessus de Tout actualiser -->
-      <SyncTabs :key="docKey" class="mt-10" :tabs="knownTabs" :autoload="docChanged" @saved="onConfigSaved" />
+      <SyncTabs :key="docKey" class="mt-10" :tabs="syncList" :autoload="docChanged" @saved="onConfigSaved" />
+      <!-- Correspondance des onglets : onglet de la feuille -> nom attendu par le site -->
+      <TabMapping v-if="sheetConfig" class="mt-6" :config="sheetConfig" @saved="onConfigSaved" />
       <!-- Barre d'outils : onglet, Tout actualiser, recherche -->
       <div class="mt-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -238,6 +241,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppButton from '../components/ui/AppButton.vue'
 import SheetSettings from '../components/SheetSettings.vue'
 import SyncTabs from '../components/SyncTabs.vue'
+import TabMapping from '../components/TabMapping.vue'
 import { useTable } from '../composables/useTable.js'
 import { apiMessage, listTables, syncAll } from '../lib/api.js'
 import { formatCell, formatDateTime, formatNumber } from '../lib/format.js'
@@ -251,6 +255,10 @@ const PAGE_SIZE = 50
 // Onglets à synchroniser (section Onglet, SyncTabs.vue). Un onglet qui n'est pas encore en base reste choisissable :
 // on peut le synchroniser. Liste par défaut en attendant les paramètres.
 const knownTabs = ref(['portfolio', 'inout', 'stock', 'budget', '_history'])
+// Onglets du document à synchroniser (SyncTabs.vue) ; knownTabs donne les noms des tables, correspondance appliquée
+const syncList = ref([...knownTabs.value])
+// Paramètres reçus du serveur (correspondance des onglets)
+const sheetConfig = ref(null)
 // Document en vigueur : quand il change, la liste « Onglets du document » déjà lue est oubliée
 const docKey = ref('')
 // Vrai quand un autre document vient d'être enregistré : ses onglets sont lus tout de suite (la liste les suit)
@@ -320,7 +328,13 @@ function applyConfig(config) {
     .split(',')
     .map((name) => name.trim())
     .filter(Boolean)
-  if (tabs.length) knownTabs.value = tabs
+  if (tabs.length) {
+    syncList.value = tabs
+    // Un onglet relié par la correspondance est en base sous le nom attendu par le site
+    const siteOf = Object.fromEntries(Object.entries(config?.tab_map ?? {}).map(([site, tab]) => [tab, site]))
+    knownTabs.value = tabs.map((tab) => siteOf[tab] ?? tab)
+  }
+  if (config) sheetConfig.value = config
   if (config?.values) {
     const key = [config.mode, config.values.sheet_id, config.values.doc_name].join('|')
     if (docKey.value && key !== docKey.value) docChanged.value = true

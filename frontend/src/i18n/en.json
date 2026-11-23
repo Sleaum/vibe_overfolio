@@ -102,7 +102,10 @@
     "google_drive_not_configured": "Google account mode is not set up on this server.",
     "google_requires_account": "Google account mode requires signing in with Google.",
     "session_expired": "Your session expired: nothing was saved. The page will reload.",
-    "scope_changed": "You signed in or out in another tab: nothing was saved. The page will reload."
+    "scope_changed": "You signed in or out in another tab: nothing was saved. The page will reload.",
+    "invalid_tab_map": "Invalid tab mapping.",
+    "tab_map_duplicate": "A tab can only be used for one site name.",
+    "tab_shadowed": "Tab “{tab}” skipped: this name is already given to another tab in the mapping."
   },
   "data": {
     "unknown": "Not specified",
@@ -854,6 +857,25 @@
     "legend": "Document tabs",
     "instant": "Ticking or unticking a tab saves the list right away.",
     "removed": "List saved. Not in the document, removed: {tabs} | List saved. Not in the document, removed: {tabs}"
+  },
+  "tabMap": {
+    "title": "Tab mapping",
+    "lead": "If a tab in your sheet has a different name from the one the site expects, choose it here: when syncing, it is saved under the name in the 2nd column, and the charts find it. The list offers the tabs to sync.",
+    "docTab": "Tab in your sheet",
+    "siteName": "Name used by the site",
+    "content": "Expected content",
+    "selectLabel": "Tab in your sheet for {name}",
+    "sameName": "{name} (same name)",
+    "none": "— none —",
+    "notSynced": "{name} (not in the tabs to sync)",
+    "saved": "Mapping saved. Click Refresh all to apply it.",
+    "explain": {
+      "portfolio": "Current positions: one row per investment (asset type, instrument, envelope, amount). Used by Snapshot, Strategy, Envelopes and as Simulation’s starting point.",
+      "history": "Record history, month by month, and your goals. Used by Flow, Envelopes, Volatility, Snapshot’s changes and Simulation’s goal.",
+      "inout": "Money inflows and outflows (date, inflows, outflows, taxes). Used by Flow’s Inflows, outflows and taxes chart and the contribution suggested by Simulation.",
+      "budget": "Your budget: from which source to which destination money goes. Used by Budget.",
+      "stock": "Tracked stocks: sector, moat, rating, location… Used by Strategy."
+    }
   },
   "amounts": {
     "label": "Amounts",
