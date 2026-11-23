@@ -88,7 +88,8 @@
     "google_token_failed": "Google a refusé la connexion. Réessaie dans un instant.",
     "google_token_invalid": "Impossible de vérifier ton identité auprès de Google.",
     "google_email_unverified": "L’adresse e-mail de ce compte Google n’est pas vérifiée.",
-    "invalid_theme": "Mode d’affichage non valable."
+    "invalid_theme": "Mode d’affichage non valable.",
+    "account_disabled": "Ce compte est désactivé. Contacte l’administrateur du site."
   },
   "data": {
     "unknown": "Non renseigné",

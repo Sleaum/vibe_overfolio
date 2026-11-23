@@ -88,7 +88,8 @@
     "google_token_failed": "Google ปฏิเสธการเข้าสู่ระบบ โปรดลองอีกครั้งในอีกสักครู่",
     "google_token_invalid": "ไม่สามารถยืนยันตัวตนของคุณกับ Google ได้",
     "google_email_unverified": "อีเมลของบัญชี Google นี้ยังไม่ได้รับการยืนยัน",
-    "invalid_theme": "โหมดการแสดงผลไม่ถูกต้อง"
+    "invalid_theme": "โหมดการแสดงผลไม่ถูกต้อง",
+    "account_disabled": "บัญชีนี้ถูกปิดใช้งาน โปรดติดต่อผู้ดูแลเว็บไซต์"
   },
   "data": {
     "unknown": "ไม่ระบุ",

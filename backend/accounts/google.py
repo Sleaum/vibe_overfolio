@@ -9,6 +9,7 @@ Sans ces trois valeurs, la connexion est désactivée : le site fonctionne sans 
 """
 import os
 
+from google.auth import exceptions as google_exceptions
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
@@ -92,8 +93,13 @@ def exchange_code(code: str, code_verifier: str) -> dict:
     if not token:
         raise GoogleAuthError("Google n'a pas renvoyé de jeton d'identité.", "google_token_invalid")
     try:
-        claims = id_token.verify_oauth2_token(token, google_requests.Request(), settings_values()["client_id"])
-    except ValueError:
+        # 10 s de tolérance : une horloge serveur un peu en retard ne doit pas refuser toutes les connexions
+        claims = id_token.verify_oauth2_token(
+            token, google_requests.Request(), settings_values()["client_id"], clock_skew_in_seconds=10
+        )
+    except google_exceptions.TransportError:  # certificats de Google injoignables
+        raise GoogleAuthError("Google injoignable pour vérifier le jeton.", "google_token_failed")
+    except (ValueError, google_exceptions.GoogleAuthError):  # signature, émetteur, destinataire, dates
         raise GoogleAuthError("Jeton d'identité Google invalide.", "google_token_invalid")
     if not claims.get("sub"):
         raise GoogleAuthError("Jeton d'identité Google sans identifiant.", "google_token_invalid")

@@ -157,6 +157,51 @@ class GoogleLoginTests(TestCase):
         self.assert_failed(response, "google_token_invalid")
         self.assertFalse(GoogleAccount.objects.exists())
 
+    def test_google_unreachable_while_checking_token(self):
+        from google.auth.exceptions import TransportError
+
+        _, pending = self.start()
+        with fake_fetch_token(), mock.patch("accounts.google.id_token.verify_oauth2_token", side_effect=TransportError("réseau")):
+            response = self.client.get("/api/auth/google/callback/", {"state": pending["state"], "code": "c"})
+        self.assert_failed(response, "google_token_failed")
+
+    def test_wrong_issuer_is_refused_without_error_page(self):
+        from google.auth.exceptions import GoogleAuthError as LibraryError
+
+        _, pending = self.start()
+        with fake_fetch_token(), mock.patch("accounts.google.id_token.verify_oauth2_token", side_effect=LibraryError("Wrong issuer")):
+            response = self.client.get("/api/auth/google/callback/", {"state": pending["state"], "code": "c"})
+        self.assert_failed(response, "google_token_invalid")
+
+    def test_clock_skew_is_tolerated(self):
+        _, pending = self.start()
+        with fake_fetch_token(), verified(CLAIMS) as verify:
+            self.client.get("/api/auth/google/callback/", {"state": pending["state"], "code": "c"})
+        self.assertEqual(verify.call_args.kwargs["clock_skew_in_seconds"], 10)
+
+    def test_orphan_user_gets_google_account_back(self):
+        """Compte Google supprimé dans l'admin : la connexion suivante retrouve l'utilisateur, sans erreur."""
+        self.login_as()
+        user = GoogleAccount.objects.get().user
+        GoogleAccount.objects.all().delete()
+        self.client.post("/api/auth/logout/")
+        response = self.login_as()
+        self.assertEqual(response["Location"], "/graphiques")
+        self.assertEqual(GoogleAccount.objects.get().user, user)
+        self.assertEqual(get_user_model().objects.count(), 1)
+
+    def test_disabled_account(self):
+        self.login_as()
+        user = GoogleAccount.objects.get().user
+        user.is_active = False
+        user.save()
+        self.client.post("/api/auth/logout/")
+        self.assert_failed(self.login_as(), "account_disabled")
+
+    def test_next_never_points_to_api_after_normalisation(self):
+        for value in ("/./api/auth/logout/", "/%61pi/auth/logout/", "/x/../api/data/", "/api", "/%2Fevil.example"):
+            self.assertEqual(safe_next(value), "/", value)
+
     def test_unverified_email(self):
         response = self.login_as({**CLAIMS, "email_verified": False})
         self.assert_failed(response, "google_email_unverified")

@@ -88,7 +88,8 @@
     "google_token_failed": "Google refused the sign-in. Please try again in a moment.",
     "google_token_invalid": "Your identity could not be verified with Google.",
     "google_email_unverified": "The email address of this Google account is not verified.",
-    "invalid_theme": "Invalid display mode."
+    "invalid_theme": "Invalid display mode.",
+    "account_disabled": "This account is disabled. Contact the site administrator."
   },
   "data": {
     "unknown": "Not specified",

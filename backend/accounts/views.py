@@ -7,6 +7,9 @@ Connexion avec Google, par session Django.
   GET  /api/auth/me/                      : état de la connexion ; pose aussi le cookie CSRF du site
   POST /api/auth/logout/                  : déconnexion (jeton CSRF exigé si une session est ouverte)
 """
+import posixpath
+from urllib.parse import unquote
+
 from django.contrib.auth import login, logout
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
@@ -30,10 +33,13 @@ def safe_next(value) -> str:
         not value.startswith("/")
         or value.startswith("//")
         or "\\" in value
-        or value.startswith("/api/")
         or any(ord(char) < 32 for char in value)
         or len(value) > 500
     ):
+        return "/"
+    # Chemin tel que le navigateur et nginx le liront (%61pi, /./api…) : jamais l'API
+    path = posixpath.normpath(unquote(value.split("?", 1)[0].split("#", 1)[0]))
+    if path == "/api" or path.startswith("/api/") or path.startswith("//"):
         return "/"
     return value
 
@@ -72,6 +78,8 @@ def google_callback(request):
         return _fail(exc.code)
 
     user, created = user_for_google(claims)
+    if not user.is_active:  # compte désactivé dans l'admin
+        return _fail("account_disabled")
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")  # nouvelle clé de session
     if created:
         request.session["first_login"] = True  # le site recopie alors une seule fois ses réglages du navigateur

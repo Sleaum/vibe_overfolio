@@ -160,7 +160,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | vide | Client OAuth « Application Web » de Google Cloud, pour la connexion avec Google (voir « Connexion avec Google »). Vides : bouton grisé, site utilisable sans compte |
 | `GOOGLE_OAUTH_REDIRECT_URI` | vide | Adresse de retour après Google, **identique** à celle déclarée dans Google Cloud : `http://localhost/api/auth/google/callback/` (Docker), `http://localhost:5173/api/auth/google/callback/` (Vite en développement), `https://ton-domaine/api/auth/google/callback/` (production) |
 | `COOKIE_SECURE` | `False` | `True` en production (HTTPS) : cookies de session et CSRF envoyés seulement en HTTPS |
-| `CSRF_TRUSTED_ORIGINS` | celles de `CORS_ALLOWED_ORIGINS` (`http://localhost:5173,http://127.0.0.1:5173`) | Origines acceptées pour les requêtes qui modifient quand l'hôte reçu par Django diffère (proxy de Vite). En production derrière HTTPS : `https://ton-domaine` |
+| `CSRF_TRUSTED_ORIGINS` | celles de `CORS_ALLOWED_ORIGINS` (`http://localhost:5173,http://127.0.0.1:5173`) | Origines acceptées pour les requêtes qui modifient quand l'hôte reçu par Django diffère (proxy de Vite). En production derrière HTTPS : `https://ton-domaine`. En Docker seul (sans Vite), `CSRF_TRUSTED_ORIGINS=http://localhost` évite de faire confiance au port 5173, où une autre application pourrait tourner |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Noms et adresses par lesquels on ouvre le site. Pour y accéder depuis un téléphone du même Wi-Fi, ajouter l'adresse IP locale du PC (`ipconfig` sous Windows), par exemple `localhost,127.0.0.1,192.168.1.20`, puis ouvrir `http://192.168.1.20` sur le téléphone |
 
 Règles à respecter :
@@ -321,6 +321,7 @@ En-tête « Connexion » ──► /newpage ──► « Continuer avec Google �
 - **Jetons Google** : la connexion ne demande que l'identité (`openid`, e-mail, profil), sans accès hors ligne. Aucun jeton Google n'est gardé, ni en base ni en session.
 - **Session** : cookie `sessionid` (HttpOnly, SameSite=Lax, 30 jours, `Secure` avec `COOKIE_SECURE=True`). Avec une session ouverte, toute requête qui modifie exige le jeton CSRF : le site le lit dans le cookie `csrftoken` (posé par `GET /api/auth/me/`) et l'envoie dans l'en-tête `X-CSRFToken` (`frontend/src/lib/api.js`).
 - **Sans compte** : l'API reste publique, comme avant ; les données synchronisées et la configuration GoogleSheet sont encore communes à tout le site.
+- **Administrateur** : une session ouverte sur `/admin/` vaut aussi pour le site (même domaine) : l'administrateur y voit son propre profil, pas celui du site. Se déconnecter de l'admin pour revenir au profil du site.
 - **Petits écrans** : sous 640 px, « Connexion » / « Se déconnecter » passent dans le menu burger.
 
 ### Créer le client OAuth dans Google Cloud
@@ -428,7 +429,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon) |
 | PUT | `/api/profile/asset-colors/` | `{"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut). Types mis en minuscules ; 400 `invalid_asset_colors` si une couleur n'est pas au format `#rrggbb`, si un type est vide ou dépasse 100 caractères, ou au-delà de 200 types |
 | GET | `/api/auth/google/start/?next=/page` | Navigation (pas d'appel JSON) : part se connecter chez Google, puis revient sur `next` (une page du site seulement). Sans réglages Google : retour sur `/newpage?error=google_not_configured` |
-| GET | `/api/auth/google/callback/` | Retour de Google (adresse déclarée dans Google Cloud) : vérifie `state`, échange le code (PKCE), vérifie le jeton d'identité, ouvre la session. Échec : `/newpage?error=` `google_denied`, `google_state_invalid`, `google_token_failed`, `google_token_invalid`, `google_email_unverified` |
+| GET | `/api/auth/google/callback/` | Retour de Google (adresse déclarée dans Google Cloud) : vérifie `state`, échange le code (PKCE), vérifie le jeton d'identité, ouvre la session. Échec : `/newpage?error=` `google_denied`, `google_state_invalid`, `google_token_failed`, `google_token_invalid`, `google_email_unverified`, `account_disabled` (compte désactivé dans l'admin) |
 | GET | `/api/auth/me/` | `{ configured, authenticated, user?: { email, name, picture }, first_login? }`. Pose le cookie `csrftoken` |
 | POST | `/api/auth/logout/` | Ferme la session (jeton CSRF exigé si une session est ouverte) |
 | GET, PUT | `/api/sheet-config/tabs/` | `GET` : onglets du document, `{ mode, tabs, selected }`, dans les deux modes. `PUT {"sync_tabs": "portfolio, budget"}` : enregistre seulement la liste des onglets à synchroniser et renvoie les paramètres comme `/api/sheet-config/` (400 `sync_tabs_required` si la liste est vide) |
@@ -868,6 +869,7 @@ cd frontend && npm audit && npm outdated
 | `failed to prepare extraction snapshot` (build) | Stockage d'images Docker incohérent | `docker image rm -f overfolio-backend overfolio-frontend`, `docker builder prune -af` |
 | Google affiche `redirect_uri_mismatch` | `GOOGLE_OAUTH_REDIRECT_URI` différente de l'URI déclarée dans Google Cloud | Mettre exactement la même (protocole, port, `/` final), puis recréer le backend |
 | Google affiche « Accès bloqué : l'application n'a pas été validée » | Écran de consentement « En test », adresse absente des utilisateurs test | Ajouter l'adresse Gmail dans « Utilisateurs test », ou publier l'application |
+| `/newpage?error=google_token_failed` | Google injoignable au retour (réseau), ou code expiré | Réessayer ; vérifier que le serveur accède à Internet et que son horloge est à l'heure |
 | `/newpage?error=google_state_invalid` | Cookie de session perdu entre le départ et le retour (autre nom d'hôte, cookies bloqués, retour trop tardif) | Ouvrir le site par la même adresse que l'URI de retour (`localhost` partout), réessayer |
 | `403` « CSRF Failed » après connexion | Jeton CSRF absent, ou origine non reconnue (proxy, HTTPS) | Recharger la page (le cookie `csrftoken` est reposé) ; en production, renseigner `CSRF_TRUSTED_ORIGINS` |
 | `git push` : mot de passe refusé | GitHub n'accepte plus les mots de passe | Clé SSH ou token d'accès personnel |
@@ -883,7 +885,7 @@ cd frontend && npm audit && npm outdated
 
 - `.env` ne doit jamais être commité, ni les fichiers `env` ou `backend/overfolio/.env`, ni une clé SSH ou un fichier JSON de compte de service : le `.gitignore` de la racine les exclut. Un fichier déjà suivi par git n'est pas concerné par le `.gitignore` : le retirer avec `git rm --cached <fichier>`. Si une clé privée a été exposée (capture d'écran, commit), la révoquer dans Google Cloud (IAM → Comptes de service → Clés) et en générer une nouvelle.
 - Le mode « lien public » exige une feuille lisible par quiconque a son lien : elle contient l'intégralité du patrimoine. Pour une feuille privée, utilise un compte de service et partage-la seulement avec `CLIENT_EMAIL`.
-- Passer à `DEBUG=False` et restreindre `ALLOWED_HOSTS` en production.
+- Passer à `DEBUG=False` (lu dans `.env`) et restreindre `ALLOWED_HOSTS` en production : en mode debug, une page d'erreur montre des valeurs internes.
 - Paquets du backend : toutes les versions sont fixées dans `backend/requirements.txt` (Django 5.2, version à support long jusqu'en avril 2028). Vérifier régulièrement les failles connues avec `pip-audit` (voir « Commandes utiles »), puis monter les versions et reconstruire l'image (`./init.sh`).
 - Paquets du frontend : les versions installées sont celles de `frontend/package-lock.json` (l'image les installe avec `npm ci`). Vérifier avec `npm audit` ; `npm audit fix` corrige ce qui ne demande pas de changer de version majeure. Après une mise à jour, refaire `npm run build` et tester le bouton PDF et quelques graphiques.
 - Les routes `/api/sheet`, `/api/data/` et `/api/sheet-config/` sont publiques sans connexion : les restreindre avant toute exposition sur Internet.

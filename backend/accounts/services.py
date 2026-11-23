@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from profiles.models import Profile
 
@@ -30,14 +30,26 @@ def user_for_google(claims: dict):
         return user, False
 
     User = get_user_model()
-    user = User(
-        username=f"google-{sub}"[:150],
-        email=details["email"],
-        first_name=(claims.get("given_name") or "")[:150],
-        last_name=(claims.get("family_name") or "")[:150],
-    )
-    user.set_unusable_password()  # connexion par Google seulement
-    user.save()
-    GoogleAccount.objects.create(user=user, sub=sub, **details)
+    username = f"google-{sub}"[:150]
+    # Utilisateur resté seul (compte Google supprimé dans l'admin) : il retrouve son compte Google
+    orphan = User.objects.filter(username=username, google_account__isnull=True).first()
+    if orphan is not None:
+        GoogleAccount.objects.create(user=orphan, sub=sub, **details)
+        return orphan, False
+
+    try:
+        with transaction.atomic():  # deux retours de Google en même temps : un seul crée le compte
+            user = User(
+                username=username,
+                email=details["email"],
+                first_name=(claims.get("given_name") or "")[:150],
+                last_name=(claims.get("family_name") or "")[:150],
+            )
+            user.set_unusable_password()  # connexion par Google seulement
+            user.save()
+            GoogleAccount.objects.create(user=user, sub=sub, **details)
+    except IntegrityError:
+        account = GoogleAccount.objects.select_related("user").get(sub=sub)
+        return account.user, False
     Profile.copy_site_profile(user)
     return user, True
