@@ -7,8 +7,9 @@
 // - point d'arrivée : tes positions actuelles (lignes tirées de portfolio par le serveur), à la date des positions ;
 //   sans elles (mois déjà relevé dans la feuille), le dernier relevé de history ;
 // - point de départ : le même jour, 1, 3 ou 12 mois plus tôt (23 novembre -> 23 octobre). history n'ayant en général
-//   qu'un relevé par mois, le prix de ce jour-là est estimé entre les deux relevés qui l'encadrent, au prorata des jours
-//   (le relevé lui-même s'il tombe ce jour-là) ;
+//   qu'un relevé par mois, le prix de ce jour-là est estimé entre les deux relevés de la ligne qui l'encadrent, au
+//   prorata des jours (le relevé lui-même s'il tombe ce jour-là). Chaque ligne a ses propres dates : une ligne datée du
+//   3 septembre dans un relevé du 6 septembre n'empêche pas les autres d'être estimées ;
 // - une ligne = même Instrument, même enveloppe et même courtier aux deux dates ;
 // - les liquidités, l'immobilier, les biens qui se déprécient et les objets (fiat, real estate, depreciating, exotic)
 //   n'ont pas de cours : ils sont écartés ;
@@ -29,6 +30,8 @@ import { t } from '../../i18n/index.js'
 const NOT_QUOTED = new Set(['fiat', 'real estate', 'depreciating', 'exotic', 'cash', 'liquidités'])
 
 const lower = (text) => String(text ?? '').trim().toLowerCase()
+const DAY = 86_400_000
+const MAX_GAP_DAYS = 45 // relevés mensuels : au-delà, la ligne n'était pas détenue au point de départ
 
 /** "AAAA-MM-JJ" décalée de `months` mois en arrière, le même jour (ramené à la fin du mois : 31 mars -> 28 février). */
 export function monthsBefore(iso, months) {
@@ -85,27 +88,31 @@ export function priceChanges(table, months) {
   const latest = useCurrent ? projection.source_date : dates[dates.length - 1]
   if (!latest) return empty
   const end = useCurrent ? current : records.get(latest)
-  const points = [...dates.filter((iso) => iso < latest).map((iso) => [iso, records.get(iso)]), [latest, end]]
-
-  // Point de départ : le même jour, `months` mois plus tôt, estimé entre les deux relevés qui l'encadrent
+  // Point de départ : le même jour, `months` mois plus tôt. Chaque ligne est estimée entre ses deux relevés à elle qui
+  // encadrent ce jour : une ligne peut être datée autrement que les autres (cours du 3 septembre dans un relevé du 6).
   const reference = monthsBefore(latest, months)
-  const exact = points.find(([iso]) => iso === reference)
-  const previous = [...points].reverse().find(([iso]) => iso < reference)
-  const next = points.find(([iso]) => iso > reference)
-  if (!exact && !previous) return { ...empty, latest, current: useCurrent }
-  const price = (entry) => (entry ? entry.amount / entry.quantity : null)
-  const weight = exact ? 0 : (isoToTimestamp(reference) - isoToTimestamp(previous[0])) / (isoToTimestamp(next[0]) - isoToTimestamp(previous[0]))
-  const priceAtReference = (key) => {
-    if (exact) return price(exact[1].get(key))
-    const before = price(previous[1].get(key))
-    const after = price(next[1].get(key))
-    return before === null || after === null ? null : before + (after - before) * weight
+  if (!dates.some((iso) => iso <= reference)) return { ...empty, latest, current: useCurrent }
+  const price = (entry) => entry.amount / entry.quantity
+  const before = dates.filter((iso) => iso < latest)
+  const pairs = new Map() // relevés utilisés pour l'estimation -> nombre de lignes (pour la phrase sous le graphique)
+  const priceAtReference = (key, now) => {
+    const series = [...before.filter((iso) => records.get(iso).has(key)).map((iso) => [iso, price(records.get(iso).get(key))]), [latest, price(now)]]
+    const exact = series.find(([iso]) => iso === reference)
+    if (exact) return exact[1]
+    const previous = series.filter(([iso]) => iso < reference).pop()
+    const next = series.find(([iso]) => iso > reference)
+    // Pas encore détenu ce jour-là, ou dernier relevé de la ligne trop ancien (vendue puis rachetée)
+    if (!previous || isoToTimestamp(reference) - isoToTimestamp(previous[0]) > MAX_GAP_DAYS * DAY) return null
+    const pair = `${previous[0]}|${next[0]}`
+    pairs.set(pair, (pairs.get(pair) ?? 0) + 1)
+    const weight = (isoToTimestamp(reference) - isoToTimestamp(previous[0])) / (isoToTimestamp(next[0]) - isoToTimestamp(previous[0]))
+    return previous[1] + (next[1] - previous[1]) * weight
   }
 
   const lines = []
   const missing = []
   for (const [key, now] of end) {
-    const priceBefore = priceAtReference(key)
+    const priceBefore = priceAtReference(key, now)
     if (priceBefore === null) {
       const name = envelopeLabel(toLabel(now.row[cols.instrument]))
       missing.push(envelope && toLabel(now.row[envelope], '') ? `${name} (${envelopeLabel(toLabel(now.row[envelope]))})` : name)
@@ -129,7 +136,10 @@ export function priceChanges(table, months) {
     lines,
     missing,
     current: useCurrent,
-    estimated: exact ? null : { before: previous[0], after: next[0] },
+    // Relevés de l'estimation la plus courante (null si toutes les lignes avaient un relevé ce jour-là)
+    estimated: pairs.size
+      ? (([pair]) => ({ before: pair.split('|')[0], after: pair.split('|')[1] }))([...pairs].sort((a, b) => b[1] - a[1])[0])
+      : null,
   }
 }
 
