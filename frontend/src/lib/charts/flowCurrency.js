@@ -65,7 +65,7 @@ export default {
 
   build(table) {
     const cols = requireColumns(table, { date: ['Date'] })
-    const available = availableCurrencies(table.columns)
+    const { shown: available, more } = availableCurrencies(table)
 
     if (!available.length) {
       throw new DataError(
@@ -100,7 +100,7 @@ export default {
       }),
       option: currencyOption(months, series),
       // Choix des devises, affiché au-dessus du graphique (CurrencyPicker.vue)
-      currencies: { available: available.map((item) => item.code), selected: codes },
+      currencies: { available: available.map((item) => item.code), selected: codes, more },
       height: 360,
       table: {
         columns: [t('chart.month'), ...series.map((serie) => serie.code)],

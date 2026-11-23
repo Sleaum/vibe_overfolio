@@ -101,6 +101,13 @@
         <template v-if="state === 'ready'">
           <span class="font-medium text-ink">{{ rowsLabel }}</span>
           <span v-if="syncedLabel">{{ t('sheetPage.syncedOn', { date: syncedLabel }) }}</span>
+          <span v-if="data?.computed_columns?.length" data-testid="sheet-computed">
+            {{ t('sheetPage.computedColumns', { columns: data.computed_columns.join(', ') }) }}
+          </span>
+          <span v-if="data?.unconverted_rows" class="text-danger" data-testid="sheet-unconverted">
+            {{ t('snapshotPage.notConverted', { count: data.unconverted_rows, currency: data.currency }, data.unconverted_rows) }}
+          </span>
+          <span v-else-if="data?.currency && data.currency !== 'EUR'">{{ t('sheetPage.convertedFrom', { currency: data.currency }) }}</span>
         </template>
         <span v-if="notice" class="font-medium text-success">{{ notice }}</span>
       </div>
@@ -388,6 +395,7 @@ async function refresh() {
         .filter(Boolean)
         .join(' '),
     )
+    if (result.fx?.error) syncError.value = apiMessage(result.fx.error, {}, result.fx.error)
     if (failed.length) {
       const details = failed
         .map((tab) => t('sheetPage.tabFailure', { tab: tab.name, message: apiMessage(tab.code, tab.params, tab.message) || t('sheetPage.error') }))

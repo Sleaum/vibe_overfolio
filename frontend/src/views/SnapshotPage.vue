@@ -9,6 +9,12 @@
     <header class="max-w-3xl">
       <h1 class="text-h2 text-ink">{{ t('pages.snapshot') }}</h1>
       <p class="mt-3 text-lead text-ink-2" aria-live="polite">{{ subtitle }}</p>
+      <p v-if="unconverted" class="mt-2 text-sm text-danger" role="status" data-testid="snapshot-unconverted">
+        {{ t('snapshotPage.notConverted', { count: unconverted, currency: convertedFrom }, unconverted) }}
+      </p>
+      <p v-else-if="convertedFrom" class="mt-2 text-sm text-ink-3" data-testid="snapshot-converted">
+        {{ t('snapshotPage.converted', { currency: convertedFrom }) }}
+      </p>
     </header>
 
     <div
@@ -202,6 +208,15 @@ const status = computed(() => {
 })
 
 const missingTable = computed(() => portfolio.error.value?.status === 404)
+
+// Montants de la feuille dans une autre devise (case M1) : le serveur les a convertis en euros (taux BCE)
+const convertedFrom = computed(() => {
+  const currency = portfolio.data.value?.currency
+  return currency && currency !== 'EUR' ? currency : ''
+})
+
+// Lignes sans taux BCE (base des taux encore vide, BCE injoignable) : montants restés dans la devise de la feuille
+const unconverted = computed(() => (convertedFrom.value ? portfolio.data.value?.unconverted_rows || 0 : 0))
 
 const subtitle = computed(() =>
   model.value?.asOf

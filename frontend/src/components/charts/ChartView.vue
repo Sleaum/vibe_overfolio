@@ -23,6 +23,8 @@
                 v-if="model?.currencies"
                 :available="model.currencies.available"
                 :selected="model.currencies.selected"
+                :more="model.currencies.more"
+                @changed="reload"
               />
               <template v-for="control in controls" :key="control.key">
                 <span class="text-sm text-ink-2">{{ control.label }}</span>

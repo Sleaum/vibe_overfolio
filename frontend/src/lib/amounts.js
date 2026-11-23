@@ -60,7 +60,11 @@ function columnsOf(table) {
     assets: findColumn(columns, ASSETS),
     liabilities: findColumn(columns, LIABILITIES),
     eur: findCurrencyColumn(columns, 'EUR'),
-    currencies: [...new Set(CURRENCIES.map((code) => findCurrencyColumn(columns, code)).filter(Boolean))],
+    currencies: [
+      ...new Set(
+        [...CURRENCIES, ...(table?.currencies_available ?? [])].map((code) => findCurrencyColumn(columns, code)).filter(Boolean),
+      ),
+    ],
     labels: LABELS.map((name) => findColumn(columns, [name])).filter(Boolean),
   }
 }

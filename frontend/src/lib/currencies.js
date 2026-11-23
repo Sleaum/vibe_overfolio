@@ -1,8 +1,10 @@
 // Devises du graphique « Patrimoine par devise » (lib/charts/flowCurrency.js).
 //
-// Les devises disponibles sont celles qui ont une colonne de montants dans la table history (EUR, USD, CHF, THB).
-// Le choix (devises cochées) est gardé sur le profil, en base (PUT /api/profile/ { chart_currencies }) : celui
-// du compte connecté, sinon celui du site. Choix vide = toutes les devises disponibles.
+// Devises proposées : celles que le serveur sait calculer avec les taux de la BCE (table.currencies_available,
+// googlesheet/currencies.py), et celles qui ont une colonne dans la feuille. Le serveur n'envoie en colonnes que les
+// devises cochées (ou EUR, USD, CHF, THB tant que rien n'est choisi) : en cocher une nouvelle recharge la table.
+// Le choix est gardé sur le profil, en base (PUT /api/profile/ { chart_currencies }) : celui du compte connecté,
+// sinon celui du site. Choix vide = devises par défaut.
 
 import { ref } from 'vue'
 import { saveProfileCurrencies } from './api.js'
@@ -26,9 +28,18 @@ export function applyProfileCurrencies(profile) {
   currencyError.value = ''
 }
 
-/** Devises disponibles dans la table : [{ code, column }], dans l'ordre de KNOWN_CURRENCIES. */
-export function availableCurrencies(columns) {
-  return KNOWN_CURRENCIES.map((code) => ({ code, column: findCurrencyColumn(columns, code) })).filter((item) => item.column)
+/**
+ * Devises de la table : `shown` = [{ code, column }] celles qui ont une colonne (feuille ou calcul du serveur),
+ * `more` = codes que le serveur peut ajouter (à cocher : la table est rechargée avec leur colonne).
+ */
+export function availableCurrencies(table) {
+  const columns = table?.columns ?? []
+  const offered = [...new Set([...KNOWN_CURRENCIES, ...(table?.currencies_available ?? [])])]
+  const order = table?.currencies_available?.length ? [...table.currencies_available, ...KNOWN_CURRENCIES] : KNOWN_CURRENCIES
+  const codes = [...new Set(order)].filter((code) => offered.includes(code))
+  const shown = codes.map((code) => ({ code, column: findCurrencyColumn(columns, code) })).filter((item) => item.column)
+  const more = (table?.currencies_available ?? []).filter((code) => !shown.some((item) => item.code === code))
+  return { shown, more }
 }
 
 /** Devises à afficher parmi celles disponibles : le choix enregistré, sinon toutes. */
@@ -40,7 +51,7 @@ export function selectedCurrencies(available) {
 
 let version = 0
 
-/** Enregistre le choix ; affiché tout de suite, remis comme avant si le serveur refuse. */
+/** Enregistre le choix ; affiché tout de suite, remis comme avant si le serveur refuse. Vrai si enregistré. */
 export async function setChartCurrencies(codes) {
   const previous = chartCurrencies.value
   const mine = ++version
@@ -48,8 +59,10 @@ export async function setChartCurrencies(codes) {
   try {
     await saveProfileCurrencies(chartCurrencies.value)
     currencyError.value = ''
+    return true
   } catch (error) {
     if (version === mine) chartCurrencies.value = previous
     currencyError.value = error.message
+    return false
   }
 }

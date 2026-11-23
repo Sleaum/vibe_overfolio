@@ -6,7 +6,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
 from . import config
+from .currencies import merged_rows
 from .models import SheetTable
+from profiles.views import current_profile
 from .errors import error_response
 from .services import SheetError, open_spreadsheet, worksheet_titles
 from .sync import DEFAULT_TABS, configured_tabs, sync_sheets
@@ -60,15 +62,23 @@ def table_detail(request, name):
             {"name": name},
         )
 
-    rows = list(table.rows.order_by("position").values_list("data", flat=True))
+    # Valeurs de la feuille + ce que le site calcule avec les taux BCE (googlesheet/currencies.py) :
+    # montants convertis en euros, et devises choisies sur le profil (graphique Patrimoine par devise)
+    selected = current_profile(request).chart_currencies or []
+    columns, rows, added, available, unconverted = merged_rows(table, selected)
     return JsonResponse(
         {
             "name": table.name,
-            "columns": table.columns,
+            "columns": columns,
             "header_row": table.header_row,
             "row_count": table.row_count,
             "synced_at": _iso(table.synced_at),
             "rows": rows,
+            "currency": table.currency,  # devise des montants dans la feuille ; convertis en euros si ce n'est pas EUR
+            "unconverted_rows": unconverted,  # lignes laissées dans cette devise : pas encore de taux BCE
+            "computed_columns": added,  # colonnes de devises calculées par le site
+            "currencies_available": available,  # devises proposées dans « Patrimoine par devise »
+            "rates_applied_at": _iso(table.rates_applied_at),
         }
     )
 
@@ -147,7 +157,15 @@ def sync_all(request):
         return error_response(f"Aucun onglet n'a pu être actualisé ({detail})", "no_tab_saved", 502, tabs=tabs)
 
     # removed : tables d'un autre document retirées (la feuille a changé sur la page GoogleSheet)
-    return JsonResponse({"tabs": tabs, "saved": saved, "failed": len(tabs) - saved, "removed": getattr(results, "removed", [])})
+    return JsonResponse(
+        {
+            "tabs": tabs,
+            "saved": saved,
+            "failed": len(tabs) - saved,
+            "removed": getattr(results, "removed", []),
+            "fx": getattr(results, "fx", {}),  # taux BCE : date du dernier taux, erreur éventuelle (fx_unreachable…)
+        }
+    )
 
 
 @api_view(["GET", "PUT", "DELETE"])

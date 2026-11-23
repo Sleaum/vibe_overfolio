@@ -17,6 +17,8 @@
         class="w-full"
         :available="model.currencies.available"
         :selected="model.currencies.selected"
+        :more="model.currencies.more"
+        @changed="reload"
       />
     </header>
 

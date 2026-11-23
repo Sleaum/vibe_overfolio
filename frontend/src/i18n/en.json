@@ -103,7 +103,9 @@
     "google_requires_account": "Google account mode requires signing in with Google.",
     "session_expired": "Your session expired: nothing was saved. The page will reload.",
     "scope_changed": "You signed in or out in another tab: nothing was saved. The page will reload.",
-    "invalid_currencies": "Invalid currencies."
+    "invalid_currencies": "Invalid currencies.",
+    "fx_unreachable": "ECB exchange rates could not be read again: currencies use the latest known rates.",
+    "fx_invalid": "The ECB rates file is unreadable: currencies use the latest known rates."
   },
   "data": {
     "unknown": "Not specified",
@@ -163,14 +165,15 @@
     },
     "currency": {
       "title": "Wealth by currency",
-      "summary": "The value of your wealth in the currencies of your choice (euro, dollar, Swiss franc, baht), month by month.",
-      "source": "history table, Date column and one amount column per currency (EUR, USD, CHF, THB), added up by date.",
+      "summary": "The value of your wealth in the currencies of your choice (euro, dollar, Swiss franc, baht…), month by month.",
+      "source": "history table: Date and the amounts in euros (Assets Master Currency, Liabilities Master Currency), converted by the site into each currency at the ECB rate of the record’s date, or a currency column of the sheet (EUR, USD…). Added up by date.",
       "explain": [
         "For each month, one bar per ticked currency gives the total value of your wealth expressed in that currency. This isn’t a breakdown: it’s the same wealth, converted into each currency.",
         "So the bars move together; the gap between them only changes with exchange rates. A month’s amount is that of the last record of the month.",
-        "Tick the currencies to show above the chart: your choice is saved (to your account if you are signed in)."
+        "Tick the currencies to show above the chart, or add one with “Add a currency”: your choice is saved (to your account if you are signed in).",
+        "Amounts in other currencies are calculated by the site with the European Central Bank (ECB) reference rates, on the date of each record. Your sheet only needs the amounts in euros."
       ],
-      "noColumn": "No amount column in EUR, USD, CHF or THB in the “{table}” table. Available columns: {available}.",
+      "noColumn": "No amount per currency in the “{table}” table: it needs the Assets Master Currency column (or an EUR, USD… column) and ECB rates in the database. Available columns: {available}.",
       "a11y": "Wealth in {codes} from {from} to {to}: {amounts} in the last month.",
       "columnsFound": "Columns found: {columns}."
     },
@@ -511,7 +514,8 @@
   },
   "currencyPicker": {
     "label": "Currencies",
-    "keepOne": "Keep at least one currency"
+    "keepOne": "Keep at least one currency",
+    "add": "Add a currency"
   },
   "chartPage": {
     "breadcrumb": "Breadcrumb",
@@ -575,7 +579,9 @@
     "yourNetWorth": "Your net worth",
     "yourDebts": "Your debts",
     "debtsTotal": "{amount} in total, by instrument.",
-    "typeDebts": "After {amount} of debts; the breakdown shows its assets."
+    "typeDebts": "After {amount} of debts; the breakdown shows its assets.",
+    "converted": "Your sheet’s amounts are in {currency}, converted to euros at the ECB rate of the positions’ date.",
+    "notConverted": "{count} row in {currency} could not be converted to euros: no ECB rate for that day yet. Run “Refresh all” on the GoogleSheet page again later. | {count} rows in {currency} could not be converted to euros: no ECB rates for those days yet. Run “Refresh all” on the GoogleSheet page again later."
   },
   "strategyPage": {
     "loading": "Loading your shares…",
@@ -623,7 +629,9 @@
     "failedNotice": "{count} tab not refreshed: {details} | {count} tabs not refreshed: {details}",
     "tabFailure": "{tab}: {message}",
     "error": "error",
-    "removedNotice": "{count} tab from the previous document removed: {names}. | {count} tabs from the previous document removed: {names}."
+    "removedNotice": "{count} tab from the previous document removed: {names}. | {count} tabs from the previous document removed: {names}.",
+    "computedColumns": "Columns calculated by the site (ECB rates): {columns}.",
+    "convertedFrom": "Amounts converted from {currency} to euros (ECB rates)."
   },
   "sheetSettings": {
     "title": "Google Sheets connection",

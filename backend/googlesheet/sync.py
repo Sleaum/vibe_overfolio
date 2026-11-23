@@ -9,7 +9,10 @@ from django.utils import timezone
 from . import config
 from .config import DEFAULT_TABS
 from .models import SheetRow, SheetTable
+from .currencies import apply_currencies, detect_currency, earliest_date, tables_to_compute
 from .services import SheetError, open_spreadsheet, parse_values, read_worksheet_values
+from fx.ecb import update_rates
+from fx.rates import RateBook
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,7 @@ class TabResult:
     header_row: int = 0
     columns: List[str] = field(default_factory=list)
     rows: int = 0
+    currency: str = "EUR"  # devise des montants, lue au-dessus de l'en-tête (case M1 de portfolio)
     message: str = ""
     code: str = ""  # même erreur que message, pour le site (voir errors.py)
     params: dict = field(default_factory=dict)
@@ -39,10 +43,12 @@ class SyncResults(list):
     """Résultats par onglet (une liste de TabResult), plus `removed` : tables d'un autre document retirées."""
 
     removed: List[str]
+    fx: dict
 
     def __init__(self, *args):
         super().__init__(*args)
         self.removed = []
+        self.fx = {}  # taux BCE et devises recalculées (refresh_currencies)
 
 
 def document_source(doc_name: str, owner=None) -> str:
@@ -51,13 +57,16 @@ def document_source(doc_name: str, owner=None) -> str:
     return sheet_id if sheet_id else f"nom:{doc_name}"
 
 
-def _save_table(tab: str, header_row: int, columns: List[str], rows: List[dict], source: str = "", owner=None) -> None:
+def _save_table(
+    tab: str, header_row: int, columns: List[str], rows: List[dict], source: str = "", owner=None, currency: str = "EUR"
+) -> None:
     """Remplace d'un seul bloc le contenu d'un onglet (de ce propriétaire) : tout est écrit, ou rien."""
     table, _ = SheetTable.objects.update_or_create(
         user=owner,
         name=tab,
         defaults={
             "source": source,
+            "currency": currency,
             "header_row": header_row,
             "columns": columns,
             "row_count": len(rows),
@@ -109,6 +118,7 @@ def sync_sheets(
             continue
 
         result.header_row, result.columns, result.rows = header_row, columns, len(rows)
+        result.currency = detect_currency(values, header_row, columns)
 
         if not rows and not allow_empty and SheetTable.objects.filter(user=owner, name=tab, row_count__gt=0).exists():
             result.message = "aucune ligne lue : données existantes conservées (--allow-empty pour forcer)"
@@ -122,7 +132,7 @@ def sync_sheets(
             continue
 
         try:
-            _save_table(tab, header_row, columns, rows, source, owner)
+            _save_table(tab, header_row, columns, rows, source, owner, result.currency)
         except Exception as exc:
             logger.exception("Écriture en base impossible pour l'onglet %s", tab)
             result.message = f"erreur base de données : {exc}"
@@ -134,7 +144,27 @@ def sync_sheets(
 
     if not dry_run:
         results.removed = _remove_other_documents(source, owner)
+        results.fx = refresh_currencies(owner, [result.tab for result in results if result.saved])
     return results
+
+
+def refresh_currencies(owner=None, names=None) -> dict:
+    """
+    Taux BCE à jour (jours manquants), puis devises recalculées pour les tables concernées (history, et celles
+    qui ne sont pas en euros). Une panne de la BCE n'empêche rien : les taux déjà en base servent.
+    """
+    tables = tables_to_compute(owner, names)  # owner="all" : toutes les tables (commande update_fx_rates)
+    if not tables:
+        return {}
+    update = update_rates()
+    book = RateBook(since=earliest_date(tables))
+    # Clé : nom de la table ; pour toutes les tables (owner="all"), « nom (compte) » pour les distinguer
+    stats = {(str(table) if owner == "all" else table.name): apply_currencies(table, book) for table in tables}
+    return {
+        "rates_latest": update.latest.isoformat() if update.latest else None,
+        "error": update.error,
+        "tables": stats,
+    }
 
 
 def _remove_other_documents(source: str, owner=None) -> List[str]:
