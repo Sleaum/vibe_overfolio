@@ -9,7 +9,8 @@
 //   DELETE /api/sheet-config/       -> revient aux valeurs du .env
 //   GET    /api/sheet-config/tabs/  -> onglets du document : { mode, tabs[], selected[] }
 //   GET    /api/profile/            -> réglages gardés en base : { asset_colors: { type: '#rrggbb' }, theme, updated_at }
-//   PUT    /api/profile/            { theme } -> mode clair / sombre du profil ('light', 'dark', '' = système)
+//   PUT    /api/profile/            { theme } ou { chart_currencies } -> mode clair / sombre ('light', 'dark', '' = système),
+//                                    devises de « Patrimoine par devise » ([] = toutes)
 //   PUT    /api/profile/asset-colors/ { asset_colors } -> remplace les couleurs des types d'actifs ({} = par défaut)
 //   (mode : 'service_account' = compte de service, 'public_link' = lien seul, 'none' = rien de configuré)
 //   GET    /api/auth/me/            -> { configured, authenticated, user?: { email, name, picture }, first_login? }
@@ -145,6 +146,13 @@ export const saveProfileAssetColors = (assetColors) =>
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ asset_colors: assetColors }),
+  })
+
+export const saveProfileCurrencies = (codes) =>
+  request('/api/profile/', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chart_currencies: codes }),
   })
 
 export const saveProfileTheme = (theme) =>

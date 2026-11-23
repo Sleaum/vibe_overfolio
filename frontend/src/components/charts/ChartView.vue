@@ -15,10 +15,15 @@
         <div class="rounded-xl border border-line bg-paper shadow-soft">
           <!-- Réglages du graphique et bascule graphique / tableau -->
           <div
-            v-if="controls.length || status === 'ready'"
+            v-if="controls.length || status === 'ready' || model?.currencies"
             class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-line px-4 py-3 sm:px-6"
           >
             <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <CurrencyPicker
+                v-if="model?.currencies"
+                :available="model.currencies.available"
+                :selected="model.currencies.selected"
+              />
               <template v-for="control in controls" :key="control.key">
                 <span class="text-sm text-ink-2">{{ control.label }}</span>
                 <SegmentedControl
@@ -158,6 +163,7 @@
 </template>
 
 <script setup>
+import CurrencyPicker from './CurrencyPicker.vue'
 import { useI18n } from 'vue-i18n'
 import { computed, reactive, ref } from 'vue'
 import { DataError, findColumn } from '../../lib/aggregate.js'

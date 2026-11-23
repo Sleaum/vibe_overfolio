@@ -68,7 +68,7 @@ overfolio/
 │       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
 │       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue)
 │       │   ├── landing/            # sections de la page de présentation
-│       │   └── charts/             # AssetColorSettings, BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
+│       │   └── charts/             # AssetColorSettings, CurrencyPicker (devises du graphique par devise), BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
 │       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes),
 │       │                           #   menu.js (noms des menus, toujours en anglais)
 │       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
@@ -76,7 +76,8 @@ overfolio/
 │           ├── api.js              # appels /api/… (jeton CSRF ajouté aux requêtes qui modifient)
 │           ├── auth.js             # état de la connexion (session), se connecter, se déconnecter
 │           ├── googlePicker.js     # sélecteur de fichiers de Google (mode 3 de la page GoogleSheet)
-│           ├── profile.js          # profil en base au démarrage et après connexion : couleurs, mode
+│           ├── profile.js          # profil en base au démarrage et après connexion : couleurs, mode, devises
+│           ├── currencies.js       # devises de « Patrimoine par devise » : disponibles, cochées, enregistrées sur le profil
 │           ├── aggregate.js, dates.js, format.js   # calculs ; nombres, dates et noms de pays dans la langue active
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
 │           ├── countries.js        # pays de la carte du monde (Strategy) : écritures de la colonne Area, centres
@@ -462,7 +463,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
-| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon) |
+| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon). `PUT {"chart_currencies": ["EUR", "THB"]}` : devises de « Patrimoine par devise » (codes ISO, `[]` = toutes ; 400 `invalid_currencies`). Seul ce qui est envoyé change |
 | PUT | `/api/profile/asset-colors/` | `{"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut). Types mis en minuscules ; 400 `invalid_asset_colors` si une couleur n'est pas au format `#rrggbb`, si un type est vide ou dépasse 100 caractères, ou au-delà de 200 types |
 | GET | `/api/auth/google/start/?next=/page` | Navigation (pas d'appel JSON) : part se connecter chez Google, puis revient sur `next` (une page du site seulement). Sans réglages Google : retour sur `/newpage?error=google_not_configured` |
 | GET | `/api/auth/google/callback/` | Retour de Google (adresse déclarée dans Google Cloud) : vérifie `state`, échange le code (PKCE), vérifie le jeton d'identité, ouvre la session. Échec : `/newpage?error=` `google_denied`, `google_state_invalid`, `google_token_failed`, `google_token_invalid`, `google_email_unverified`, `account_disabled` (compte désactivé dans l'admin) |
@@ -524,6 +525,7 @@ erDiagram
     int user_id FK "vide = profil du site"
     jsonb asset_colors "type vers couleur"
     varchar theme "light, dark ou vide"
+    jsonb chart_currencies "devises de Patrimoine par devise"
     timestamp updated_at
   }
   accounts_googleaccount {
@@ -554,7 +556,7 @@ Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessi
 | `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ) |
 | `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration |
 | `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur |
-| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`). Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
+| `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes). Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
 | `accounts_googleaccount` | `GoogleAccount` | Compte Google d'un utilisateur : identifiant Google `sub` (unique), e-mail, nom, photo. Mode 3 : jeton de rafraîchissement Google **chiffré** (`drive_refresh_token`, vide si l'accès n'est pas accordé) |
 | `auth_user` | `User` (Django) | Comptes Django : l'administrateur (`createsuperuser`) et un utilisateur par compte Google connecté (`google-<sub>`, sans mot de passe) |
 
@@ -675,7 +677,7 @@ Quinze graphiques ont leur propre page `/graphiques/<nom>` : Budget et ceux de F
 | `<nom>` dans l'adresse | Table | Colonnes lues |
 |---|---|---|
 | `flux-budget` | `budget` | `Source`, `Destination`, `Valeur`. Lignes supérieures à 0, doublons additionnés |
-| `patrimoine-devises` | `history` | `Date` et une colonne de montants par devise dont le nom contient `CHF`, `EUR` ou `USD` (par exemple `EUR` ou `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées. Brut ou net selon le bouton Brut / Net |
+| `patrimoine-devises` | `history` | `Date` et une colonne de montants par devise dont le nom contient `EUR`, `USD`, `CHF` ou `THB` (par exemple `EUR` ou `Assets CHF`). Les colonnes de prix, de quantité et de dettes sont ignorées. Les devises affichées se cochent au-dessus du graphique (au moins une) ; le choix est gardé sur le profil (`chart_currencies`, voir `lib/currencies.js`). Brut ou net selon le bouton Brut / Net |
 | `repartition-mensuelle` | `history` | `Date`, `Asset`, `Assets Master Currency`. Barres à 100 % par mois |
 | `evolution-par-actif` | `history` | `Date`, `Asset`, `Assets Master Currency`. Une courbe par type d'actif |
 | `dettes-par-actif` | `history` | `Date`, `Asset`, `Liabilities Master Currency` (ou `EUR` négatif). Tes dettes en positif, une courbe par type d'actif. Sur la page Flow, seulement en mode Brut |

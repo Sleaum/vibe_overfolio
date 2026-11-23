@@ -53,3 +53,25 @@ class ProfileAssetColorsTests(TestCase):
         site = current_profile(type("Request", (), {"user": None})())
         self.assertIsNone(site.user)
         self.assertNotEqual(site.pk, mine.pk)
+
+
+class ChartCurrenciesTests(TestCase):
+    url = "/api/profile/"
+
+    def put(self, data):
+        return self.client.put(self.url, json.dumps(data), content_type="application/json")
+
+    def test_currencies_are_saved_without_touching_theme(self):
+        self.put({"theme": "dark"})
+        response = self.put({"chart_currencies": ["eur", "THB", "EUR", " usd "]})
+        self.assertEqual(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertEqual(body["chart_currencies"], ["EUR", "THB", "USD"])
+        self.assertEqual(body["theme"], "dark")
+        self.assertEqual(self.client.get(self.url).json()["chart_currencies"], ["EUR", "THB", "USD"])
+        self.assertEqual(self.put({"chart_currencies": []}).json()["chart_currencies"], [])
+
+    def test_invalid_currencies(self):
+        for value in ("EUR", ["EURO"], [1], ["E1R"], ["EUR"] * 0 + [f"A{chr(65 + i % 26)}{chr(65 + i // 26)}" for i in range(41)]):
+            response = self.put({"chart_currencies": value})
+            self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_currencies"), value)

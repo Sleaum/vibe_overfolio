@@ -102,7 +102,8 @@
     "google_drive_not_configured": "Google account mode is not set up on this server.",
     "google_requires_account": "Google account mode requires signing in with Google.",
     "session_expired": "Your session expired: nothing was saved. The page will reload.",
-    "scope_changed": "You signed in or out in another tab: nothing was saved. The page will reload."
+    "scope_changed": "You signed in or out in another tab: nothing was saved. The page will reload.",
+    "invalid_currencies": "Invalid currencies."
   },
   "data": {
     "unknown": "Not specified",
@@ -162,13 +163,14 @@
     },
     "currency": {
       "title": "Wealth by currency",
-      "summary": "The value of your wealth in CHF, euros and dollars, month by month.",
-      "source": "history table, Date column and one amount column per currency (CHF, EUR, USD), added up by date.",
+      "summary": "The value of your wealth in the currencies of your choice (euro, dollar, Swiss franc, baht), month by month.",
+      "source": "history table, Date column and one amount column per currency (EUR, USD, CHF, THB), added up by date.",
       "explain": [
-        "For each month, three bars give the total value of your wealth expressed in each currency. This isn’t a breakdown: it’s the same wealth, converted three times.",
-        "So the bars move together; the gap between them only changes with exchange rates. A month’s amount is that of the last record of the month."
+        "For each month, one bar per ticked currency gives the total value of your wealth expressed in that currency. This isn’t a breakdown: it’s the same wealth, converted into each currency.",
+        "So the bars move together; the gap between them only changes with exchange rates. A month’s amount is that of the last record of the month.",
+        "Tick the currencies to show above the chart: your choice is saved (to your account if you are signed in)."
       ],
-      "noColumn": "No amount column in CHF, EUR or USD in the “{table}” table. Available columns: {available}.",
+      "noColumn": "No amount column in EUR, USD, CHF or THB in the “{table}” table. Available columns: {available}.",
       "a11y": "Wealth in {codes} from {from} to {to}: {amounts} in the last month.",
       "columnsFound": "Columns found: {columns}."
     },
@@ -506,6 +508,10 @@
     "tableDefault": "Chart data",
     "partsOf": "Slices: {title}",
     "ringsHint": "Inner ring: {inner}. Outer ring: {outer}, in shades of its category’s colour. Hover over a slice to see its amount."
+  },
+  "currencyPicker": {
+    "label": "Currencies",
+    "keepOne": "Keep at least one currency"
   },
   "chartPage": {
     "breadcrumb": "Breadcrumb",

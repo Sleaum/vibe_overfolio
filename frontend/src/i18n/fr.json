@@ -102,7 +102,8 @@
     "google_drive_not_configured": "Le mode compte Google n’est pas configuré sur ce serveur.",
     "google_requires_account": "Le mode compte Google demande d’être connecté avec Google.",
     "session_expired": "Ta session a expiré : rien n’a été enregistré. La page va se recharger.",
-    "scope_changed": "Tu t’es connecté ou déconnecté dans un autre onglet : rien n’a été enregistré. La page va se recharger."
+    "scope_changed": "Tu t’es connecté ou déconnecté dans un autre onglet : rien n’a été enregistré. La page va se recharger.",
+    "invalid_currencies": "Devises non valables."
   },
   "data": {
     "unknown": "Non renseigné",
@@ -162,13 +163,14 @@
     },
     "currency": {
       "title": "Patrimoine par devise",
-      "summary": "La valeur de ton patrimoine exprimée en CHF, en euros et en dollars, mois par mois.",
-      "source": "Table history, colonne Date et une colonne de montants pour chaque devise (CHF, EUR, USD), additionnées par date.",
+      "summary": "La valeur de ton patrimoine exprimée dans les devises de ton choix (euro, dollar, franc suisse, baht), mois par mois.",
+      "source": "Table history, colonne Date et une colonne de montants par devise (EUR, USD, CHF, THB), additionnées par date.",
       "explain": [
-        "Pour chaque mois, trois barres donnent la valeur totale de ton patrimoine exprimée dans chaque devise. Ce n’est pas une répartition : c’est le même patrimoine, converti trois fois.",
-        "Les barres changent donc ensemble ; leur écart ne bouge qu’avec les taux de change. Le montant d’un mois est celui du dernier relevé de ce mois."
+        "Pour chaque mois, une barre par devise cochée donne la valeur totale de ton patrimoine exprimée dans cette devise. Ce n’est pas une répartition : c’est le même patrimoine, converti dans chaque devise.",
+        "Les barres changent donc ensemble ; leur écart ne bouge qu’avec les taux de change. Le montant d’un mois est celui du dernier relevé de ce mois.",
+        "Coche les devises à afficher au-dessus du graphique : ton choix est enregistré (sur ton compte si tu es connecté)."
       ],
-      "noColumn": "Aucune colonne de montants en CHF, EUR ou USD dans la table « {table} ». Colonnes disponibles : {available}.",
+      "noColumn": "Aucune colonne de montants en EUR, USD, CHF ou THB dans la table « {table} ». Colonnes disponibles : {available}.",
       "a11y": "Patrimoine en {codes} entre {from} et {to} : {amounts} au dernier mois.",
       "columnsFound": "Colonnes trouvées : {columns}."
     },
@@ -506,6 +508,10 @@
     "tableDefault": "Données du graphique",
     "partsOf": "Parts : {title}",
     "ringsHint": "Anneau intérieur : {inner}. Anneau extérieur : {outer}, en nuances de la couleur de sa catégorie. Survole une part pour voir son montant."
+  },
+  "currencyPicker": {
+    "label": "Devises",
+    "keepOne": "Garde au moins une devise"
   },
   "chartPage": {
     "breadcrumb": "Fil d’Ariane",

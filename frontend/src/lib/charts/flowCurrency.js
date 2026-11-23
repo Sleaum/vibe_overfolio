@@ -1,19 +1,15 @@
-// Portfolio Flow 1 : patrimoine exprimé en CHF, EUR et USD, un groupe de barres par mois.
-// Table `history` : une colonne de montants par devise (par exemple « Assets CHF »).
+// Portfolio Flow 1 : patrimoine exprimé dans les devises choisies (EUR, USD, CHF, THB), un groupe de barres par mois.
+// Table `history` : une colonne de montants par devise (par exemple « EUR » ou « Assets CHF »).
+// Devises affichées : celles cochées au-dessus du graphique (lib/currencies.js, gardées sur le profil).
 
 import { DataError, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
 import { formatMonthKey, formatMonthKeyTiny } from '../format.js'
-import { BLUES, HOVER_SHADE } from '../palette.js'
-import { compactNumber, findCurrencyColumn, money, monthEnds, monthsSubtitle, skippedNote, totalsByDate } from './flowData.js'
+import { HOVER_SHADE, blues } from '../palette.js'
+import { availableCurrencies, selectedCurrencies } from '../currencies.js'
+import { compactNumber, money, monthEnds, monthsSubtitle, skippedNote, totalsByDate } from './flowData.js'
 import { t, tList } from '../../i18n/index.js'
 
-// Une nuance de bleu par devise, la même partout : l'euro garde le bleu principal
-const CURRENCIES = [
-  { code: 'CHF', color: BLUES[6] },
-  { code: 'EUR', color: BLUES[3] },
-  { code: 'USD', color: BLUES[0] },
-]
 
 export function currencyOption(months, series) {
   const zoom = months.length > 30
@@ -69,12 +65,9 @@ export default {
 
   build(table) {
     const cols = requireColumns(table, { date: ['Date'] })
-    const found = CURRENCIES.map((currency) => ({
-      ...currency,
-      column: findCurrencyColumn(table.columns, currency.code),
-    })).filter((currency) => currency.column)
+    const available = availableCurrencies(table.columns)
 
-    if (!found.length) {
+    if (!available.length) {
       throw new DataError(
         t('charts.currency.noColumn', {
           table: table?.name ?? 'history',
@@ -87,9 +80,13 @@ export default {
     const months = monthEnds(rows, cols.date)
     if (!months.length) return { empty: t('errors.noDates', { table: 'history' }) }
 
-    const series = found.map((currency) => {
+    // Devises cochées, une nuance de bleu chacune (de la plus foncée à la plus claire)
+    const codes = selectedCurrencies(available)
+    const shades = blues(codes.length)
+    const found = available.filter((item) => codes.includes(item.code))
+    const series = found.map((currency, index) => {
       const totals = totalsByDate(rows, cols.date, currency.column)
-      return { ...currency, values: months.map((month) => totals.get(month.iso) ?? 0) }
+      return { ...currency, color: shades[index], values: months.map((month) => totals.get(month.iso) ?? 0) }
     })
     const last = months.length - 1
 
@@ -102,6 +99,8 @@ export default {
         amounts: series.map((serie) => money(serie.values[last], serie.code)).join(', '),
       }),
       option: currencyOption(months, series),
+      // Choix des devises, affiché au-dessus du graphique (CurrencyPicker.vue)
+      currencies: { available: available.map((item) => item.code), selected: codes },
       height: 360,
       table: {
         columns: [t('chart.month'), ...series.map((serie) => serie.code)],
@@ -111,9 +110,7 @@ export default {
           .reverse(),
       },
       note: [
-        found.length < CURRENCIES.length
-          ? t('charts.currency.columnsFound', { columns: found.map((currency) => currency.column).join(', ') })
-          : '',
+        t('charts.currency.columnsFound', { columns: found.map((currency) => currency.column).join(', ') }),
         skippedNote(months.skipped),
       ]
         .filter(Boolean)
