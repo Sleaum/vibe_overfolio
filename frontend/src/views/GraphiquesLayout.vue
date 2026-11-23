@@ -4,6 +4,7 @@
   Les adresses des pages ne changent pas : /portfolio-flow, /portfolio-snapshot, /strategie, /graphiques/<slug>.
   Sur petit écran, le menu devient une rangée d'onglets au-dessus de la page, qui défile horizontalement.
   En haut du menu, le bouton Brut / Net choisit les montants des graphiques de Flow, Snapshot et Envelopes (lib/amounts.js).
+  Sous le menu, les couleurs des types d'actifs, à choisir type par type (AssetColorSettings.vue).
 -->
 <template>
   <div class="page-container py-8 lg:flex lg:items-start lg:gap-10 lg:py-12">
@@ -42,6 +43,9 @@
           </li>
         </ul>
       </nav>
+
+      <!-- Couleurs des types d'actifs, choisies type par type (lib/palette.js) -->
+      <AssetColorSettings />
     </aside>
 
     <div class="mt-6 min-w-0 flex-1 lg:mt-0">
@@ -53,6 +57,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import AssetColorSettings from '../components/charts/AssetColorSettings.vue'
 import SegmentedControl from '../components/ui/SegmentedControl.vue'
 import { MENU_NAMES } from '../i18n/menu.js'
 import { AMOUNT_MODES, amountMode, setAmountMode } from '../lib/amounts.js'

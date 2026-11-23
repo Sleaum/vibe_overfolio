@@ -6,7 +6,7 @@
 import { DataError, findColumn, requireColumns, rowsOf, toLabel, toNumber } from '../aggregate.js'
 import { axisLabelStyle, baseOption, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
 import { axisEuroFormatter, euro, formatDateLong, formatDateNumeric, formatMonthYear } from '../format.js'
-import { AXIS, SERIES } from '../palette.js'
+import { AXIS, BLUE, NAVY, PALE_BLUE } from '../palette.js'
 import { isoToTimestamp, toIsoDate } from '../dates.js'
 import { findCurrencyColumn, linearTrend } from './flowData.js'
 import { t, tList } from '../../i18n/index.js'
@@ -74,10 +74,10 @@ export function trendOption(points, trend, goals = []) {
         if (!item) return ''
         const ts = item.value[0]
         const rows = []
-        if (byTimestamp.has(ts)) rows.push({ color: SERIES[0], label: BARS(), value: euro(byTimestamp.get(ts)), strong: true })
-        rows.push({ color: SERIES[2], label: TREND(), value: euro(trend.at(ts)) })
+        if (byTimestamp.has(ts)) rows.push({ color: PALE_BLUE, label: BARS(), value: euro(byTimestamp.get(ts)), strong: true })
+        rows.push({ color: NAVY, label: TREND(), value: euro(trend.at(ts)) })
         const goal = goals.length ? goalAt(goals, ts) : null
-        if (goal !== null) rows.push({ color: SERIES[1], label: GOALS(), value: euro(goal), strong: !byTimestamp.has(ts) })
+        if (goal !== null) rows.push({ color: BLUE, label: GOALS(), value: euro(goal), strong: !byTimestamp.has(ts) })
         return tooltipHtml(formatDateLong(ts), rows)
       },
     }),
@@ -97,7 +97,7 @@ export function trendOption(points, trend, goals = []) {
         data: points,
         barMinWidth: 3,
         barMaxWidth: 10,
-        itemStyle: { color: SERIES[0], borderRadius: [2, 2, 0, 0] },
+        itemStyle: { color: PALE_BLUE, borderRadius: [2, 2, 0, 0] },
       },
       {
         name: TREND(),
@@ -108,8 +108,8 @@ export function trendOption(points, trend, goals = []) {
         ],
         showSymbol: false,
         silent: true,
-        lineStyle: { width: 2, color: SERIES[2] },
-        itemStyle: { color: SERIES[2] },
+        lineStyle: { width: 2, color: NAVY },
+        itemStyle: { color: NAVY },
         z: 3,
       },
       ...(last > lastPoint
@@ -124,8 +124,8 @@ export function trendOption(points, trend, goals = []) {
               ],
               showSymbol: false,
               silent: true,
-              lineStyle: { width: 2, color: SERIES[2], type: 'dashed' },
-              itemStyle: { color: SERIES[2] },
+              lineStyle: { width: 2, color: NAVY, type: 'dashed' },
+              itemStyle: { color: NAVY },
               z: 3,
             },
           ]
@@ -138,8 +138,8 @@ export function trendOption(points, trend, goals = []) {
               data: goals,
               symbol: 'diamond',
               symbolSize: 11,
-              lineStyle: { width: 2, color: SERIES[1], type: 'dotted' },
-              itemStyle: { color: SERIES[1] },
+              lineStyle: { width: 2, color: BLUE, type: 'dotted' },
+              itemStyle: { color: BLUE },
               z: 4,
             },
           ]

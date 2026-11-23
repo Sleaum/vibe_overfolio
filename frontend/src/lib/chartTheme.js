@@ -105,7 +105,7 @@ export function zoomSlider() {
     bottom: 4,
     borderColor: GRID,
     backgroundColor: SURFACE,
-    fillerColor: 'rgba(42, 120, 214, 0.12)', // couleur fixe : bleu des séries, lisible dans les deux modes
+    fillerColor: 'rgba(26, 115, 232, 0.12)', // couleur fixe : bleu des séries, lisible dans les deux modes
     dataBackground: { lineStyle: { color: AXIS }, areaStyle: { color: GRID } },
     handleSize: 14,
     brushSelect: false,

@@ -4,15 +4,15 @@
 import { DataError, requireColumns, rowsOf } from '../aggregate.js'
 import { baseOption, categoryAxis, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider } from '../chartTheme.js'
 import { formatMonthKey, formatMonthKeyTiny } from '../format.js'
-import { HOVER_SHADE, SERIES } from '../palette.js'
+import { BLUES, HOVER_SHADE } from '../palette.js'
 import { compactNumber, findCurrencyColumn, money, monthEnds, monthsSubtitle, skippedNote, totalsByDate } from './flowData.js'
 import { t, tList } from '../../i18n/index.js'
 
-// Une couleur par devise, la même partout : l'euro garde la première teinte du site
+// Une nuance de bleu par devise, la même partout : l'euro garde le bleu principal
 const CURRENCIES = [
-  { code: 'CHF', color: SERIES[2] },
-  { code: 'EUR', color: SERIES[0] },
-  { code: 'USD', color: SERIES[1] },
+  { code: 'CHF', color: BLUES[6] },
+  { code: 'EUR', color: BLUES[3] },
+  { code: 'USD', color: BLUES[0] },
 ]
 
 export function currencyOption(months, series) {

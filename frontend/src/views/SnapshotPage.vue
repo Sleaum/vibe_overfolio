@@ -165,7 +165,7 @@ import ShareBars from '../components/charts/ShareBars.vue'
 import { useTable } from '../composables/useTable.js'
 import { DataError, collectDropped } from '../lib/aggregate.js'
 import { amountMode, amountNote, droppedNote } from '../lib/amounts.js'
-import { SERIES } from '../lib/palette.js'
+import { NEGATIVE } from '../lib/palette.js'
 import { donutOption } from '../lib/charts/assetDonut.js'
 import { euro, formatDateLong, percent } from '../lib/format.js'
 import { buildSnapshot, signedPercent2 } from '../lib/snapshot.js'
@@ -173,7 +173,7 @@ import { buildSnapshot, signedPercent2 } from '../lib/snapshot.js'
 const { t } = useI18n()
 
 // Dettes : la couleur des baisses du site
-const DEBT_COLOR = SERIES[1]
+const DEBT_COLOR = NEGATIVE
 
 const portfolio = useTable('portfolio')
 const history = useTable('_history') // facultative : sert aux variations de l'année et du mois

@@ -6,7 +6,7 @@
 
 import { DataError, findColumn, latestDate, noteDropped, requireColumns, rowsOf, toLabel, toNumber } from '../aggregate.js'
 import { capitalize, euro, formatDateLong, formatMonthKey, percent } from '../format.js'
-import { CONTEXT, SERIES } from '../palette.js'
+import { BLUES, CONTEXT, blues } from '../palette.js'
 import { toIsoDate } from '../dates.js'
 import { tint } from '../strategy.js'
 import { stackedOption } from './stackedBars.js'
@@ -128,8 +128,9 @@ export const envelopeInstruments = {
 
     const total = groups.reduce((sum, group) => sum + group.total, 0)
     const sortedParts = groups.map((group) => [...group.parts.entries()].sort((a, b) => b[1] - a[1]))
+    const shades = blues(groups.length)
     const categories = groups.map((group, g) => {
-      const color = g < SERIES.length ? SERIES[g] : CONTEXT
+      const color = g < BLUES.length ? shades[g] : CONTEXT
       const parts = sortedParts[g]
       const big = parts.filter(([, value]) => value >= MIN_CHILD_SHARE * group.total)
       const shown = big.slice(0, MAX_CHILDREN)
@@ -227,7 +228,8 @@ export const envelopeHistory = {
 
     const last = byDate.get(months[months.length - 1].iso) ?? new Map()
     const keys = [...labels.keys()].sort((a, b) => (last.get(b) ?? 0) - (last.get(a) ?? 0))
-    const series = keys.map((key, s) => ({ label: labels.get(key), color: s < SERIES.length ? SERIES[s] : CONTEXT, slot: s, members: [key] }))
+    const shades = blues(keys.length)
+    const series = keys.map((key, s) => ({ label: labels.get(key), color: s < BLUES.length ? shades[s] : CONTEXT, slot: s, members: [key] }))
     const shownMonths = months.filter((month) => keys.some((key) => (byDate.get(month.iso)?.get(key) ?? 0) > 0))
     const values = series.map((serie) => shownMonths.map((month) => byDate.get(month.iso)?.get(serie.members[0]) ?? 0))
     const totals = shownMonths.map((_, m) => values.reduce((sum, row) => sum + row[m], 0))
@@ -296,9 +298,10 @@ function mixSpec({ slug, key, names }) {
       const totals = new Map()
       for (const group of groups) for (const [name, value] of group.parts) totals.set(name, (totals.get(name) ?? 0) + value)
       const labels = [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name)
-      const shown = labels.slice(0, SERIES.length - 1)
-      const folded = labels.slice(SERIES.length - 1)
-      const series = shown.map((name, s) => ({ label: envelopeLabel(name), color: SERIES[s], members: [name] }))
+      const shown = labels.slice(0, BLUES.length - 1)
+      const folded = labels.slice(BLUES.length - 1)
+      const shades = blues(shown.length)
+      const series = shown.map((name, s) => ({ label: envelopeLabel(name), color: shades[s], members: [name] }))
       if (folded.length) series.push({ label: t('data.othersCount', { count: folded.length }), color: CONTEXT, members: folded })
       const values = groups.map((group) =>
         series.map((serie) => serie.members.reduce((sum, member) => sum + (group.parts.get(member) ?? 0), 0)),

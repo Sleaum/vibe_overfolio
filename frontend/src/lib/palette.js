@@ -1,20 +1,45 @@
 import { CHART_COLORS, COLORS } from './theme.js'
 
-// Palette des graphiques : identique sur tout le site, dans un ordre fixe (jamais permuté, jamais cyclique).
-// Les 8 teintes passent le contrôle daltonisme du skill dataviz (écart ΔE ≥ 8 entre voisines, fond blanc).
-// Trois teintes (turquoise, jaune, rose) sont plus claires que 3:1 sur blanc : chaque graphique a donc
-// une légende, une infobulle et une vue « tableau » qui portent la même information.
+import { ref } from 'vue'
+import { readPreference, writePreference } from './preferences.js'
 
-export const SERIES = [
-  '#2a78d6', // 1 bleu
-  '#eb6834', // 2 orange
-  '#1baf7a', // 3 turquoise
-  '#eda100', // 4 jaune
-  '#e87ba4', // 5 rose
-  '#008300', // 6 vert
-  '#6250d6', // 7 violet
-  '#e34948', // 8 rouge
+// Couleurs des graphiques, dans l'esprit des couleurs Google :
+// - types d'actifs : une teinte vive par type (ASSET_SWATCHES), choisie type par type dans le menu de Charts ;
+// - tout le reste : des nuances de bleu (BLUES), du plus foncé au plus clair ;
+// - montants négatifs (baisses, sorties, dettes) : des couleurs chaudes de la même famille (NEGATIVE, NEGATIVE_2).
+
+/** Nuances de bleu, de la plus foncée à la plus claire. */
+export const BLUES = [
+  '#174ea6', // 1 bleu nuit
+  '#185abc',
+  '#1967d2',
+  '#1a73e8', // 4 bleu principal
+  '#4285f4',
+  '#669df6',
+  '#8ab4f8',
+  '#aecbfa', // 8 bleu pâle
 ]
+
+/** Bleu principal : une seule série, une ligne, une carte. */
+export const BLUE = BLUES[3]
+/** Bleu nuit : repère posé sur du bleu (tendance, objectif, bulles de la carte). */
+export const NAVY = BLUES[0]
+/** Bleu pâle : barres sous une ligne de tendance. */
+export const PALE_BLUE = BLUES[6]
+
+/** Montants négatifs : rouge (baisse, sortie, dette), orange (second montant négatif, comme les impôts). */
+export const NEGATIVE = '#d93025'
+export const NEGATIVE_2 = '#e8710a'
+
+/**
+ * `count` nuances de bleu bien séparées, de la plus foncée à la plus claire (au plus BLUES.length).
+ * La première catégorie (la plus grosse) est la plus foncée.
+ */
+export function blues(count) {
+  const n = Math.max(1, Math.min(count, BLUES.length))
+  if (n === 1) return [BLUE]
+  return Array.from({ length: n }, (_, i) => BLUES[Math.round((i * (BLUES.length - 1)) / (n - 1))])
+}
 
 // Série de contexte (courbes secondaires, « Autres »)
 export const CONTEXT = '#898781'
@@ -45,7 +70,7 @@ export const FONT =
   'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
 
 // Types d'actifs : une couleur par type, la même dans l'anneau, dans les barres empilées et partout ailleurs.
-// L'ordre est celui des pastilles ci-dessus ; un type absent laisse simplement sa couleur libre.
+// ASSET_ORDER fixe l'ordre d'affichage des types habituels.
 export const ASSET_ORDER = [
   'public equity',
   'real estate',
@@ -57,39 +82,124 @@ export const ASSET_ORDER = [
   'depreciating',
 ]
 
+/** Teintes proposées pour les types d'actifs : 8 teintes Google, en vif puis en clair. */
+export const ASSET_SWATCHES = [
+  { hue: 'blue', light: false, color: '#1a73e8' },
+  { hue: 'red', light: false, color: '#d93025' },
+  { hue: 'yellow', light: false, color: '#f9ab00' },
+  { hue: 'green', light: false, color: '#1e8e3e' },
+  { hue: 'orange', light: false, color: '#e8710a' },
+  { hue: 'pink', light: false, color: '#e52592' },
+  { hue: 'purple', light: false, color: '#9334e6' },
+  { hue: 'cyan', light: false, color: '#12b5cb' },
+  { hue: 'blue', light: true, color: '#8ab4f8' },
+  { hue: 'red', light: true, color: '#f28b82' },
+  { hue: 'yellow', light: true, color: '#fdd663' },
+  { hue: 'green', light: true, color: '#81c995' },
+  { hue: 'orange', light: true, color: '#fcad70' },
+  { hue: 'pink', light: true, color: '#ff8bcb' },
+  { hue: 'purple', light: true, color: '#c58af9' },
+  { hue: 'cyan', light: true, color: '#78d9ec' },
+]
+
+const swatch = (hue) => ASSET_SWATCHES.find((s) => s.hue === hue && !s.light).color
+
+/** Couleur par défaut des types habituels. */
+const ASSET_DEFAULTS = {
+  'public equity': swatch('blue'),
+  'real estate': swatch('orange'),
+  fiat: swatch('green'),
+  crypto: swatch('yellow'),
+  commodity: swatch('cyan'),
+  'managed futures': swatch('purple'),
+  exotic: swatch('pink'),
+  depreciating: swatch('red'),
+}
+
 const keyOf = (name) => String(name ?? '').trim().toLowerCase()
+const SWATCH_COLORS = new Set(ASSET_SWATCHES.map((s) => s.color))
+
+function readChoices() {
+  try {
+    const saved = JSON.parse(readPreference('assetColors') ?? '{}')
+    return Object.fromEntries(
+      Object.entries(saved && typeof saved === 'object' ? saved : {}).filter(([, color]) => SWATCH_COLORS.has(color)),
+    )
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Couleurs choisies dans le menu de Charts : { 'crypto': '#f9ab00', … } (clé = type en minuscules).
+ * Réactif : les graphiques se recalculent quand une couleur change.
+ */
+export const assetColorChoices = ref(readChoices())
+
+function saveChoices(next) {
+  assetColorChoices.value = next
+  writePreference('assetColors', Object.keys(next).length ? JSON.stringify(next) : null)
+}
+
+/**
+ * Donne la couleur `color` au type `name`. Si un autre type de `names` l'avait déjà, il prend l'ancienne
+ * couleur de `name` : deux types ne se retrouvent jamais avec la même couleur.
+ */
+export function setAssetColor(name, color, names) {
+  if (!SWATCH_COLORS.has(color)) return
+  const { colors } = assignAssetColors(names)
+  const previous = colors.get(name)?.color
+  const next = { ...assetColorChoices.value, [keyOf(name)]: color }
+  for (const other of names) {
+    if (keyOf(other) !== keyOf(name) && colors.get(other)?.color === color && SWATCH_COLORS.has(previous)) {
+      next[keyOf(other)] = previous
+    }
+  }
+  saveChoices(next)
+}
+
+/** Revient aux couleurs par défaut. */
+export function resetAssetColors() {
+  saveChoices({})
+}
 
 /**
  * Attribue une couleur à chaque type d'actif présent.
- * Les types connus gardent leur couleur ; un type inconnu prend une couleur restée libre ;
- * s'il n'en reste plus, il est signalé dans `overflow` (à regrouper en « Autres », gris).
+ * Couleur choisie dans le menu, sinon couleur par défaut du type ; un type inconnu prend une teinte restée libre
+ * (ni choisie, ni réservée à un type habituel) ; s'il n'en reste plus, il est signalé dans `overflow`
+ * (à regrouper en « Autres », gris). `slot` donne l'ordre d'affichage.
  */
 export function assignAssetColors(names) {
-  const slotByKey = new Map(ASSET_ORDER.map((key, index) => [key, index]))
-  const used = new Set()
+  const choices = assetColorChoices.value
+  const orderOf = new Map(ASSET_ORDER.map((key, index) => [key, index]))
   const colors = new Map()
   const unknown = []
+  // Teintes déjà prises : celles des types habituels et celles choisies
+  const taken = new Set([...Object.values(ASSET_DEFAULTS), ...Object.values(choices)])
 
   for (const name of names) {
-    const slot = slotByKey.get(keyOf(name))
-    if (slot === undefined) {
-      unknown.push(name)
-    } else {
-      colors.set(name, { slot, color: SERIES[slot] })
-      used.add(slot)
-    }
+    const key = keyOf(name)
+    const color = choices[key] ?? ASSET_DEFAULTS[key]
+    if (color) colors.set(name, { slot: orderOf.get(key) ?? ASSET_ORDER.length, color })
+    else unknown.push(name)
   }
 
-  const free = SERIES.map((_, index) => index).filter((index) => !used.has(index))
+  const free = ASSET_SWATCHES.map((s) => s.color).filter((color) => !taken.has(color))
   const overflow = []
-  for (const name of [...unknown].sort((a, b) => a.localeCompare(b, 'fr'))) {
-    const slot = free.shift()
-    if (slot === undefined) {
+  const sorted = [...new Set(unknown)].sort((a, b) => a.localeCompare(b, 'fr'))
+  sorted.forEach((name, index) => {
+    const color = free.shift()
+    if (color === undefined) {
       overflow.push(name)
       colors.set(name, { slot: -1, color: CONTEXT })
     } else {
-      colors.set(name, { slot, color: SERIES[slot] })
+      colors.set(name, { slot: ASSET_ORDER.length + 1 + index, color })
     }
+  })
+
+  // Les types connus mais choisis à la main gardent leur place ; un type inconnu avec une couleur choisie va à la suite
+  for (const [name, entry] of colors) {
+    if (entry.slot === ASSET_ORDER.length) colors.set(name, { ...entry, slot: ASSET_ORDER.length + 1 + sorted.length })
   }
 
   return { colors, overflow }

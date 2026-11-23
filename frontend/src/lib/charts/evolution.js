@@ -3,7 +3,7 @@
 
 import { baseOption, legendTop, tooltipBox, tooltipHtml, valueAxis, zoomSlider, axisLabelStyle } from '../chartTheme.js'
 import { axisEuroFormatter, euro, formatDateLong, formatDayMonth, formatMonthYear } from '../format.js'
-import { AXIS, CONTEXT, FONT, INK, SERIES, SURFACE } from '../palette.js'
+import { AXIS, BLUE, CONTEXT, FONT, INK, SURFACE } from '../palette.js'
 import { t } from '../../i18n/index.js'
 
 const DAY = 86_400_000
@@ -32,8 +32,8 @@ export function evolutionOption(points, { preview = false } = {}) {
     ...extra,
   })
 
-  const net = line(t('chart.netWorth'), SERIES[0], points.map((p) => [p.ts, Math.round(p.net)]), {
-    areaStyle: { color: SERIES[0], opacity: 0.1 },
+  const net = line(t('chart.netWorth'), BLUE, points.map((p) => [p.ts, Math.round(p.net)]), {
+    areaStyle: { color: BLUE, opacity: 0.1 },
     z: 3,
   })
   const assets = line(t('chart.assets'), CONTEXT, points.map((p) => [p.ts, Math.round(p.assets)]), { z: 2 })
@@ -46,7 +46,7 @@ export function evolutionOption(points, { preview = false } = {}) {
     symbolSize: 10,
     silent: true,
     z: 4,
-    itemStyle: { color: SERIES[0], borderColor: SURFACE, borderWidth: 2 },
+    itemStyle: { color: BLUE, borderColor: SURFACE, borderWidth: 2 },
     label: {
       show: !preview,
       position: 'right',
@@ -79,7 +79,7 @@ export function evolutionOption(points, { preview = false } = {}) {
         const ts = lines[0].value[0]
         const point = byTimestamp.get(ts)
         if (!point) return ''
-        const rows = [{ color: SERIES[0], label: t('chart.netWorth'), value: euro(point.net), strong: true }]
+        const rows = [{ color: BLUE, label: t('chart.netWorth'), value: euro(point.net), strong: true }]
         if (!preview) {
           rows.push(
             { color: CONTEXT, label: t('chart.assets'), value: euro(point.assets) },

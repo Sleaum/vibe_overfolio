@@ -37,7 +37,7 @@ overfolio/
 │       ├── views/                  # une page par route
 │       │   ├── HeroSection.vue     #   /                   présentation et vente
 │       │   ├── SourcePage.vue      #   /sheet              onglets de la base, bouton Tout actualiser
-│       │   ├── GraphiquesLayout.vue #  /graphiques         bouton Brut / Net, menu à gauche (6 entrées), page choisie à droite
+│       │   ├── GraphiquesLayout.vue #  /graphiques         bouton Brut / Net, menu à gauche (6 entrées), couleurs des actifs, page choisie à droite
 │       │   ├── GraphiquePage.vue   #   /graphiques/<nom>   un graphique
 │       │   ├── PortfolioFlowPage.vue #  /portfolio-flow    l'historique mois par mois
 │       │   ├── SnapshotPage.vue    #   /portfolio-snapshot  le patrimoine d'aujourd'hui
@@ -54,7 +54,7 @@ overfolio/
 │       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
 │       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue)
 │       │   ├── landing/            # sections de la page de présentation
-│       │   └── charts/             # BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
+│       │   └── charts/             # AssetColorSettings, BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
 │       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes),
 │       │                           #   menu.js (noms des menus, toujours en anglais)
 │       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
@@ -63,7 +63,7 @@ overfolio/
 │           ├── aggregate.js, dates.js, format.js   # calculs ; nombres, dates et noms de pays dans la langue active
 │           ├── theme.js            # SOURCE UNIQUE des couleurs (clair et sombre)
 │           ├── countries.js        # pays de la carte du monde (Strategy) : écritures de la colonne Area, centres
-│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation, brut / net
+│           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, réglages de la simulation, brut / net, couleurs des actifs
 │           ├── amounts.js          # bouton Brut / Net de Charts : montants bruts, nets ou dettes seules
 │           ├── pdfExport.js        # bouton PDF : tout le site en un PDF, une page web = une page PDF
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
@@ -430,7 +430,7 @@ Bibliothèques chargées à la demande seulement : `world-atlas` et `topojson-cl
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, questions fréquentes |
 | `/sheet` | `views/SourcePage.vue` | Connexion (`SheetSettings.vue`), onglets à synchroniser (`SyncTabs.vue`), menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
-| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : en haut à gauche le bouton Brut / Net (`lib/amounts.js`), puis le menu en colonne (liste `MENU` de `lib/charts/index.js` : Flow, Snapshot, Envelopes, Strategy, Volatility, Budget), page choisie à droite. `/graphiques` ouvre Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
+| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : en haut à gauche le bouton Brut / Net (`lib/amounts.js`), puis le menu en colonne (liste `MENU` de `lib/charts/index.js` : Flow, Snapshot, Envelopes, Strategy, Volatility, Budget), puis « Couleurs des actifs » (`components/charts/AssetColorSettings.vue`, voir « Couleurs des graphiques »), page choisie à droite. `/graphiques` ouvre Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
 | `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Flow, Envelopes ou Volatility (leur fil d'Ariane passe par leur page) |
 | `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les graphiques de Flow sur une seule page (« Tes dettes » en plus en mode Brut), avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone. Montants bruts ou nets selon le bouton Brut / Net |
@@ -554,7 +554,7 @@ La page `/strategie` reprend la page « Strategy » de Looker Studio : une carte
 - **Quelles lignes ?** Seules les lignes dont `Asset` vaut `public equity` (ou `equity`, `action`, `stock`) et dont `Assets Master Currency` est supérieur à 0. S'il n'y en a aucune, toutes les lignes sont comptées et la page le dit.
 - **Où sont les attributs ?** Chaque attribut est cherché d'abord dans `portfolio`, puis dans la table `stock`, rattachée ligne à ligne par `Ticker` (sinon `Instrument`, sinon `Name`). Un anneau dont la colonne n'existe nulle part n'est pas affiché : la page l'écrit dans « Anneaux non affichés », avec le nom de colonne attendu. Le bloc « Colonnes lues dans la feuille », en bas de la page, montre d’où vient chaque anneau.
 - **Enveloppe.** Le menu « Enveloppe » filtre tous les anneaux à la fois. Il propose « Toutes les enveloppes », « PEA et CTO » (choix par défaut quand les deux existent), puis chaque enveloppe. C'est la lecture des filtres « action / peacto / cto » des graphiques de Looker Studio : si ta feuille les définit autrement, le menu est le seul endroit à adapter (`buildScopes` dans `strategy.js`).
-- **Couleurs.** Les 8 plus grosses catégories prennent les couleurs de la palette dans l'ordre ; le reste est regroupé en « Autres (n) » (gris), « Non renseigné » est toujours en dernier (gris clair). L'anneau extérieur montre au plus 6 détails par catégorie puis « Autres (n) » ; la vue Tableau liste tout. Les notes S&P suivent l'échelle (AAA, AA+, AA…) au lieu de la taille.
+- **Couleurs.** Les 8 plus grosses catégories prennent des nuances de bleu, de la plus foncée (la plus grosse) à la plus claire ; le reste est regroupé en « Autres (n) » (gris), « Non renseigné » est toujours en dernier (gris clair). L'anneau extérieur montre au plus 6 détails par catégorie puis « Autres (n) » ; la vue Tableau liste tout. Les notes S&P suivent l'échelle (AAA, AA+, AA…) au lieu de la taille.
 - **Carte du monde.** En premier, avant les anneaux, chaque pays est coloré selon le montant des actions dont la colonne `Area` désigne ce pays (la même colonne que l'anneau Localisation), avec une bulle à sa taille au centre du pays, pour que les petits pays restent visibles. Au survol : le montant, la part et les actions du pays ; la liste des pays et une vue Tableau sont dessous. Elle suit le menu « Enveloppe ». Une valeur qui n'est pas un pays (`world`, `europe`) est listée sous la carte. Les écritures reconnues (`usa`, `pays-bas`, `taïwan`, `korea`…) sont dans `frontend/src/lib/countries.js` : ajouter une écriture dans `aliases`, ou un pays avec son centre. Les frontières viennent du paquet `world-atlas` (110m, licence ISC), converties par `topojson-client`, et ne sont chargées qu'à l'ouverture de Strategy (`lib/charts/worldMap.js`, `components/charts/WorldMapCard.vue`). Le nom des pays est affiché dans la langue active (`countryName` de `lib/format.js`).
 - **Noms sur les anneaux.** Comme sur la page Envelopes, chaque catégorie a son nom au centre, et chaque détail assez large pour être lisible a le sien sur l'anneau extérieur (`withLabels` de `lib/charts/sunburst.js`). Les autres se lisent au survol, dans la légende et dans la vue Tableau.
 - Pour accepter un autre nom de colonne, l'ajouter dans la liste `ATTRIBUTES` de `strategy.js`.
@@ -588,9 +588,18 @@ La page `/simulation` (lien de l'en-tête, à part de la rubrique Graphiques) ti
 3. Écrire `build(table)` : `requireColumns(table, …)` retrouve les colonnes et lève un message clair si l'une manque, puis la fonction renvoie `{ subtitle, summary, option, height, table: { columns, numeric, rows } }`, ou `{ empty: 'message' }` quand il n'y a rien à afficher.
 4. L'ajouter à `frontend/src/lib/charts/index.js` : `import` et tableau `CHARTS` (la page `/graphiques/<slug>` apparaît seule). Pour une entrée dans le menu de la rubrique Graphiques, ajouter aussi une entrée à `MENU` ; pour l'intégrer à une page qui en réunit plusieurs, l'ajouter à `FLOW_CHARTS`, `ENVELOPE_CHARTS` ou `VOLATILITY_CHARTS` (liste `GROUPS`).
 
-Couleurs : n'en écrire aucune en dur, les prendre dans `lib/palette.js` (`SERIES`, `INK`, `GRID`…), sinon elles ne passent pas en mode sombre. Le build le signale ; une couleur voulue fixe (texte blanc sur une couleur de série) porte le commentaire « couleur fixe ».
+Couleurs : n'en écrire aucune en dur, les prendre dans `lib/palette.js` (`BLUE`, `blues(n)`, `NEGATIVE`, `assignAssetColors`, `INK`, `GRID`…), sinon elles ne passent pas en mode sombre. Le build le signale ; une couleur voulue fixe (texte blanc sur une couleur de série) porte le commentaire « couleur fixe ».
 
 Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) doit être enregistré dans `lib/echartsSetup.js` (actuellement : barres, courbes, secteurs, Sankey, nuage de points, anneaux à deux niveaux, carte, ligne de repère).
+
+### Couleurs des graphiques
+
+Toutes dans `frontend/src/lib/palette.js`, dans l'esprit des couleurs Google :
+
+- **Types d'actifs** (colonne `Asset`) : une teinte vive par type, la même dans tous les graphiques (anneau, barres empilées, volatilité, Snapshot). Les teintes proposées sont `ASSET_SWATCHES` : 8 teintes Google (bleu, rouge, jaune, vert, orange, rose, violet, cyan), en vif et en clair. Par défaut : public equity bleu, real estate orange, fiat vert, crypto jaune, commodity cyan, managed futures violet, exotic rose, depreciating rouge ; un autre type prend une teinte restée libre. Dans le menu de Charts, « Couleurs des actifs » liste les types habituels et ceux de la feuille (table `portfolio`) : un clic sur un type ouvre ses teintes. Si la teinte est déjà prise, les deux types échangent leurs couleurs. Le choix est gardé par le navigateur (préférence `assetColors` de `lib/preferences.js`) et les graphiques se recalculent aussitôt ; « Couleurs par défaut » efface le choix.
+- **Tout le reste** (devises, enveloppes, catégories de Strategy, courbes du patrimoine, simulation, carte, budget) : des nuances de bleu (`BLUES`, du bleu nuit au bleu pâle). `blues(n)` donne `n` nuances bien séparées, la plus foncée pour la plus grosse catégorie ; `BLUE` est le bleu principal, `NAVY` le repère posé sur du bleu (tendance, objectif).
+- **Montants négatifs** (baisse d'un mois sur l'autre, sorties d'argent, dettes) : rouge `NEGATIVE`, et orange `NEGATIVE_2` pour un second montant négatif (impôts).
+- « Autres » reste gris (`CONTEXT`), « Non renseigné » gris clair.
 
 ### Apparence
 
@@ -599,7 +608,7 @@ Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) 
 | `frontend/src/lib/theme.js` | **Seule source des couleurs du site, en clair et en sombre** (`paper`, `wash`, `ink`, `line`, `accent`, `on-accent`, `danger`, `success`…), ombres des graphiques. Changer une couleur ici change le site, les graphiques et la barre du navigateur |
 | `frontend/tailwind.config.js` | Crée une classe Tailwind par couleur de `theme.js` et génère les variables CSS `:root` (clair) et `html.dark` (sombre). Tailles de texte (`text-body`, `text-lead`, `text-h2`, `text-display`), ombres |
 | `frontend/vite.config.ts` | Plugin `theme` : injecte la clé du thème (`preferences.js`) et les couleurs de fond de `theme.js` dans `index.html`, et signale au build toute couleur écrite en dur dans `src/lib/` (à faire passer par `palette.js`, ou à commenter « couleur fixe ») |
-| `frontend/src/lib/palette.js` | Les 8 couleurs des graphiques (un type d'actif garde la même couleur partout), et les couleurs de fond, d'encre et de filet des graphiques, lues dans `theme.js` avec leur équivalent sombre (`DARK`) |
+| `frontend/src/lib/palette.js` | Les couleurs des graphiques (voir « Couleurs des graphiques » ci-dessous), et les couleurs de fond, d'encre et de filet des graphiques, lues dans `theme.js` avec leur équivalent sombre (`DARK`) |
 | `frontend/src/assets/tailwind.css` | Base : focus clavier visible, animations réduites si le système le demande, largeur du contenu. Aucune couleur |
 | `frontend/src/composables/useTheme.js` | Mode sombre : suit le réglage du système ; le bouton (`components/ui/ThemeToggle.vue`) force clair ou sombre et s'en souvient (préférence `theme` de `lib/preferences.js`). `index.html` pose la classe `dark` avant le premier affichage |
 | `frontend/src/lib/chartDark.js` | Passe les graphiques en sombre dans `BaseChart.vue` : remplace les couleurs claires de `palette.js` par celles de `DARK` |

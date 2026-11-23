@@ -7,7 +7,7 @@
 
 import { DataError, findColumn, latestDate, requireColumns, rowsOf, toLabel, toNumber } from './aggregate.js'
 import { capitalize, countryName, euro, formatDateLong, percent } from './format.js'
-import { CONTEXT, SERIES } from './palette.js'
+import { CONTEXT, blues } from './palette.js'
 import { countryCode } from './countries.js'
 import { t } from '../i18n/index.js'
 
@@ -192,7 +192,7 @@ function topChildren(children, limit) {
 }
 
 /**
- * Catégories prêtes à dessiner : les 8 plus grosses prennent les couleurs dans l'ordre fixe de la palette,
+ * Catégories prêtes à dessiner : les 8 plus grosses prennent des nuances de bleu, de la plus foncée à la plus claire,
  * le reste va dans « Autres (n) » (gris), « Non renseigné » est toujours à la fin (gris clair).
  * Le détail de chaque catégorie est une nuance de sa couleur : plus on descend dans la liste, plus la nuance est claire.
  */
@@ -213,7 +213,8 @@ export function buildCategories(groups, total, labelOf = capitalize, rankOf = nu
       return ra - rb
     })
   }
-  const ordered = shown.map((group, index) => ({ group, name: labelOf(group.name), color: SERIES[index] }))
+  const shades = blues(shown.length)
+  const ordered = shown.map((group, index) => ({ group, name: labelOf(group.name), color: shades[index] }))
   if (rest.length) {
     const others = t('data.othersCount', { count: rest.length })
     ordered.push({ group: mergeGroups(rest, others), name: others, color: CONTEXT })
