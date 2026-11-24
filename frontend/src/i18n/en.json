@@ -52,6 +52,7 @@
     "volatility": "Volatility",
     "simulation": "Simulation",
     "models": "Model portfolios",
+    "modelsTarget": "Target allocation",
     "notFound": "Page not found"
   },
   "apiErrors": {
@@ -118,7 +119,8 @@
     "invalid_currencies": "Invalid currencies.",
     "fx_unreachable": "ECB exchange rates could not be read again: currencies use the latest known rates.",
     "fx_invalid": "The ECB rates file is unreadable: currencies use the latest known rates.",
-    "invalid_currency": "Invalid currency."
+    "invalid_currency": "Invalid currency.",
+    "invalid_model_target": "Invalid target."
   },
   "data": {
     "unknown": "Not specified",
@@ -1209,6 +1211,68 @@
         "Rebalance with new contributions rather than by selling in the CTO, where every gain is taxed.",
         "Tax rates are those of 2026: check them before deciding, they change often."
       ]
+    }
+  },
+  "targetPage": {
+    "lead": "Choose the allocation you're aiming for in a given year, compare it with your wealth today, and see year by year where to put your contributions to get there.",
+    "today": "Today",
+    "other": "Others (crypto, collectibles…)",
+    "share": "Share",
+    "amount": "Amount",
+    "points": "{points} pts",
+    "total": "Total: {sum}%",
+    "missing": "{points}% missing",
+    "over": "{points}% too much",
+    "normalize": "Scale to 100%",
+    "saveError": "Target not saved: {message}",
+    "settings": {
+      "title": "Your target",
+      "lead": "Saved on your profile: you'll find it on all your devices.",
+      "year": "Target year",
+      "basis": "Set by",
+      "bases": {
+        "types": "Asset types",
+        "classes": "Model classes"
+      },
+      "monthly": "Monthly contribution ({currency})",
+      "monthlyHint": "Empty: the average of the last 12 months of the inout table, {amount}.",
+      "monthlyNone": "Empty: 0 (no inout table to suggest an average).",
+      "fromCurrent": "Start from my current allocation",
+      "fromModel": "Start from a model portfolio…",
+      "clear": "Clear all",
+      "sliderA11y": "Target share for {name}",
+      "inputA11y": "Target share for {name}, in percent"
+    },
+    "compare": {
+      "title": "Today and your target",
+      "target": "Target {year}",
+      "noData": "The portfolio table isn't in the database yet: the comparison and the plan will appear after a sync.",
+      "emptyTarget": "Set at least one share to see your target.",
+      "tableCaption": "Gap between your allocation today and your target, by category",
+      "columns": {
+        "category": "Category",
+        "today": "Today",
+        "target": "Target",
+        "gap": "Gap",
+        "move": "To move today"
+      },
+      "moveHint": "“To move today”: what you would need to buy (+) or sell (−) to be on target right now. The plan below gets there with your contributions instead."
+    },
+    "plan": {
+      "title": "Action plan until {year}",
+      "lead": "Each year, your contributions ({amount} a month) first go to what is below target. Nothing is sold, except in the last year if contributions weren't enough.",
+      "invalidSum": "The plan will appear when your target adds up to 100%.",
+      "already": "Your allocation is already on target: keep it by putting your contributions according to the target.",
+      "reached": "Target reached in {year} with your contributions alone, without selling anything.",
+      "needSales": "Contributions aren't enough: in {year}, you'll need to sell part of your holdings to reach the target.",
+      "buy": "Put {amount} into {name}",
+      "buyBack": "Buy {amount} of {name}",
+      "sell": "Sell {amount} of {name}",
+      "nothing": "No action needed.",
+      "assumption": "Simple assumptions: no returns or inflation, today's amounts in the display currency, contributions invested once a year. Recalculate the plan after each sync.",
+      "tableCaption": "Year-by-year action plan: amount to put in or buy (+) and to sell (−) by category",
+      "year": "Year",
+      "legend": "+: to put in (or to buy back in the last year) · −: to sell. Hover over a cell for the full sentence."
     }
   }
 }

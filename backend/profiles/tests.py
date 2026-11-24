@@ -116,3 +116,35 @@ class VolatilityMonthsTests(TestCase):
         for value in ([0], [3651], list(range(1, 10)), ["30"]):
             response = self.put({"performance_days": value})
             self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_performance_days"), value)
+
+
+class ModelTargetTests(TestCase):
+    """Cible de Models > Target, gardée sur le profil."""
+
+    def put(self, body):
+        return self.client.put("/api/profile/", json.dumps(body), content_type="application/json")
+
+    def test_target_is_saved_and_cleared(self):
+        self.assertEqual(self.client.get("/api/profile/").json()["model_target"], {})
+        self.put({"theme": "dark"})
+        target = {"year": 2040, "basis": "types", "types": {"public equity": 60, " fiat ": 40.123}, "classes": {}, "monthly": 500}
+        body = self.put({"model_target": target}).json()
+        self.assertEqual(body["model_target"], {"year": 2040, "basis": "types", "types": {"public equity": 60.0, "fiat": 40.12}, "classes": {}, "monthly": 500})
+        self.assertEqual(body["theme"], "dark")  # le reste ne change pas
+        self.assertEqual(self.put({"model_target": {}}).json()["model_target"], {})
+
+    def test_invalid_target(self):
+        good = {"year": 2040, "basis": "classes", "types": {}, "classes": {"equity": 50}, "monthly": None}
+        self.assertEqual(self.put({"model_target": good}).status_code, 200)
+        for bad in (
+            [],
+            {**good, "year": 1990},
+            {**good, "year": "2040"},
+            {**good, "basis": "other"},
+            {**good, "classes": {"equity": 120}},
+            {**good, "classes": {"equity": True}},
+            {**good, "types": {"": 10}},
+            {**good, "monthly": -5},
+        ):
+            response = self.put({"model_target": bad})
+            self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_model_target"), bad)

@@ -37,7 +37,7 @@ export function modelPieOption(model, classColors) {
     series: [
       {
         type: 'pie',
-        radius: '62%',
+        radius: '50%',
         center: ['50%', '50%'],
         startAngle: 90,
         clockwise: true,
@@ -51,7 +51,7 @@ export function modelPieOption(model, classColors) {
           fontFamily: FONT,
           fontSize: 11,
           lineHeight: 13,
-          width: 64,
+          width: 56,
           overflow: 'break',
         },
         labelLine: { show: true, length: 5, length2: 6, lineStyle: { color: INK_2 } },

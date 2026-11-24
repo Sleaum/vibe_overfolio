@@ -1,9 +1,10 @@
 <!--
-  Page « Models » (/modeles), à part comme Simulation : les grands portefeuilles modèles (lazy portfolios).
+  Page « Classic » de la rubrique Models (/modeles, menu à gauche : ModelsLayout.vue) : les grands portefeuilles modèles.
   1. Ton patrimoine face aux modèles : ta répartition par type d'actif (table portfolio), brute ou nette selon le bouton
-     Brut / Net (le même que celui de Charts), et les trois modèles les plus proches, comparés par famille (lib/models.js).
+     Brut / Net du menu de gauche (le même que celui de Charts), et les trois modèles les plus proches, comparés par
+     famille (lib/models.js).
      Facultatif : sans portfolio, la page s'affiche quand même.
-  2. Les portefeuilles : un tableau à partir de 1280 px, une carte par portefeuille en dessous. Filtre par famille.
+  2. Les portefeuilles : un tableau à partir de 1280 px (contenu à côté du menu), une carte par portefeuille en dessous. Filtre par famille.
      Dessin (PortfolioIcon.vue), créateur (lien Wikipédia dans la langue du site s'il existe), objectif, explication,
      camembert ECharts (lib/charts/modelPie.js : nom de l'actif sur chaque part, tout le détail au survol) aux couleurs
      des types d'actifs, familles cochées à droite. Les petits camemberts de la comparaison restent en SVG (MiniPie.vue).
@@ -11,7 +12,7 @@
   Données et calculs dans lib/models.js ; textes dans la rubrique modelsPage des fichiers de langue.
 -->
 <template>
-  <div class="page-container py-12 sm:py-16">
+  <div>
     <header class="max-w-3xl">
       <h1 class="text-h2 text-ink">{{ t('pages.models') }}</h1>
       <p class="mt-3 text-lead text-ink-2">{{ t('modelsPage.lead') }}</p>
@@ -21,19 +22,9 @@
     <!-- 1. Ton patrimoine face aux modèles -->
     <section aria-labelledby="titre-comparaison" class="mt-10 rounded-xl border border-line bg-paper shadow-soft">
       <div class="border-b border-line px-4 py-4 sm:px-6">
-        <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-          <div class="min-w-0">
-            <h2 id="titre-comparaison" class="text-h3 text-ink">{{ t('modelsPage.compare.title') }}</h2>
-            <p class="mt-1 text-sm text-ink-2">{{ t('modelsPage.compare.lead') }}</p>
-          </div>
-          <!-- Brut / Net : le même choix que le bouton du menu de Charts (lib/amounts.js), gardé par le navigateur -->
-          <SegmentedControl
-            :model-value="amountMode"
-            :options="amountOptions"
-            :label="t('amounts.label')"
-            @update:model-value="setAmountMode"
-          />
-        </div>
+        <h2 id="titre-comparaison" class="text-h3 text-ink">{{ t('modelsPage.compare.title') }}</h2>
+        <p class="mt-1 text-sm text-ink-2">{{ t('modelsPage.compare.lead') }}</p>
+        <!-- Brut ou net : bouton du menu de gauche (le même choix que celui de Charts) -->
         <p v-if="user" class="mt-2 text-sm text-ink-3">{{ amountsLine }}</p>
       </div>
 
@@ -110,17 +101,17 @@
       <div class="mt-6 hidden rounded-xl border border-line bg-paper shadow-soft xl:block">
         <table class="w-full table-fixed border-collapse text-sm">
           <colgroup>
-            <col class="w-14" />
-            <col class="w-32" />
-            <col class="w-36" />
+            <col class="w-12" />
+            <col class="w-24" />
             <col class="w-28" />
+            <col class="w-24" />
             <col />
-            <col class="w-60" />
+            <col class="w-56" />
             <col v-for="style in STYLES" :key="style" class="w-14" />
           </colgroup>
           <thead>
             <tr class="border-b border-line-strong text-left text-xs font-semibold text-ink-3">
-              <th scope="col" class="px-3 py-3"><span class="sr-only">{{ t('modelsPage.columns.icon') }}</span></th>
+              <th scope="col" class="px-1 py-3"><span class="sr-only">{{ t('modelsPage.columns.icon') }}</span></th>
               <th scope="col" class="px-2 py-3">{{ t('modelsPage.columns.portfolio') }}</th>
               <th scope="col" class="px-2 py-3">{{ t('modelsPage.columns.creator') }}</th>
               <th scope="col" class="px-2 py-3">{{ t('modelsPage.columns.goal') }}</th>
@@ -130,7 +121,7 @@
                 v-for="(style, i) in STYLES"
                 :key="style"
                 scope="col"
-                class="px-1 py-3 text-center"
+                class="px-1 py-3 text-center text-[11px] leading-tight hyphens-auto"
                 :class="i === 0 ? 'border-l border-line' : ''"
               >
                 {{ t(`modelsPage.styles.${style}`) }}
@@ -144,7 +135,7 @@
               </th>
             </tr>
             <tr v-for="model in group.models" :key="model.key" class="border-b border-line last:border-b-0">
-              <td class="px-3 py-3"><PortfolioIcon :model="model.key" :label="t(`modelsPage.models.${model.key}.icon`)" /></td>
+              <td class="px-1 py-3"><PortfolioIcon class="mx-auto" :model="model.key" :label="t(`modelsPage.models.${model.key}.icon`)" :size="36" /></td>
               <th scope="row" class="px-2 py-3 text-left font-semibold text-ink">{{ model.name }}</th>
               <td class="px-2 py-3"><Creator :model="model" /></td>
               <td class="px-2 py-3 text-ink">{{ t(`modelsPage.models.${model.key}.goal`) }}</td>
@@ -247,7 +238,7 @@ import BaseChart from '../components/charts/BaseChart.vue'
 import PortfolioIcon from '../components/models/PortfolioIcon.vue'
 import { useTable } from '../composables/useTable.js'
 import { collectDropped } from '../lib/aggregate.js'
-import { AMOUNT_MODES, amountMode, amountNote, droppedNote, setAmountMode } from '../lib/amounts.js'
+import { amountMode, amountNote, droppedNote } from '../lib/amounts.js'
 import { tList } from '../i18n/index.js'
 import { capitalize, formatDecimal, percent } from '../lib/format.js'
 import { GROUPS, LEGEND, MODELS, STYLES, closestModels, modelColors, personUrl, userAllocation } from '../lib/models.js'
@@ -324,7 +315,6 @@ const Creator = defineComponent({
 // 1. Ton patrimoine face aux modèles
 const portfolio = useTable('portfolio')
 // Brut ou net (préférence partagée avec Charts) ; en net, un type dont les dettes dépassent les actifs est écarté et signalé
-const amountOptions = computed(() => AMOUNT_MODES.map((mode) => ({ value: mode, label: t(`amounts.mode.${mode}`) })))
 const userResult = computed(() => collectDropped(() => userAllocation(portfolio.data.value, amountMode.value)))
 const user = computed(() => userResult.value[0])
 const amountsLine = computed(() => [amountNote(amountMode.value), droppedNote(userResult.value[1])].filter(Boolean).join(' '))

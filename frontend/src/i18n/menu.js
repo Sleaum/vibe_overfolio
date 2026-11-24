@@ -8,6 +8,9 @@ export const MENU_NAMES = {
   charts: 'Charts',
   simulation: 'Simulation',
   models: 'Models',
+  // Menu de la rubrique Models (ModelsLayout.vue)
+  target: 'Target',
+  classic: 'Classic',
   // Menu de la rubrique Charts (GraphiquesLayout.vue, lib/charts/index.js)
   flow: 'Flow',
   snapshot: 'Snapshot',
