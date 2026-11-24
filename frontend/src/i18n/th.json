@@ -1036,6 +1036,34 @@
       "intlSmallValue": "Small cap value ต่างประเทศ",
       "emergingValue": "หุ้นคุณค่าตลาดเกิดใหม่"
     },
+    "short": {
+      "equity": "หุ้น",
+      "equityValue": "หุ้นคุณค่า",
+      "smallValue": "Small value",
+      "equityIntl": "หุ้นต่างประเทศ",
+      "emerging": "ตลาดเกิดใหม่",
+      "bondsLong": "พันธบัตรระยะยาว",
+      "bondsMid": "พันธบัตรระยะกลาง",
+      "cash": "เงินสด",
+      "bondsIndexed": "อิงเงินเฟ้อ",
+      "gold": "ทองคำ",
+      "commodities": "สินค้าโภคภัณฑ์",
+      "realEstate": "อสังหาริมทรัพย์",
+      "trend": "ตามแนวโน้ม",
+      "longVol": "ความผันผวน"
+    },
+    "families": {
+      "equity": "หุ้น",
+      "defensive": "พันธบัตรและเงินสด",
+      "real": "ทองคำและสินค้าโภคภัณฑ์",
+      "realEstate": "อสังหาริมทรัพย์",
+      "alternative": "กลยุทธ์ทางเลือก"
+    },
+    "pie": {
+      "share": "สัดส่วน",
+      "family": "กลุ่ม",
+      "where": "ในฝรั่งเศส"
+    },
     "models": {
       "allWeather": {
         "goal": "ความยืดหยุ่น",

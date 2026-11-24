@@ -2,9 +2,10 @@
   Page « Models » (/modeles), à part comme Simulation : les grands portefeuilles modèles (lazy portfolios).
   1. Ton patrimoine face aux modèles : ta répartition par type d'actif (table portfolio, actifs bruts) et les trois
      modèles les plus proches, comparés par famille (lib/models.js). Facultatif : sans portfolio, la page s'affiche quand même.
-  2. Les portefeuilles : un tableau sur ordinateur, une carte par portefeuille sous 1024 px. Filtre par famille.
+  2. Les portefeuilles : un tableau à partir de 1280 px, une carte par portefeuille en dessous. Filtre par famille.
      Dessin (PortfolioIcon.vue), créateur (lien Wikipédia dans la langue du site s'il existe), objectif, explication,
-     camembert (MiniPie.vue) aux couleurs des types d'actifs, familles cochées à droite.
+     camembert ECharts (lib/charts/modelPie.js : nom de l'actif sur chaque part, tout le détail au survol) aux couleurs
+     des types d'actifs, familles cochées à droite. Les petits camemberts de la comparaison restent en SVG (MiniPie.vue).
   3. Les répliquer en France : PEA, CTO, assurance-vie, et où loger chaque brique.
   Données et calculs dans lib/models.js ; textes dans la rubrique modelsPage des fichiers de langue.
 -->
@@ -87,17 +88,17 @@
         </div>
       </div>
 
-      <!-- Ordinateur : tableau -->
-      <div class="mt-6 hidden rounded-xl border border-line bg-paper shadow-soft lg:block">
+      <!-- Grand écran : tableau -->
+      <div class="mt-6 hidden rounded-xl border border-line bg-paper shadow-soft xl:block">
         <table class="w-full table-fixed border-collapse text-sm">
           <colgroup>
-            <col class="w-16" />
-            <col class="w-36" />
-            <col class="w-40" />
+            <col class="w-14" />
             <col class="w-32" />
+            <col class="w-36" />
+            <col class="w-28" />
             <col />
-            <col class="w-24" />
-            <col v-for="style in STYLES" :key="style" class="w-16" />
+            <col class="w-60" />
+            <col v-for="style in STYLES" :key="style" class="w-14" />
           </colgroup>
           <thead>
             <tr class="border-b border-line-strong text-left text-xs font-semibold text-ink-3">
@@ -130,7 +131,7 @@
               <td class="px-2 py-3"><Creator :model="model" /></td>
               <td class="px-2 py-3 text-ink">{{ t(`modelsPage.models.${model.key}.goal`) }}</td>
               <td class="px-2 py-3 text-ink-2">{{ t(`modelsPage.models.${model.key}.detail`) }}</td>
-              <td class="px-2 py-3"><MiniPie class="mx-auto" :slices="slicesOf(model)" /></td>
+              <td class="px-1 py-1"><BaseChart :option="pieOptions[model.key]" :height="170" :label="pieLabel(model)" /></td>
               <td
                 v-for="(style, i) in STYLES"
                 :key="style"
@@ -147,10 +148,10 @@
         </table>
       </div>
 
-      <!-- Mobile et tablette : une carte par portefeuille -->
-      <div v-for="group in groups" :key="`m-${group.key}`" class="lg:hidden">
+      <!-- Sous 1280 px : une carte par portefeuille -->
+      <div v-for="group in groups" :key="`m-${group.key}`" class="xl:hidden">
         <h3 class="mt-8 text-sm font-semibold text-ink-2">{{ t(`modelsPage.groups.${group.key}`) }}</h3>
-        <ul class="mt-3 grid gap-4 sm:grid-cols-2">
+        <ul class="mt-3 grid gap-4 md:grid-cols-2">
           <li v-for="model in group.models" :key="model.key" class="rounded-xl border border-line bg-paper p-4 shadow-soft">
             <div class="flex items-start gap-3">
               <PortfolioIcon :model="model.key" :label="t(`modelsPage.models.${model.key}.icon`)" />
@@ -158,11 +159,11 @@
                 <p class="font-semibold text-ink">{{ model.name }}</p>
                 <div class="text-sm"><Creator :model="model" /></div>
               </div>
-              <MiniPie :slices="slicesOf(model)" />
             </div>
             <p class="mt-3 text-sm font-medium text-ink">{{ t(`modelsPage.models.${model.key}.goal`) }}</p>
             <p class="mt-1 text-sm text-ink-2">{{ t(`modelsPage.models.${model.key}.detail`) }}</p>
-            <ul class="mt-3 flex flex-wrap gap-1.5" :aria-label="t('modelsPage.columns.styles')">
+            <BaseChart class="mt-2" :option="pieOptions[model.key]" :height="190" :label="pieLabel(model)" />
+            <ul class="mt-2 flex flex-wrap gap-1.5" :aria-label="t('modelsPage.columns.styles')">
               <li v-for="style in model.styles" :key="style" class="rounded-md border border-line bg-wash px-2 py-0.5 text-xs text-ink-2">
                 {{ t(`modelsPage.styles.${style}`) }}
               </li>
@@ -224,11 +225,13 @@ import { useI18n } from 'vue-i18n'
 import AppButton from '../components/ui/AppButton.vue'
 import SegmentedControl from '../components/ui/SegmentedControl.vue'
 import MiniPie from '../components/models/MiniPie.vue'
+import BaseChart from '../components/charts/BaseChart.vue'
 import PortfolioIcon from '../components/models/PortfolioIcon.vue'
 import { useTable } from '../composables/useTable.js'
 import { tList } from '../i18n/index.js'
 import { capitalize, formatDecimal, percent } from '../lib/format.js'
 import { GROUPS, LEGEND, MODELS, STYLES, closestModels, modelColors, personUrl, userAllocation } from '../lib/models.js'
+import { modelPieOption } from '../lib/charts/modelPie.js'
 import { assignAssetColors } from '../lib/palette.js'
 
 const { t, locale } = useI18n()
@@ -246,6 +249,16 @@ function slicesOf(model) {
     value,
     color: colors.value.classes[cls],
   }))
+}
+
+// Grands camemberts de la colonne Répartition et des cartes (refaits si une couleur ou la langue change)
+const pieOptions = computed(() => Object.fromEntries(MODELS.map((model) => [model.key, modelPieOption(model, colors.value.classes)])))
+
+/** Texte du camembert pour les lecteurs d'écran : toutes les parts. */
+function pieLabel(model) {
+  return slicesOf(model)
+    .map((slice) => t('modelsPage.sliceTitle', { label: slice.label, value: formatDecimal(slice.value) }))
+    .join(', ')
 }
 
 const legend = computed(() =>

@@ -1036,6 +1036,34 @@
       "intlSmallValue": "Small cap value internationales",
       "emergingValue": "Émergents value"
     },
+    "short": {
+      "equity": "Actions",
+      "equityValue": "Value",
+      "smallValue": "Small value",
+      "equityIntl": "Internationales",
+      "emerging": "Émergents",
+      "bondsLong": "Oblig. longues",
+      "bondsMid": "Oblig. moyennes",
+      "cash": "Liquidités",
+      "bondsIndexed": "Oblig. indexées",
+      "gold": "Or",
+      "commodities": "Matières premières",
+      "realEstate": "Immobilier",
+      "trend": "Tendance",
+      "longVol": "Volatilité"
+    },
+    "families": {
+      "equity": "Actions",
+      "defensive": "Obligations et liquidités",
+      "real": "Or et matières premières",
+      "realEstate": "Immobilier",
+      "alternative": "Stratégies alternatives"
+    },
+    "pie": {
+      "share": "Part",
+      "family": "Famille",
+      "where": "En France"
+    },
     "models": {
       "allWeather": {
         "goal": "Résilience",
