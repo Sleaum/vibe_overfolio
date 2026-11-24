@@ -51,6 +51,7 @@
     "envelopes": "Envelopes",
     "volatility": "Volatility",
     "simulation": "Simulation",
+    "monteCarlo": "Monte Carlo simulation",
     "models": "Model portfolios",
     "modelsTarget": "Target allocation",
     "notFound": "Page not found"
@@ -879,6 +880,77 @@
       "goalFromHistory": "Read from history (row without an asset type). {unit}",
       "real": "Counted in today’s {currency}.",
       "nominal": "Counted in nominal {currency}."
+    }
+  },
+  "simulationLayout": {
+    "soon": "soon"
+  },
+  "simMethods": {
+    "planned": "What the page will show",
+    "shared": "On each page, you'll choose the portfolio to test: your allocation today, your target from Models > Target, or a model portfolio from Classic. Historical methods will use long-run public market returns (stocks, bonds, cash, real estate, gold), with their source.",
+    "backToMonteCarlo": "In the meantime, open Monte Carlo",
+    "backtest": {
+      "title": "Historical backtesting",
+      "lead": "Replays an asset allocation on real past data to measure its returns, maximum losses (drawdowns) and volatility.",
+      "will": [
+        "The portfolio's value year by year over the chosen period, with yearly rebalancing.",
+        "Average annual return, volatility, worst year, maximum drawdown and time to recover.",
+        "A comparison with a 100% stock portfolio and with a 60/40."
+      ]
+    },
+    "stress": {
+      "title": "Stress testing",
+      "lead": "Puts the portfolio through extreme shocks (stock market crash, inflation spike, sharp rate rise, liquidity crisis) to test its resilience.",
+      "will": [
+        "Historical shocks replayed on your allocation: 1929, 1973-1974, 2000-2002, 2008, 2020, 2022.",
+        "The loss in percent and in amount for each shock, category by category.",
+        "A custom shock: you set the fall of each asset class."
+      ]
+    },
+    "scenarios": {
+      "title": "Scenario analysis",
+      "lead": "Projects the portfolio's growth under a few fixed assumptions (central, optimistic, pessimistic), without random draws.",
+      "will": [
+        "Three curves up to your goal: central, optimistic and pessimistic.",
+        "Fixed returns per asset class, which you can change, and your contributions.",
+        "The year each scenario reaches your goal, if it does."
+      ]
+    },
+    "parametric": {
+      "title": "Parametric models",
+      "lead": "Computes risk and return measures directly with formulas, without random draws: parametric Value-at-Risk, Markowitz efficient frontier.",
+      "will": [
+        "Value-at-Risk and the average loss beyond it (CVaR) at 95% and 99%, over a month and a year.",
+        "The efficient frontier: the best allocations for each level of risk, and where your portfolio sits.",
+        "The returns, volatilities and correlations used, taken from historical data."
+      ]
+    },
+    "bootstrap": {
+      "title": "Block bootstrap",
+      "lead": "Draws at random from real historical returns, in blocks of consecutive years, to keep sequences and extreme years.",
+      "will": [
+        "Thousands of paths made of real market years, drawn in blocks.",
+        "The same fan as Monte Carlo (median, ranges) and the probability of reaching your goal.",
+        "Adjustable block size, and a comparison with Monte Carlo."
+      ]
+    },
+    "regimes": {
+      "title": "Regime-switching models",
+      "lead": "Makes the market switch between several states (expansion and crisis, low and high volatility), with probabilities of moving from one to another (Markov chain).",
+      "will": [
+        "Two regimes estimated from history, with their returns, volatility and average length.",
+        "Paths that move from one regime to another, and the probability of reaching your goal.",
+        "The time spent in crisis over the period, and its effect on the result."
+      ]
+    },
+    "macro": {
+      "title": "Macroeconomic factor simulation",
+      "lead": "Links asset returns to a few key variables (interest rates, growth, inflation, credit spreads) simulated together.",
+      "will": [
+        "Paths for inflation, rates and growth, simulated together.",
+        "The resulting returns of each asset class, according to their sensitivity to each factor.",
+        "The situations where your portfolio suffers most (for example high inflation and rising rates)."
+      ]
     }
   },
   "login": {
