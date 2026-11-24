@@ -40,6 +40,14 @@ export const CLASSES = {
   longVol: { family: 'alternative', shade: 0.45 },
 }
 
+/**
+ * Brique du tableau « Les répliquer en France » (modelsPage.france.bricks) qui dit où loger une classe :
+ * la classe elle-même, sinon la brique la plus proche (value et petites cap. comme la small cap value, internationales
+ * et émergents comme les actions du PEA).
+ */
+const BRICK = { equityValue: 'smallValue', equityIntl: 'equity', emerging: 'equity' }
+export const brickOf = (cls) => BRICK[cls] ?? cls
+
 /** Ordre de la légende : classes regroupées par famille. */
 export const LEGEND = [
   { family: 'equity', classes: ['equity', 'equityValue', 'smallValue', 'equityIntl', 'emerging'] },
