@@ -215,15 +215,17 @@ export function familyOfType(name) {
 }
 
 /**
- * Ton patrimoine (table portfolio, actifs bruts) : { types: [{ name, value }], total, shares: { famille: fraction } },
+ * Ton patrimoine (table portfolio) : { types: [{ name, value }], total, shares: { famille: fraction } },
  * ou null si la table n'a pas les colonnes Asset et Assets Master Currency, ou rien de positif.
+ * `mode` : 'gross' (actifs seuls) ou 'net' (chaque dette retirée de son type ; un type négatif est écarté et relevé
+ * par noteDropped, à lire avec collectDropped de lib/aggregate.js), comme le bouton Brut / Net de Charts.
  */
-export function userAllocation(portfolio) {
+export function userAllocation(portfolio, mode = 'gross') {
   if (!portfolio) return null
   const asset = findColumn(portfolio.columns, ['Asset'])
   const value = findColumn(portfolio.columns, ['Assets Master Currency'])
   if (!asset || !value) return null
-  const { entries, total } = splitBy(rowsOf(amountTable(portfolio, 'gross')), asset, value)
+  const { entries, total } = splitBy(rowsOf(amountTable(portfolio, mode)), asset, value)
   if (!entries.length || !(total > 0)) return null
   const shares = Object.fromEntries(FAMILIES.map((key) => [key, 0]))
   for (const entry of entries) shares[familyOfType(entry.name)] += entry.value / total
