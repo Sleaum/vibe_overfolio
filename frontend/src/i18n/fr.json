@@ -1075,7 +1075,7 @@
         "goal": "Résilience, préservation",
         "detail": "Un quart par climat : actions pour la croissance, obligations longues pour la déflation, liquidités pour la récession, or pour l'inflation.",
         "note": "1981, puis Fail-Safe Investing, 1999",
-        "icon": "Trèfle à quatre feuilles égales"
+        "icon": "Quatre quarts de cercle égaux"
       },
       "goldenButterfly": {
         "goal": "Résilience, biais croissance",
@@ -1099,13 +1099,13 @@
         "goal": "Croissance, obligations selon l'âge",
         "detail": "Trois fonds indiciels très larges et peu chers ; la part d'obligations augmente avec l'âge. Ici en 80/20.",
         "note": "Bogleheads, d'après les idées de Bogle",
-        "icon": "Trident à trois pointes"
+        "icon": "Trois barres de hauteurs différentes"
       },
       "buffett": {
         "goal": "Croissance long terme",
         "detail": "Presque tout en S&P 500 à bas coût, avec un petit coussin d'obligations courtes : ses consignes pour l'héritage de sa femme.",
         "note": "Lettre aux actionnaires, 2013",
-        "icon": "Cible touchée en plein centre"
+        "icon": "Boule de neige qui grossit en dévalant une pente"
       },
       "swensen": {
         "goal": "Croissance, protection contre l'inflation",

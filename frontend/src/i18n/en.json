@@ -1075,7 +1075,7 @@
         "goal": "Resilience, preservation",
         "detail": "One quarter per climate: stocks for growth, long-term bonds for deflation, cash for recession, gold for inflation.",
         "note": "1981, then Fail-Safe Investing, 1999",
-        "icon": "Four-leaf clover with equal leaves"
+        "icon": "Four equal quarter circles"
       },
       "goldenButterfly": {
         "goal": "Resilience, tilted to growth",
@@ -1099,13 +1099,13 @@
         "goal": "Growth, bonds by age",
         "detail": "Three very broad, low-cost index funds; the bond share grows with age. Shown here as 80/20.",
         "note": "Bogleheads, based on Bogle's ideas",
-        "icon": "Three-pronged trident"
+        "icon": "Three bars of different heights"
       },
       "buffett": {
         "goal": "Long-term growth",
         "detail": "Almost everything in a low-cost S&P 500 fund, with a small cushion of short-term bonds: his instructions for his wife's inheritance.",
         "note": "Shareholder letter, 2013",
-        "icon": "Target hit dead centre"
+        "icon": "Snowball growing as it rolls down a slope"
       },
       "swensen": {
         "goal": "Growth, inflation protection",

@@ -287,14 +287,17 @@ export function textOn(hex) {
 }
 
 /**
- * Dessins des portefeuilles modèles (components/models/PortfolioIcon.vue) : teintes Google de ASSET_SWATCHES,
- * plus quelques teintes propres aux objets dessinés (bois, café, lierre). Les mêmes en clair et en sombre.
+ * Dessins des portefeuilles modèles (components/models/PortfolioIcon.vue), en formes pleines : teintes Google de
+ * ASSET_SWATCHES et nuances de BLUES et REDS, plus quelques teintes propres aux objets dessinés (café, bois, glace).
+ * Les mêmes en clair et en sombre : chaque forme a sa couleur, sans contour.
  */
 export const ILLUSTRATION = {
   blue: swatch('blue'),
   paleBlue: BLUES[6],
-  navy: BLUES[0],
+  ice: '#d2e3fc', // pente de la boule de neige
   red: swatch('red'),
+  darkRed: REDS[0],
+  paleRed: REDS[7],
   palestRed: '#fce8e6',
   yellow: swatch('yellow'),
   paleYellow: '#fdd663',
@@ -302,8 +305,8 @@ export const ILLUSTRATION = {
   brown: '#7a4a12',
   coffee: '#4e2c0b',
   green: swatch('green'),
+  lightGreen: '#81c995',
   darkGreen: '#0d652d',
-  leaf: '#5bb974',
   purple: swatch('purple'),
   darkPurple: '#681da8',
   orange: swatch('orange'),
@@ -311,5 +314,7 @@ export const ILLUSTRATION = {
   teal: '#007b83',
   paleTeal: '#e4f7fb',
   gray: CONTEXT,
+  darkGray: '#5f6368',
+  silver: '#bdc1c6',
   paleGray: '#dadce0',
 }
