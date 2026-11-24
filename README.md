@@ -71,7 +71,7 @@ overfolio/
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
 │       │   └── NewPage.vue         #   /newpage            connexion avec Google
 │       ├── components/
-│       │   ├── Header.vue, Footer.vue   # en-tête : bouton PDF, titre, date des positions, menus, devise, compte, langue, clair / sombre
+│       │   ├── Header.vue, Footer.vue   # en-tête : titre, date des positions, menus, devise, bouton PDF, compte, langue, clair / sombre
 │       │   ├── ConversionNote.vue  # phrase « montants convertis de … en … » sous le titre d'une page
 │       │   ├── AccountMenu.vue     # en-tête : Connexion, ou photo du compte et menu (e-mail, Se déconnecter)
 │       │   ├── PdfProgress.vue     # bandeau de progression de l'export PDF (absent du PDF)
@@ -668,7 +668,7 @@ Le site garde en base les **taux de référence de l'euro publiés par la BCE** 
 
 ### Devise d'affichage
 
-Le menu à pièces de l'en-tête (`components/ui/CurrencySelect.vue`), juste après le menu Simulation, choisit la devise des pages **Charts** et **Simulation**. Sous 768 px, il est dans le menu burger.
+Le menu à pièces de l'en-tête (`components/ui/CurrencySelect.vue`), entre le menu Simulation et le bouton PDF, choisit la devise des pages **Charts** et **Simulation**. Sous 768 px, il est dans le menu burger.
 
 | Où | Quoi |
 |---|---|
@@ -885,7 +885,7 @@ La page `/strategie` reprend la page « Strategy » de Looker Studio : une carte
 
 ### Le PDF
 
-Le bouton **PDF** de l'en-tête (tout à gauche, avant le titre Overfolio) fabrique un PDF de **tout le site** : une page web = une page PDF, à sa taille réelle, sans découpage en A4. Tout est dans `frontend/src/lib/pdfExport.js` :
+Le bouton **PDF** de l'en-tête (entre la devise et Connexion) fabrique un PDF de **tout le site** : une page web = une page PDF, à sa taille réelle, sans découpage en A4. Tout est dans `frontend/src/lib/pdfExport.js` :
 
 - le site parcourt lui-même chaque page (`sitePages()`) : accueil, GoogleSheet, Flow, Snapshot, Envelopes, Strategy, Volatility, la page de chaque graphique (`/graphiques/<nom>`, Budget compris, Volatility pour les périodes choisies), Simulation et la page de connexion. Une nouvelle page du site y est à ajouter ;
 - pour chaque page, il attend la fin du chargement (plus aucun élément `role="status"` dans le contenu pendant près d'une seconde, 25 s au plus), puis la photographie en entier telle qu'elle s'affiche (`html2canvas`) : mise en page, largeur de la fenêtre, mode clair ou sombre, brut ou net, langue, en-tête et pied de page compris ;

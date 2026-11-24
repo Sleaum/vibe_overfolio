@@ -1,8 +1,9 @@
 <!--
-  En-tête fixe : à gauche, bouton PDF (tout le site en un PDF, lib/pdfExport.js), logo-texte (vers la page de
-  présentation) et date des positions de la table portfolio (lib/portfolioDate.js) ; menu à droite.
-  À droite du menu : devise d'affichage de Charts et Simulation (CurrencySelect.vue, lib/displayCurrency.js), compte
-  (connexion avec Google, AccountMenu.vue), langue, bouton soleil/lune du mode sombre.
+  En-tête fixe : à gauche, logo-texte (vers la page de présentation) et date des positions de la table portfolio
+  (lib/portfolioDate.js) ; menu à droite.
+  À droite du menu : devise d'affichage de Charts et Simulation (CurrencySelect.vue, lib/displayCurrency.js), bouton
+  PDF (tout le site en un PDF, lib/pdfExport.js), compte (connexion avec Google, AccountMenu.vue), langue, bouton
+  soleil/lune du mode sombre.
   Mobile : bouton burger accessible (clavier, aria-expanded, libellé qui change, Échap, fermeture au clic extérieur).
   Sous 640 px, le compte passe dans le menu burger et le bouton PDF ne garde que son icône (place de l'en-tête) ;
   la date des positions est cachée sous 400 px et entre 768 et 1024 px (place du menu de l'ordinateur) ;
@@ -15,22 +16,6 @@
   >
     <div class="page-container flex h-16 items-center justify-between">
       <div class="flex min-w-0 items-center gap-1 sm:gap-2">
-        <!-- PDF de tout le site (une page web = une page PDF), à gauche du titre -->
-        <button
-          type="button"
-          class="-ml-2.5 inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-ink-2 hover:bg-wash hover:text-ink disabled:opacity-50"
-          :title="t('nav.pdfTitle')"
-          :aria-label="t('nav.pdfTitle')"
-          :disabled="pdfExport.running"
-          :aria-busy="pdfExport.running"
-          @click="startPdf"
-        >
-          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-            <path d="M14 3v5h5M12 18v-6M9 15l3 3 3-3" />
-          </svg>
-          <span class="hidden sm:inline md:hidden lg:inline">{{ t('nav.pdf') }}</span>
-        </button>
         <router-link
           to="/"
           class="shrink-0 rounded-md text-2xl font-extrabold tracking-tight text-ink"
@@ -66,8 +51,24 @@
       </nav>
 
       <div class="flex items-center gap-1 md:ml-2">
-        <!-- Devise d'affichage (à la suite du menu Simulation), puis compte, langue, mode clair / sombre -->
+        <!-- Devise d'affichage (à la suite du menu Simulation), PDF de tout le site (une page web = une page PDF),
+             puis compte, langue, mode clair / sombre -->
         <CurrencySelect class="hidden md:inline-flex" />
+        <button
+          type="button"
+          class="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-ink-2 hover:bg-wash hover:text-ink disabled:opacity-50"
+          :title="t('nav.pdfTitle')"
+          :aria-label="t('nav.pdfTitle')"
+          :disabled="pdfExport.running"
+          :aria-busy="pdfExport.running"
+          @click="startPdf"
+        >
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+            <path d="M14 3v5h5M12 18v-6M9 15l3 3 3-3" />
+          </svg>
+          <span class="hidden sm:inline md:hidden lg:inline">{{ t('nav.pdf') }}</span>
+        </button>
         <AccountMenu class="hidden sm:block" />
         <LanguageSelect />
         <ThemeToggle />
