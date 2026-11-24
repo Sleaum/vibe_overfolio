@@ -37,6 +37,7 @@ def _serialize(profile):
         "display_currency": profile.display_currency or "",
         "volatility_months": profile.volatility_months or [],
         "performance_days": profile.performance_days or [],
+        "model_target": profile.model_target or {},
         "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
     }
 
@@ -75,6 +76,44 @@ def _clean_windows(value, max_value, max_count):
             return None
         numbers.add(item)
     return sorted(numbers)
+# Cible de Models > Target : années possibles, nombre de lignes au plus par répartition
+TARGET_YEARS = (2000, 2200)
+TARGET_BASES = {"types", "classes"}
+MAX_TARGET_ITEMS = 60
+
+
+def _number(value, low, high):
+    return not isinstance(value, bool) and isinstance(value, (int, float)) and low <= value <= high
+
+
+def _clean_shares(value):
+    """{nom: pourcentage de 0 à 100} -> même chose, nom nettoyé ; None si non valable."""
+    if not isinstance(value, dict) or len(value) > MAX_TARGET_ITEMS:
+        return None
+    cleaned = {}
+    for name, share in value.items():
+        key = str(name).strip()
+        if not key or len(key) > MAX_NAME_LENGTH or not _number(share, 0, 100):
+            return None
+        cleaned[key] = round(float(share), 2)
+    return cleaned
+
+
+def _clean_target(value):
+    """Cible reçue -> {year, basis, types, classes, monthly} ; {} pour l'effacer ; None si non valable."""
+    if not isinstance(value, dict):
+        return None
+    if not value:
+        return {}
+    year, basis, monthly = value.get("year"), value.get("basis"), value.get("monthly")
+    types, classes = _clean_shares(value.get("types", {})), _clean_shares(value.get("classes", {}))
+    if not (isinstance(year, int) and _number(year, *TARGET_YEARS)) or basis not in TARGET_BASES:
+        return None
+    if types is None or classes is None or not (monthly is None or _number(monthly, 0, 1e9)):
+        return None
+    return {"year": year, "basis": basis, "types": types, "classes": classes, "monthly": monthly}
+
+
 CURRENCY_CODE = re.compile(r"^[A-Z]{3}$")
 MAX_CURRENCIES = 40
 
@@ -103,14 +142,15 @@ def profile_detail(request):
       {"chart_currencies": ["EUR", "THB"]} devises de « Patrimoine par devise » ([] = toutes) ;
       {"display_currency": "THB"}         devise des pages Charts et Simulation ("" = euro) ;
       {"volatility_months": [1, 3, 6]}    périodes de Volatility, en mois ([] = 1, 3 et 12) ;
-      {"performance_days": [30, 90]}      périodes de « Variation des prix par sous-type » (Snapshot), en jours.
+      {"performance_days": [30, 90]}      périodes de « Variation des prix par sous-type » (Snapshot), en jours ;
+      {"model_target": {…}}               cible de Models > Target (voir _clean_target ; {} = effacée).
     Avec une session ouverte, le jeton CSRF est exigé (en-tête X-CSRFToken).
     """
     profile = current_profile(request)
     if request.method == "PUT":
         body = request.data if isinstance(request.data, dict) else {}
         fields = []
-        if "theme" in body or not body.keys() & {"chart_currencies", "display_currency", *WINDOWS}:
+        if "theme" in body or not body.keys() & {"chart_currencies", "display_currency", "model_target", *WINDOWS}:
             theme = body.get("theme")
             if theme not in THEMES:
                 return error_response("Mode d'affichage non valable", "invalid_theme", 400)
@@ -136,6 +176,12 @@ def profile_detail(request):
                     return error_response("Périodes non valables", code, 400)
                 setattr(profile, field, numbers)
                 fields.append(field)
+        if "model_target" in body:
+            target = _clean_target(body.get("model_target"))
+            if target is None:
+                return error_response("Cible non valable", "invalid_model_target", 400)
+            profile.model_target = target
+            fields.append("model_target")
         profile.save(update_fields=[*fields, "updated_at"])
     return JsonResponse(_serialize(profile))
 

@@ -52,6 +52,7 @@
     "volatility": "Volatilité",
     "simulation": "Simulation",
     "models": "Portefeuilles modèles",
+    "modelsTarget": "Allocation cible",
     "notFound": "Page introuvable"
   },
   "apiErrors": {
@@ -118,7 +119,8 @@
     "invalid_currencies": "Devises non valables.",
     "fx_unreachable": "Les taux de change de la BCE n’ont pas pu être relus : les devises sont calculées avec les derniers taux connus.",
     "fx_invalid": "Le fichier de taux de la BCE est illisible : les devises sont calculées avec les derniers taux connus.",
-    "invalid_currency": "Devise non valable."
+    "invalid_currency": "Devise non valable.",
+    "invalid_model_target": "Cible non valable."
   },
   "data": {
     "unknown": "Non renseigné",
@@ -999,8 +1001,8 @@
     },
     "styles": {
       "seasons": "4 saisons",
-      "balanced": "Équilibré",
-      "index": "Indiciel",
+      "balanced": "Équi­libré",
+      "index": "Indi­ciel",
       "active": "Actives"
     },
     "groups": {
@@ -1209,6 +1211,68 @@
         "Rééquilibre avec tes nouveaux versements plutôt qu'en vendant sur le CTO, où chaque plus-value est imposée.",
         "Taux d'imposition de 2026 : vérifie-les avant de décider, ils changent souvent."
       ]
+    }
+  },
+  "targetPage": {
+    "lead": "Choisis la répartition que tu vises pour une année donnée, compare-la à ton patrimoine d'aujourd'hui, et vois année par année où placer tes versements pour l'atteindre.",
+    "today": "Aujourd'hui",
+    "other": "Autres (crypto, objets…)",
+    "share": "Part",
+    "amount": "Montant",
+    "points": "{points} pts",
+    "total": "Total : {sum} %",
+    "missing": "il manque {points} %",
+    "over": "{points} % de trop",
+    "normalize": "Ramener à 100 %",
+    "saveError": "Cible non enregistrée : {message}",
+    "settings": {
+      "title": "Ta cible",
+      "lead": "Gardée sur ton profil : tu la retrouves sur tous tes appareils.",
+      "year": "Année visée",
+      "basis": "Régler par",
+      "bases": {
+        "types": "Types d'actifs",
+        "classes": "Classes des modèles"
+      },
+      "monthly": "Versement mensuel ({currency})",
+      "monthlyHint": "Vide : la moyenne des 12 derniers mois de la table inout, {amount}.",
+      "monthlyNone": "Vide : 0 (pas de table inout pour proposer une moyenne).",
+      "fromCurrent": "Partir de ma répartition actuelle",
+      "fromModel": "Partir d'un portefeuille modèle…",
+      "clear": "Tout effacer",
+      "sliderA11y": "Part visée pour {name}",
+      "inputA11y": "Part visée pour {name}, en pourcentage"
+    },
+    "compare": {
+      "title": "Aujourd'hui et ta cible",
+      "target": "Cible {year}",
+      "noData": "La table portfolio n'est pas encore dans la base : la comparaison et le plan apparaîtront après une synchronisation.",
+      "emptyTarget": "Règle au moins une part pour voir ta cible.",
+      "tableCaption": "Écart entre ta répartition d'aujourd'hui et ta cible, par catégorie",
+      "columns": {
+        "category": "Catégorie",
+        "today": "Aujourd'hui",
+        "target": "Cible",
+        "gap": "Écart",
+        "move": "À déplacer aujourd'hui"
+      },
+      "moveHint": "« À déplacer aujourd'hui » : ce qu'il faudrait acheter (+) ou vendre (−) pour être à la cible tout de suite. Le plan ci-dessous y arrive plutôt avec tes versements."
+    },
+    "plan": {
+      "title": "Plan d'actions jusqu'en {year}",
+      "lead": "Chaque année, tes versements ({amount} par mois) vont d'abord à ce qui est en dessous de la cible. Rien n'est vendu, sauf la dernière année si les versements n'ont pas suffi.",
+      "invalidSum": "Le plan apparaîtra quand le total de ta cible fera 100 %.",
+      "already": "Ta répartition est déjà à la cible : garde-la en plaçant tes versements selon la cible.",
+      "reached": "Cible atteinte en {year} avec tes seuls versements, sans rien vendre.",
+      "needSales": "Les versements ne suffisent pas : en {year}, il faudra vendre une partie pour finir d'atteindre la cible.",
+      "buy": "Verse {amount} en {name}",
+      "buyBack": "Achète {amount} de {name}",
+      "sell": "Vends {amount} de {name}",
+      "nothing": "Aucune action à prévoir.",
+      "assumption": "Hypothèses simples : pas de rendement ni d'inflation, montants d'aujourd'hui dans la devise d'affichage, versements placés une fois par an. Recalcule le plan après chaque synchronisation.",
+      "tableCaption": "Plan d'actions année par année : montant à verser ou acheter (+) et à vendre (−) par catégorie",
+      "year": "Année",
+      "legend": "+ : à verser (ou à racheter la dernière année) · − : à vendre. Survole une case pour la phrase complète."
     }
   }
 }

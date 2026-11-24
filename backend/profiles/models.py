@@ -32,6 +32,9 @@ class Profile(models.Model):
     volatility_months = models.JSONField(default=list, blank=True)
     # Périodes du graphique « Variation des prix par sous-type » de Snapshot, en jours : [30, 90, 365…] ; vide = défaut
     performance_days = models.JSONField(default=list, blank=True)
+    # Cible de la page Models > Target : {"year": 2040, "basis": "types" ou "classes", "types": {type: %},
+    # "classes": {classe: %}, "monthly": versement mensuel ou null} ; vide = rien de réglé
+    model_target = models.JSONField(default=dict, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
