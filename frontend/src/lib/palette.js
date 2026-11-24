@@ -268,3 +268,48 @@ export function assignAssetColors(names) {
 
   return { colors, overflow }
 }
+
+// Nuances d'une couleur de type d'actif (page Models : sous-classes d'une même famille dans les camemberts)
+
+/** Mélange `hex` avec du blanc (`amount` > 0) ou du noir (`amount` < 0), de 0 à 1. */
+export function shade(hex, amount) {
+  const target = amount < 0 ? 0 : 255
+  const t = Math.min(Math.abs(amount), 1)
+  const channels = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  return `#${channels.map((c) => Math.round(c + (target - c) * t).toString(16).padStart(2, '0')).join('')}`
+}
+
+/** Texte lisible posé sur `hex` : encre foncée sur une couleur claire, blanc sur une couleur foncée. */
+export function textOn(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+  return luminance > 0.55 ? INK : '#ffffff'
+}
+
+/**
+ * Dessins des portefeuilles modèles (components/models/PortfolioIcon.vue) : teintes Google de ASSET_SWATCHES,
+ * plus quelques teintes propres aux objets dessinés (bois, café, lierre). Les mêmes en clair et en sombre.
+ */
+export const ILLUSTRATION = {
+  blue: swatch('blue'),
+  paleBlue: BLUES[6],
+  navy: BLUES[0],
+  red: swatch('red'),
+  palestRed: '#fce8e6',
+  yellow: swatch('yellow'),
+  paleYellow: '#fdd663',
+  amber: '#e37400',
+  brown: '#7a4a12',
+  coffee: '#4e2c0b',
+  green: swatch('green'),
+  darkGreen: '#0d652d',
+  leaf: '#5bb974',
+  purple: swatch('purple'),
+  darkPurple: '#681da8',
+  orange: swatch('orange'),
+  darkOrange: '#b06000',
+  teal: '#007b83',
+  paleTeal: '#e4f7fb',
+  gray: CONTEXT,
+  paleGray: '#dadce0',
+}

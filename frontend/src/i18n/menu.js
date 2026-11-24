@@ -7,6 +7,7 @@ export const MENU_NAMES = {
   sheet: 'GoogleSheet',
   charts: 'Charts',
   simulation: 'Simulation',
+  models: 'Models',
   // Menu de la rubrique Charts (GraphiquesLayout.vue, lib/charts/index.js)
   flow: 'Flow',
   snapshot: 'Snapshot',

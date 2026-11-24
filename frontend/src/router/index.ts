@@ -33,6 +33,8 @@ const routes: RouteRecordRaw[] = [
   },
   // Simulation de Monte-Carlo : page à part, hors de la rubrique Graphiques (pas de menu à gauche)
   { path: '/simulation', name: 'Simulation', component: () => import('../views/SimulationPage.vue'), meta: { titleKey: 'pages.simulation' } },
+  // Portefeuilles modèles (lazy portfolios) : page à part, comme Simulation
+  { path: '/modeles', name: 'Models', component: () => import('../views/ModelsPage.vue'), meta: { titleKey: 'pages.models' } },
   // Ancienne adresse de la page des graphiques
   { path: '/echart', redirect: '/graphiques' },
   {
