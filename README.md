@@ -69,6 +69,7 @@ overfolio/
 │       │   ├── EnvelopesPage.vue   #   /enveloppes         les enveloppes de placement (CTO, PEA, PER, PEE)
 │       │   ├── VolatilityPage.vue  #   /volatilite         variation du prix de chaque placement
 │       │   ├── SimulationPage.vue  #   /simulation         simulation de Monte-Carlo du patrimoine
+│       │   ├── ModelsPage.vue      #   /modeles            portefeuilles modèles (lazy portfolios), comparés à ton patrimoine
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
 │       │   └── NewPage.vue         #   /newpage            connexion avec Google
 │       ├── components/
@@ -80,6 +81,7 @@ overfolio/
 │       │   ├── SyncTabs.vue        # « Onglets à synchroniser » et onglets du document à cocher (page /sheet)
 │       │   ├── ui/                 # AppButton, SegmentedControl, ThemeToggle (clair / sombre), LanguageSelect (langue), CurrencySelect (devise d'affichage)
 │       │   ├── landing/            # sections de la page de présentation
+│       │   ├── models/             # page Models : MiniPie (petit camembert SVG), PortfolioIcon (dessin de chaque portefeuille)
 │       │   └── charts/             # AssetColorSettings, CurrencyPicker (devises du graphique par devise), WindowsPicker (pastilles de périodes : Volatility, Snapshot), BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
 │       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes),
 │       │                           #   menu.js (noms des menus, toujours en anglais)
@@ -105,6 +107,7 @@ overfolio/
 │           ├── simulation.js, simulation.worker.js         # calculs de la page Simulation
 │           ├── snapshot.js         # calculs de la page Snapshot
 │           ├── strategy.js         # calculs de la page Strategy
+│           ├── models.js           # page Models : portefeuilles, répartitions, couleurs, comparaison avec ton patrimoine
 │           ├── sample.js           # données FICTIVES de la page de présentation
 │           └── charts/             # une spécification par graphique, index.js (liste et cartes) ; aides : sunburst, worldMap, assetDonut, evolution
 ├── nginx/
@@ -242,6 +245,7 @@ docker compose up --build -d
 | http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Tout actualiser). L'ancienne adresse `/source` fonctionne toujours |
 | http://localhost/graphiques | Rubrique Charts. Menu à gauche : Flow, Snapshot, Envelopes, Strategy, Volatility et Budget ; la page choisie s'affiche à droite (Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
 | http://localhost/simulation | Simulation de Monte-Carlo du patrimoine (page à part, lien « Simulation » de l'en-tête) |
+| http://localhost/modeles | Portefeuilles modèles (lien « Models » de l'en-tête) : répartitions, créateurs, ressemblance avec ton patrimoine, réplication en France |
 | http://localhost/newpage | Connexion avec un compte Google (bouton « Connexion » de l'en-tête) |
 | http://localhost/admin/ | Admin Django |
 
@@ -253,11 +257,11 @@ Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx
 2. **Copier les données en base** : bouton **Tout actualiser** de la même page (ou `./init.sh --sync`). Les graphiques lisent la base, pas le Google Sheet : sans cette étape, ils restent vides. Recommencer après chaque mise à jour de la feuille, ou automatiser (« Synchronisation automatique »).
 3. **Lire les graphiques** : rubrique **Charts**, menu à gauche (Flow, Snapshot, Envelopes, Strategy, Volatility, Budget). Chaque graphique a une vue Tableau et une page d'explication (source des chiffres).
 4. **Brut ou net** : le bouton **Brut / Net** en haut du menu de Charts choisit les montants de Flow, Snapshot et Envelopes : tes actifs seuls, ou actifs moins dettes (voir « Brut ou net »).
-5. **Projeter** : page **Simulation**, réglages dans la page.
+5. **Projeter** : page **Simulation**, réglages dans la page. **Comparer** : page **Models**, les grands portefeuilles modèles et ceux qui ressemblent le plus au tien.
 6. **Exporter en PDF** : bouton **PDF** de l'en-tête. Tout le site, une page web par page PDF, avec tes réglages du moment (voir « Le PDF »).
 7. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur (et sur ton compte si tu es connecté).
 8. **Se connecter** (facultatif) : bouton **Connexion** de l'en-tête, avec ton compte Google. Tes couleurs, ton mode clair / sombre et ta devise sont alors enregistrés sur ton compte et retrouvés sur tous tes appareils (voir « Connexion avec Google »).
-9. **Devise** : le menu à pièces de l'en-tête (entre Simulation et PDF ; dans le menu burger sur mobile) choisit la devise des pages Charts et Simulation : l'euro par défaut, ou une des devises de la BCE. Les montants sont convertis au taux du jour de chaque relevé ; la page GoogleSheet reste en euros. Le choix est gardé par le navigateur, et sur ton compte si tu es connecté (voir « Devise d'affichage »).
+9. **Devise** : le menu à pièces de l'en-tête (entre Models et PDF ; dans le menu burger sous 1024 px) choisit la devise des pages Charts et Simulation : l'euro par défaut, ou une des devises de la BCE. Les montants sont convertis au taux du jour de chaque relevé ; la page GoogleSheet reste en euros. Le choix est gardé par le navigateur, et sur ton compte si tu es connecté (voir « Devise d'affichage »).
 10. **Langue** : français, anglais ou thaï, avec le menu à globe de l'en-tête. Au premier passage, le site prend la langue du navigateur si elle est proposée, sinon le français ; le choix est gardé par le navigateur. Tout le site suit la langue : textes, graphiques, messages d'erreur, nombres et dates (voir « Langues »).
 
 ### Créer un compte administrateur
@@ -376,7 +380,7 @@ En-tête « Connexion » ──► /newpage ──► « Continuer avec Google �
 - **Feuille et données** : chaque compte a sa configuration GoogleSheet et ses données synchronisées, invisibles pour les autres (voir « Par compte »). Sans compte, l'API reste publique, avec la feuille et les données du site.
 - **Déconnexion** : la page est rechargée, pour qu'aucune donnée du compte ne reste affichée.
 - **Administrateur** : une session ouverte sur `/admin/` vaut aussi pour le site (même domaine) : l'administrateur y voit son propre profil, pas celui du site. Se déconnecter de l'admin pour revenir au profil du site.
-- **Petits écrans** : sous 640 px, « Connexion » / « Se déconnecter » passent dans le menu burger. Entre 768 et 1024 px, le bouton Connexion et le bouton PDF ne gardent que leur icône et la date des positions est cachée, pour laisser la place au menu de devise.
+- **Petits écrans** : le menu (GoogleSheet, Charts, Simulation, Models) et la devise sont dans le menu burger sous 1024 px ; sous 640 px, « Connexion » / « Se déconnecter » y passent aussi. Sous 640 px et entre 1024 et 1280 px, le bouton Connexion et le bouton PDF ne gardent que leur icône ; la date des positions est cachée sous 400 px.
 
 ### Créer le client OAuth dans Google Cloud
 
@@ -681,7 +685,7 @@ Le site garde en base les **taux de référence de l'euro publiés par la BCE** 
 
 ### Devise d'affichage
 
-Le menu à pièces de l'en-tête (`components/ui/CurrencySelect.vue`), entre le menu Simulation et le bouton PDF, choisit la devise des pages **Charts** et **Simulation**. Sous 768 px, il est dans le menu burger.
+Le menu à pièces de l'en-tête (`components/ui/CurrencySelect.vue`), entre le menu Models et le bouton PDF, choisit la devise des pages **Charts** et **Simulation**. Sous 1024 px, il est dans le menu burger.
 
 | Où | Quoi |
 |---|---|
@@ -725,6 +729,7 @@ Bibliothèques chargées à la demande seulement : `world-atlas` et `topojson-cl
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone. Montants bruts ou nets selon le bouton Brut / Net |
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Les périodes à afficher (1 mois, 3 mois et 1 an par défaut ; on en ajoute ou on en retire), puis un graphique par période : une bulle par placement, montant détenu et variation du prix unitaire |
 | `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
+| `/modeles` | `views/ModelsPage.vue`, `lib/models.js`, `components/models/` | Page à part (lien « Models » de l'en-tête) : les portefeuilles modèles, ta ressemblance avec chacun et comment les répliquer en France. Voir « Les portefeuilles modèles » |
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : variation de l'année, du mois et sur 24 h, anneau des types d'actifs, détail par type ; en mode Brut, la liste « Tes dettes ». Voir « Snapshot » |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `components/charts/WorldMapCard.vue`, `lib/strategy.js`, `lib/charts/sunburst.js` et `lib/charts/worldMap.js` | Strategy : une carte du monde des pays de tes actions (colonne `Area`), puis tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
@@ -901,7 +906,7 @@ La page `/strategie` reprend la page « Strategy » de Looker Studio : une carte
 
 Le bouton **PDF** de l'en-tête (entre la devise et Connexion) fabrique un PDF de **tout le site** : une page web = une page PDF, à sa taille réelle, sans découpage en A4. Tout est dans `frontend/src/lib/pdfExport.js` :
 
-- le site parcourt lui-même chaque page (`sitePages()`) : accueil, GoogleSheet, Flow, Snapshot, Envelopes, Strategy, Volatility, la page de chaque graphique (`/graphiques/<nom>`, Budget compris, Volatility pour les périodes choisies), Simulation et la page de connexion. Une nouvelle page du site y est à ajouter ;
+- le site parcourt lui-même chaque page (`sitePages()`) : accueil, GoogleSheet, Flow, Snapshot, Envelopes, Strategy, Volatility, la page de chaque graphique (`/graphiques/<nom>`, Budget compris, Volatility pour les périodes choisies), Simulation, Models et la page de connexion. Une nouvelle page du site y est à ajouter ;
 - pour chaque page, il attend la fin du chargement (plus aucun élément `role="status"` dans le contenu pendant près d'une seconde, 25 s au plus), puis la photographie en entier telle qu'elle s'affiche (`html2canvas`) : mise en page, largeur de la fenêtre, mode clair ou sombre, brut ou net, langue, en-tête et pied de page compris ;
 - les images sont assemblées en un PDF (`jsPDF`), téléchargé sous le nom `Overfolio AAAA-MM-JJ.pdf` ; la page de départ revient ensuite. Rien n'est envoyé au serveur ;
 - pendant l'export, un bandeau (`components/PdfProgress.vue`) montre la progression et permet d'annuler ; il n'apparaît pas dans le PDF (`data-pdf-ignore`), et les graphiques ne sont pas animés (`BaseChart.vue`) ;
@@ -918,6 +923,20 @@ La page `/simulation` (lien de l'en-tête, à part de la rubrique Graphiques) ti
 - **Modèle** : rendements mensuels log-normaux, chocs de Student à 5 degrés de liberté (krachs plus fréquents qu'avec une loi normale) et corrélation par un facteur « marché actions ». Les versements sont répartis au prorata des actifs cochés, et les frais sont prélevés sur les actifs financiers. La dette baisse du capital remboursé chaque mois.
 - **Limites** : ni impôt à la sortie ni rééquilibrage. Les résultats sont reproductibles : une graine fixe donne le même résultat pour les mêmes hypothèses.
 - Tout se règle dans la page, et les réglages sont gardés par le navigateur (préférence `simulation` de `lib/preferences.js`). Le calcul tourne dans un Web Worker, en 0,3 s environ.
+
+### Les portefeuilles modèles
+
+La page `/modeles` (lien « Models » de l'en-tête, à part comme Simulation) présente onze portefeuilles modèles (lazy portfolios). Données et calculs dans `frontend/src/lib/models.js`, textes dans la rubrique `modelsPage` des fichiers de langue.
+
+| Bloc | Contenu |
+|---|---|
+| Ton patrimoine face aux modèles | Ta répartition d'aujourd'hui par type d'actif (table `portfolio`, actifs sans les dettes) et les trois modèles les plus proches. La comparaison se fait par grande famille (actions ; obligations et liquidités ; or et matières premières ; immobilier ; stratégies alternatives ; autres) : l'écart est la part qu'il faudrait déplacer pour avoir la même répartition (`gap()`). Types reconnus : `public equity` → actions, `fiat` (et tout type qui contient *bond* ou *oblig*) → obligations et liquidités, `commodity` → or et matières premières, `real estate` → immobilier, `managed futures` → stratégies alternatives ; les autres (crypto, objets…) vont dans « autres », signalé sous la liste. Sans table `portfolio`, ce bloc invite à synchroniser et la page s'affiche quand même |
+| Les portefeuilles | Deux groupes : 4 saisons et macroéconomiques (All Weather, Permanent Portfolio, Golden Butterfly, Dragon), classiques et indiciels (60/40, Three-Fund, Buffett 90/10, Swensen, Coffeehouse, Ivy, Larry). Pour chacun : dessin (`components/models/PortfolioIcon.vue`), créateur (lien Wikipédia en français s'il existe et si le site est en français, sinon en anglais ; pas de lien sans page), objectif, explication, camembert (`components/models/MiniPie.vue`, pourcentage au survol, écrit dans les parts de 15 % ou plus), familles cochées à droite (4 saisons, Équilibré, Indiciel, Actives). Filtre par famille au-dessus. Tableau à partir de 1024 px, une carte par portefeuille en dessous |
+| Les répliquer en France | PEA, compte-titres, assurance-vie (ce qu'on peut y mettre, fiscalité de 2026), puis où loger chaque brique avec des exemples d'ETF. Taux et produits datés : à revoir quand ils changent (rubrique `modelsPage.france`) |
+
+**Couleurs des camemberts** : chaque classe d'actifs prend la couleur d'un type d'actif du site, celle choisie dans « Couleurs des actifs » de Charts : actions = `public equity`, obligations et liquidités = `fiat`, or et matières premières = `commodity`, immobilier = `real estate`, suivi de tendance et volatilité longue = `managed futures`. Les sous-classes en sont des nuances plus foncées ou plus claires (`shade()` de `palette.js`, réglage `CLASSES` de `models.js`). Les dessins prennent leurs teintes dans `ILLUSTRATION` de `palette.js`.
+
+**Ajouter un portefeuille** : une entrée dans `MODELS` de `lib/models.js` (clé, nom, groupe, familles, personnes, répartition), ses textes dans `modelsPage.models.<clé>` des trois fichiers de langue (`goal`, `detail`, `note`, `icon`), et son dessin dans `PortfolioIcon.vue`.
 
 ### Ajouter un graphique
 
@@ -986,7 +1005,7 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 
 **Couverture** : tout le site est traduit, pages, graphiques (titres, explications, légendes, infobulles, vues tableau, textes pour les lecteurs d'écran), messages d'erreur du serveur, nombres, dates et pourcentages. Restent tels quels : les données de ta feuille, les noms de colonnes et d'onglets, les noms des menus et les messages destinés aux développeurs (console, ligne de commande). Les traductions thaïes sont à faire relire par une personne qui parle thaï.
 
-**Menus** : leurs noms sont toujours en anglais, dans toutes les langues : en-tête et pied de page (GoogleSheet, Charts, Simulation) et menu de la rubrique Charts (Flow, Snapshot, Envelopes, Strategy, Volatility, Budget). Ils sont dans `frontend/src/i18n/menu.js` (`MENU_NAMES`), pas dans les fichiers de langue. Tout le reste est traduit, titres des pages compris (« Historique du patrimoine » sous le menu Flow, « Patrimoine aujourd’hui » sous Snapshot…). Une phrase qui renvoie à un menu reprend son nom anglais (« la page Charts »).
+**Menus** : leurs noms sont toujours en anglais, dans toutes les langues : en-tête et pied de page (GoogleSheet, Charts, Simulation, Models) et menu de la rubrique Charts (Flow, Snapshot, Envelopes, Strategy, Volatility, Budget). Ils sont dans `frontend/src/i18n/menu.js` (`MENU_NAMES`), pas dans les fichiers de langue. Tout le reste est traduit, titres des pages compris (« Historique du patrimoine » sous le menu Flow, « Patrimoine aujourd’hui » sous Snapshot…). Une phrase qui renvoie à un menu reprend son nom anglais (« la page Charts »).
 
 **Dans le code** : un graphique déclare son titre, son résumé, son explication et sa source par des getters (`get title() { return t('charts.<nom>.title') }`), lus au moment de l'affichage ; les paragraphes sont des listes (`tList()`). Un texte au pluriel s'écrit « un | plusieurs » et s'appelle `t('cle', { count }, count)`. Un paragraphe qui contient un lien utilise `<i18n-t keypath="…">` avec un emplacement par lien, pour que le lien tombe au bon endroit dans chaque langue.
 
@@ -1014,6 +1033,7 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 | sélecteur de fichiers (de Google) / autoriser l'accès | (Google) file picker / allow access | ตัวเลือกไฟล์ (ของ Google) / อนุญาตการเข้าถึง |
 | devise / taux de change / taux de la BCE | currency / exchange rate / ECB rate | สกุลเงิน / อัตราแลกเปลี่ยน / อัตรา ECB |
 | devise (menu de l'en-tête) / valeur d'aujourd'hui / valeur courante | currency / today's value / nominal value | สกุลเงิน / มูลค่าปัจจุบัน / มูลค่าในอนาคต |
+| portefeuille modèle / actions / obligations / liquidités | model portfolio / stocks / bonds / cash | พอร์ตการลงทุนต้นแบบ / หุ้น / พันธบัตร / เงินสด |
 
 ## Commandes utiles
 

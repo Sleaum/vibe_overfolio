@@ -51,6 +51,7 @@
     "envelopes": "Enveloppes",
     "volatility": "Volatilité",
     "simulation": "Simulation",
+    "models": "Portefeuilles modèles",
     "notFound": "Page introuvable"
   },
   "apiErrors": {
@@ -960,5 +961,225 @@
     "cancel": "Annuler",
     "error": "Le PDF n’a pas pu être créé : {message}",
     "close": "Fermer"
+  },
+  "modelsPage": {
+    "lead": "Les grands portefeuilles modèles (lazy portfolios) : qui les a imaginés, à quoi ils servent, comment ils sont répartis, et lequel ressemble le plus au tien.",
+    "disclaimer": "Ces répartitions sont des informations, pas un conseil en investissement : elles ne tiennent pas compte de ta situation.",
+    "sliceTitle": "{label} : {value} %",
+    "compare": {
+      "title": "Ton patrimoine face aux modèles",
+      "lead": "Ta répartition d'aujourd'hui par type d'actif (table portfolio, actifs sans les dettes) et les trois modèles qui s'en rapprochent le plus.",
+      "loading": "Chargement de ton patrimoine…",
+      "noData": "La table portfolio n'est pas encore dans la base : la comparaison apparaîtra après une synchronisation.",
+      "yours": "Ta répartition par type d'actif",
+      "closest": "Les modèles les plus proches",
+      "gap": "Écart de {points} points",
+      "how": "Comparaison par grande famille : actions, obligations et liquidités, or et matières premières, immobilier, stratégies alternatives. L'écart est la part qu'il faudrait déplacer pour avoir la même répartition.",
+      "other": "{share} de ton patrimoine (crypto, objets…) n'entre dans aucune famille des modèles."
+    },
+    "listTitle": "Les portefeuilles",
+    "filterLabel": "Filtrer par famille",
+    "all": "Tous",
+    "noMatch": "Aucun portefeuille dans cette famille.",
+    "yes": "oui",
+    "legend": {
+      "equity": "Actions",
+      "defensive": "Obligations",
+      "real": "Réels et alternatifs"
+    },
+    "columns": {
+      "icon": "Dessin",
+      "portfolio": "Portefeuille",
+      "creator": "Créateur",
+      "goal": "Objectif",
+      "detail": "En détail",
+      "allocation": "Répartition",
+      "styles": "Familles"
+    },
+    "styles": {
+      "seasons": "4 saisons",
+      "balanced": "Équilibré",
+      "index": "Indiciel",
+      "active": "Actives"
+    },
+    "groups": {
+      "seasons": "Portefeuilles 4 saisons et macroéconomiques",
+      "classic": "Portefeuilles classiques et indiciels"
+    },
+    "classes": {
+      "equity": "Actions US / monde",
+      "equityValue": "Actions value, petites cap.",
+      "smallValue": "Small cap value",
+      "equityIntl": "Actions internationales",
+      "emerging": "Émergents",
+      "bondsLong": "Oblig. longues",
+      "bondsMid": "Oblig. moyennes",
+      "cash": "Liquidités",
+      "bondsIndexed": "Oblig. indexées inflation",
+      "gold": "Or",
+      "commodities": "Matières premières",
+      "realEstate": "Immobilier coté",
+      "trend": "Suivi de tendance",
+      "longVol": "Volatilité longue"
+    },
+    "slices": {
+      "shortBonds": "Oblig. courtes",
+      "bonds": "Obligations",
+      "usEquity": "Actions US",
+      "sp500": "S&P 500",
+      "developed": "Pays développés",
+      "treasuries": "Oblig. d'État",
+      "largeCap": "Grandes cap. US",
+      "largeValue": "Value grandes cap.",
+      "smallCap": "Petites cap.",
+      "usSmallValue": "Small cap value US",
+      "intlSmallValue": "Small cap value internationales",
+      "emergingValue": "Émergents value"
+    },
+    "models": {
+      "allWeather": {
+        "goal": "Résilience",
+        "detail": "Équilibre le risque plutôt que les montants : beaucoup d'obligations pour compenser les actions, un peu d'or et de matières premières contre l'inflation.",
+        "note": "Bridgewater ; version grand public de Robbins, 2014",
+        "icon": "Parapluie sous le soleil et la pluie"
+      },
+      "permanent": {
+        "goal": "Résilience, préservation",
+        "detail": "Un quart par climat : actions pour la croissance, obligations longues pour la déflation, liquidités pour la récession, or pour l'inflation.",
+        "note": "1981, puis Fail-Safe Investing, 1999",
+        "icon": "Trèfle à quatre feuilles égales"
+      },
+      "goldenButterfly": {
+        "goal": "Résilience, biais croissance",
+        "detail": "Le Permanent Portfolio avec plus d'actions, dont des small cap value, pour viser un meilleur rendement sans perdre sa stabilité.",
+        "note": "Portfolio Charts, auteur anonyme",
+        "icon": "Papillon aux ailes dorées"
+      },
+      "dragon": {
+        "goal": "Préservation très long terme",
+        "detail": "Pensé pour traverser 100 ans de marchés : suivi de tendance et volatilité longue, qui gagnent quand le reste s'effondre.",
+        "note": "Artemis Capital, 2020",
+        "icon": "Dragon crachant une flamme"
+      },
+      "sixtyForty": {
+        "goal": "Équilibre croissance et stabilité",
+        "detail": "La référence : les actions portent la croissance, les obligations amortissent les baisses. Le classique de la retraite.",
+        "note": "Pas d'auteur unique : le standard de la gestion équilibrée",
+        "icon": "Balance penchant côté actions"
+      },
+      "threeFund": {
+        "goal": "Croissance, obligations selon l'âge",
+        "detail": "Trois fonds indiciels très larges et peu chers ; la part d'obligations augmente avec l'âge. Ici en 80/20.",
+        "note": "Bogleheads, d'après les idées de Bogle",
+        "icon": "Trident à trois pointes"
+      },
+      "buffett": {
+        "goal": "Croissance long terme",
+        "detail": "Presque tout en S&P 500 à bas coût, avec un petit coussin d'obligations courtes : ses consignes pour l'héritage de sa femme.",
+        "note": "Lettre aux actionnaires, 2013",
+        "icon": "Cible touchée en plein centre"
+      },
+      "swensen": {
+        "goal": "Croissance, protection contre l'inflation",
+        "detail": "Le modèle de Yale pour les particuliers : six classes d'actifs, immobilier et obligations indexées contre l'inflation, sans or.",
+        "note": "Yale, Unconventional Success, 2005",
+        "icon": "Toque de diplômé"
+      },
+      "coffeehouse": {
+        "goal": "Croissance équilibrée",
+        "detail": "Un 60/40 dont les actions sont découpées en six parts égales, avec un penchant pour la value et les petites capitalisations.",
+        "note": "The Coffeehouse Investor, 2001",
+        "icon": "Tasse de café fumante"
+      },
+      "ivy": {
+        "goal": "Diversification large",
+        "detail": "La version simple des fonds de Harvard et Yale : cinq parts égales. En option, sortir d'un actif quand il passe sous sa moyenne sur 10 mois.",
+        "note": "Cambria, The Ivy Portfolio",
+        "icon": "Feuille de lierre"
+      },
+      "larry": {
+        "goal": "Croissance à faible risque",
+        "detail": "Peu d'actions, mais les plus rémunératrices historiquement (small cap value) ; 70 % d'obligations d'État pour amortir.",
+        "note": "Buckingham",
+        "icon": "Bouclier avec une flèche montante"
+      }
+    },
+    "france": {
+      "title": "Les répliquer en France",
+      "lead": "Le PEA n'accepte que des actions : ces portefeuilles se répartissent presque toujours sur deux ou trois enveloppes, à gérer comme un seul portefeuille.",
+      "envelopes": {
+        "pea": {
+          "name": "PEA",
+          "holds": "Actions seulement : ETF européens, ou ETF Monde et S&P 500 à réplication synthétique. Ni obligations, ni or. Versements plafonnés à 150 000 €.",
+          "tax": "Après 5 ans : seulement les prélèvements sociaux de 18,6 % (taux 2026)."
+        },
+        "cto": {
+          "name": "Compte-titres (CTO)",
+          "holds": "Tout ETF ou ETC européen (UCITS) : obligations, or, matières premières, suivi de tendance. Les ETF américains ne sont pas accessibles.",
+          "tax": "Flat tax de 31,4 % sur les gains (taux 2026)."
+        },
+        "lifeInsurance": {
+          "name": "Assurance-vie",
+          "holds": "Fonds euros pour la part liquidités, ETF selon le contrat (souvent des obligations, rarement de l'or).",
+          "tax": "Flat tax de 30 % ; après 8 ans, abattement de 4 600 € par an (9 200 € pour un couple) (taux 2026)."
+        }
+      },
+      "bricksTitle": "Où loger chaque brique",
+      "brick": "Brique",
+      "where": "Enveloppe",
+      "examples": "Exemples",
+      "bricks": {
+        "equity": {
+          "where": "PEA",
+          "examples": "ETF MSCI World ou S&P 500 éligibles au PEA (Amundi, iShares, BNP Paribas)"
+        },
+        "smallValue": {
+          "where": "CTO",
+          "examples": "ETF UCITS small cap value (Avantis, SPDR) ; rien d'équivalent en PEA"
+        },
+        "bondsLong": {
+          "where": "CTO, ou assurance-vie selon le contrat",
+          "examples": "iShares $ Treasury Bond 20+yr couvert en euros (IE00BD8PGZ49), ou obligations d'État longues de la zone euro"
+        },
+        "bondsMid": {
+          "where": "CTO ou assurance-vie",
+          "examples": "ETF obligations d'État 7-10 ans (zone euro, ou US couvert en euros)"
+        },
+        "cash": {
+          "where": "Assurance-vie, livrets, CTO",
+          "examples": "Fonds euros, Livret A, ETF monétaire €STR"
+        },
+        "gold": {
+          "where": "CTO, parfois assurance-vie",
+          "examples": "ETC or physique, ou pièces (fiscalité propre à l'or physique)"
+        },
+        "commodities": {
+          "where": "CTO",
+          "examples": "ETF UCITS sur un indice large de matières premières"
+        },
+        "trend": {
+          "where": "CTO",
+          "examples": "iMGP DBi Managed Futures, part couverte en euros (LU3359622902)"
+        },
+        "longVol": {
+          "where": "—",
+          "examples": "Pas d'équivalent correct pour un particulier : les produits sur futures VIX perdent de la valeur avec le temps"
+        },
+        "realEstate": {
+          "where": "CTO, ou SCPI / SCI en assurance-vie",
+          "examples": "ETF immobilier coté UCITS"
+        },
+        "bondsIndexed": {
+          "where": "CTO ou assurance-vie",
+          "examples": "ETF obligations indexées sur l'inflation de la zone euro"
+        }
+      },
+      "tips": [
+        "Devise : ces portefeuilles ont été testés en dollars. Des obligations américaines non couvertes ajoutent un risque de change ; même couvertes, les obligations longues ont perdu environ un tiers en 2022.",
+        "Le fonds euros remplace bien la part liquidités, pas les obligations longues : il ne monte pas quand les taux baissent.",
+        "Rééquilibre avec tes nouveaux versements plutôt qu'en vendant sur le CTO, où chaque plus-value est imposée.",
+        "Taux d'imposition de 2026 : vérifie-les avant de décider, ils changent souvent."
+      ]
+    }
   }
 }

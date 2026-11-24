@@ -106,6 +106,12 @@ export function percentPrecise(fraction) {
   return Number.isFinite(n) ? percentTwo().format(n) : '–'
 }
 
+/** 7.5 -> "7,5" ; 20 -> "20" (une décimale au plus, langue active). */
+export function formatDecimal(value) {
+  const n = Number(value)
+  return Number.isFinite(n) ? oneDecimal().format(n) : '–'
+}
+
 /** 5000 -> "5 000" (séparateurs de la langue active). */
 export function formatNumber(value) {
   const n = Number(value)

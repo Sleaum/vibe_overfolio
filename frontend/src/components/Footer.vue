@@ -15,6 +15,7 @@
             <li><router-link to="/sheet" class="text-ink-2 hover:text-ink hover:underline">{{ MENU_NAMES.sheet }}</router-link></li>
             <li><router-link to="/graphiques" class="text-ink-2 hover:text-ink hover:underline">{{ MENU_NAMES.charts }}</router-link></li>
             <li><router-link to="/simulation" class="text-ink-2 hover:text-ink hover:underline">{{ MENU_NAMES.simulation }}</router-link></li>
+            <li><router-link to="/modeles" class="text-ink-2 hover:text-ink hover:underline">{{ MENU_NAMES.models }}</router-link></li>
           </ul>
         </nav>
       </div>

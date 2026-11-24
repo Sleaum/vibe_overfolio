@@ -22,6 +22,7 @@ export function sitePages() {
     '/volatilite',
     ...allCharts().map((chart) => `/graphiques/${chart.slug}`), // Volatility : les périodes choisies
     '/simulation',
+    '/modeles',
     '/newpage',
   ]
 }

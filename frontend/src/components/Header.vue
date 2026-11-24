@@ -5,9 +5,9 @@
   PDF (tout le site en un PDF, lib/pdfExport.js), compte (connexion avec Google, AccountMenu.vue), langue, bouton
   soleil/lune du mode sombre.
   Mobile : bouton burger accessible (clavier, aria-expanded, libellé qui change, Échap, fermeture au clic extérieur).
-  Sous 640 px, le compte passe dans le menu burger et le bouton PDF ne garde que son icône (place de l'en-tête) ;
-  la date des positions est cachée sous 400 px et entre 768 et 1024 px (place du menu de l'ordinateur) ;
-  la devise est dans le menu burger tant que le menu de l'ordinateur est caché (sous 768 px).
+  Le menu de l'ordinateur (GoogleSheet, Charts, Simulation, Models) n'apparaît qu'à partir de 1024 px ; en dessous, il est
+  dans le menu burger, avec la devise. Sous 640 px, le compte passe aussi dans le menu burger. Le bouton PDF et Connexion
+  ne gardent que leur icône sous 640 px et entre 1024 et 1280 px (place du menu) ; la date des positions est cachée sous 400 px.
 -->
 <template>
   <header
@@ -28,7 +28,7 @@
           v-if="portfolioDate"
           :datetime="portfolioDate"
           :title="t('nav.portfolioDate')"
-          class="ml-1 hidden whitespace-nowrap text-sm tabular-nums text-ink-2 min-[400px]:inline sm:ml-2 md:hidden lg:inline"
+          class="ml-1 hidden whitespace-nowrap text-sm tabular-nums text-ink-2 min-[400px]:inline sm:ml-2"
           data-testid="header-portfolio-date"
         >
           <span class="sr-only">{{ t('nav.portfolioDate') }}</span> {{ formatDateShort(portfolioDate) }}
@@ -36,7 +36,7 @@
       </div>
 
       <!-- Menu ordinateur -->
-      <nav :aria-label="t('nav.main')" class="hidden items-center md:ml-auto md:flex">
+      <nav :aria-label="t('nav.main')" class="hidden items-center lg:ml-auto lg:flex">
         <ul class="flex items-center gap-1">
           <li v-for="link in LINKS" :key="link.to">
             <router-link
@@ -50,10 +50,10 @@
         </ul>
       </nav>
 
-      <div class="flex items-center gap-1 md:ml-2">
-        <!-- Devise d'affichage (à la suite du menu Simulation), PDF de tout le site (une page web = une page PDF),
+      <div class="flex items-center gap-1 lg:ml-2">
+        <!-- Devise d'affichage (à la suite du menu Models), PDF de tout le site (une page web = une page PDF),
              puis compte, langue, mode clair / sombre -->
-        <CurrencySelect class="hidden md:inline-flex" />
+        <CurrencySelect class="hidden lg:inline-flex" />
         <button
           type="button"
           class="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-ink-2 hover:bg-wash hover:text-ink disabled:opacity-50"
@@ -67,7 +67,7 @@
             <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
             <path d="M14 3v5h5M12 18v-6M9 15l3 3 3-3" />
           </svg>
-          <span class="hidden sm:inline md:hidden lg:inline">{{ t('nav.pdf') }}</span>
+          <span class="hidden sm:inline lg:hidden xl:inline">{{ t('nav.pdf') }}</span>
         </button>
         <AccountMenu class="hidden sm:block" />
         <LanguageSelect />
@@ -77,7 +77,7 @@
         <button
           ref="burger"
           type="button"
-          class="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink hover:bg-wash md:hidden"
+          class="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink hover:bg-wash lg:hidden"
           aria-controls="menu-mobile"
           :aria-expanded="open"
           :aria-label="open ? t('nav.closeMenu') : t('nav.openMenu')"
@@ -98,7 +98,7 @@
       v-show="open"
       id="menu-mobile"
       :aria-label="t('nav.mainMobile')"
-      class="border-t border-line bg-paper md:hidden"
+      class="border-t border-line bg-paper lg:hidden"
     >
       <ul class="page-container space-y-1 py-3">
         <li v-for="link in LINKS" :key="link.to">
@@ -111,7 +111,7 @@
             {{ link.label }}
           </router-link>
         </li>
-        <!-- Devise d'affichage : dans l'en-tête à partir de 768 px, ici en dessous -->
+        <!-- Devise d'affichage : dans l'en-tête à partir de 1024 px, ici en dessous -->
         <li>
           <CurrencySelect variant="mobile" />
         </li>
@@ -150,6 +150,7 @@ const LINKS = [
     under: ['/graphiques', '/echart', '/portfolio-flow', '/portfolio-snapshot', '/strategie', '/enveloppes', '/volatilite'],
   },
   { label: MENU_NAMES.simulation, to: '/simulation', under: ['/simulation'] },
+  { label: MENU_NAMES.models, to: '/modeles', under: ['/modeles'] },
 ]
 
 const isActive = (link) => link.under.some((base) => route.path === base || route.path.startsWith(`${base}/`))

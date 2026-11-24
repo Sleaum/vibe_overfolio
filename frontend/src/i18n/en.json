@@ -51,6 +51,7 @@
     "envelopes": "Envelopes",
     "volatility": "Volatility",
     "simulation": "Simulation",
+    "models": "Model portfolios",
     "notFound": "Page not found"
   },
   "apiErrors": {
@@ -960,5 +961,225 @@
     "cancel": "Cancel",
     "error": "The PDF couldn’t be created: {message}",
     "close": "Close"
+  },
+  "modelsPage": {
+    "lead": "The great model portfolios (lazy portfolios): who designed them, what they aim for, how they are split, and which one looks most like yours.",
+    "disclaimer": "These allocations are information, not investment advice: they don't take your situation into account.",
+    "sliceTitle": "{label}: {value}%",
+    "compare": {
+      "title": "Your wealth compared with the models",
+      "lead": "Your allocation today by asset type (portfolio table, assets without debts) and the three models closest to it.",
+      "loading": "Loading your wealth…",
+      "noData": "The portfolio table isn't in the database yet: the comparison will appear after a sync.",
+      "yours": "Your allocation by asset type",
+      "closest": "Closest models",
+      "gap": "{points} points apart",
+      "how": "Compared by broad family: stocks, bonds and cash, gold and commodities, real estate, alternative strategies. The gap is the share you would need to move to get the same allocation.",
+      "other": "{share} of your wealth (crypto, collectibles…) fits none of the models' families."
+    },
+    "listTitle": "The portfolios",
+    "filterLabel": "Filter by family",
+    "all": "All",
+    "noMatch": "No portfolio in this family.",
+    "yes": "yes",
+    "legend": {
+      "equity": "Stocks",
+      "defensive": "Bonds",
+      "real": "Real and alternative"
+    },
+    "columns": {
+      "icon": "Drawing",
+      "portfolio": "Portfolio",
+      "creator": "Creator",
+      "goal": "Goal",
+      "detail": "In detail",
+      "allocation": "Allocation",
+      "styles": "Families"
+    },
+    "styles": {
+      "seasons": "All seasons",
+      "balanced": "Balanced",
+      "index": "Index",
+      "active": "Active"
+    },
+    "groups": {
+      "seasons": "All-season and macroeconomic portfolios",
+      "classic": "Classic and index portfolios"
+    },
+    "classes": {
+      "equity": "US / world stocks",
+      "equityValue": "Value, small cap stocks",
+      "smallValue": "Small cap value",
+      "equityIntl": "International stocks",
+      "emerging": "Emerging markets",
+      "bondsLong": "Long-term bonds",
+      "bondsMid": "Intermediate bonds",
+      "cash": "Cash",
+      "bondsIndexed": "Inflation-linked bonds",
+      "gold": "Gold",
+      "commodities": "Commodities",
+      "realEstate": "Listed real estate",
+      "trend": "Trend following",
+      "longVol": "Long volatility"
+    },
+    "slices": {
+      "shortBonds": "Short-term bonds",
+      "bonds": "Bonds",
+      "usEquity": "US stocks",
+      "sp500": "S&P 500",
+      "developed": "Developed markets",
+      "treasuries": "Government bonds",
+      "largeCap": "US large cap",
+      "largeValue": "Large cap value",
+      "smallCap": "Small cap",
+      "usSmallValue": "US small cap value",
+      "intlSmallValue": "International small cap value",
+      "emergingValue": "Emerging markets value"
+    },
+    "models": {
+      "allWeather": {
+        "goal": "Resilience",
+        "detail": "Balances risk rather than amounts: plenty of bonds to offset stocks, a little gold and commodities against inflation.",
+        "note": "Bridgewater; popular version by Robbins, 2014",
+        "icon": "Umbrella under sun and rain"
+      },
+      "permanent": {
+        "goal": "Resilience, preservation",
+        "detail": "One quarter per climate: stocks for growth, long-term bonds for deflation, cash for recession, gold for inflation.",
+        "note": "1981, then Fail-Safe Investing, 1999",
+        "icon": "Four-leaf clover with equal leaves"
+      },
+      "goldenButterfly": {
+        "goal": "Resilience, tilted to growth",
+        "detail": "The Permanent Portfolio with more stocks, including small cap value, aiming for better returns without losing its stability.",
+        "note": "Portfolio Charts, anonymous author",
+        "icon": "Butterfly with golden wings"
+      },
+      "dragon": {
+        "goal": "Very long-term preservation",
+        "detail": "Designed to last through 100 years of markets: trend following and long volatility, which win when everything else collapses.",
+        "note": "Artemis Capital, 2020",
+        "icon": "Fire-breathing dragon"
+      },
+      "sixtyForty": {
+        "goal": "Balance of growth and stability",
+        "detail": "The benchmark: stocks drive growth, bonds cushion the falls. The retirement classic.",
+        "note": "No single author: the standard of balanced management",
+        "icon": "Scale tipping towards stocks"
+      },
+      "threeFund": {
+        "goal": "Growth, bonds by age",
+        "detail": "Three very broad, low-cost index funds; the bond share grows with age. Shown here as 80/20.",
+        "note": "Bogleheads, based on Bogle's ideas",
+        "icon": "Three-pronged trident"
+      },
+      "buffett": {
+        "goal": "Long-term growth",
+        "detail": "Almost everything in a low-cost S&P 500 fund, with a small cushion of short-term bonds: his instructions for his wife's inheritance.",
+        "note": "Shareholder letter, 2013",
+        "icon": "Target hit dead centre"
+      },
+      "swensen": {
+        "goal": "Growth, inflation protection",
+        "detail": "The Yale model for individuals: six asset classes, real estate and inflation-linked bonds against inflation, no gold.",
+        "note": "Yale, Unconventional Success, 2005",
+        "icon": "Graduation cap"
+      },
+      "coffeehouse": {
+        "goal": "Balanced growth",
+        "detail": "A 60/40 whose stocks are split into six equal slices, tilted towards value and small companies.",
+        "note": "The Coffeehouse Investor, 2001",
+        "icon": "Steaming cup of coffee"
+      },
+      "ivy": {
+        "goal": "Broad diversification",
+        "detail": "The simple version of the Harvard and Yale funds: five equal slices. Optionally, leave an asset when it falls below its 10-month average.",
+        "note": "Cambria, The Ivy Portfolio",
+        "icon": "Ivy leaf"
+      },
+      "larry": {
+        "goal": "Growth with low risk",
+        "detail": "Few stocks, but historically the best paid ones (small cap value); 70% government bonds to cushion.",
+        "note": "Buckingham",
+        "icon": "Shield with an upward arrow"
+      }
+    },
+    "france": {
+      "title": "Replicating them in France",
+      "lead": "The PEA only accepts stocks: these portfolios are almost always spread across two or three envelopes, to be managed as a single portfolio.",
+      "envelopes": {
+        "pea": {
+          "name": "PEA",
+          "holds": "Stocks only: European ETFs, or world and S&P 500 ETFs with synthetic replication. No bonds, no gold. Contributions capped at €150,000.",
+          "tax": "After 5 years: only the 18.6% social charges (2026 rates)."
+        },
+        "cto": {
+          "name": "Securities account (CTO)",
+          "holds": "Any European (UCITS) ETF or ETC: bonds, gold, commodities, trend following. US ETFs aren't available.",
+          "tax": "31.4% flat tax on gains (2026 rates)."
+        },
+        "lifeInsurance": {
+          "name": "Life insurance (assurance-vie)",
+          "holds": "Euro fund for the cash share, ETFs depending on the contract (often bonds, rarely gold).",
+          "tax": "30% flat tax; after 8 years, €4,600 yearly allowance (€9,200 for a couple) (2026 rates)."
+        }
+      },
+      "bricksTitle": "Where to hold each building block",
+      "brick": "Building block",
+      "where": "Envelope",
+      "examples": "Examples",
+      "bricks": {
+        "equity": {
+          "where": "PEA",
+          "examples": "PEA-eligible MSCI World or S&P 500 ETFs (Amundi, iShares, BNP Paribas)"
+        },
+        "smallValue": {
+          "where": "CTO",
+          "examples": "UCITS small cap value ETFs (Avantis, SPDR); nothing equivalent in a PEA"
+        },
+        "bondsLong": {
+          "where": "CTO, or life insurance depending on the contract",
+          "examples": "iShares $ Treasury Bond 20+yr EUR hedged (IE00BD8PGZ49), or long-term euro area government bonds"
+        },
+        "bondsMid": {
+          "where": "CTO or life insurance",
+          "examples": "7-10 year government bond ETFs (euro area, or US hedged to euros)"
+        },
+        "cash": {
+          "where": "Life insurance, savings accounts, CTO",
+          "examples": "Euro fund, Livret A, €STR money market ETF"
+        },
+        "gold": {
+          "where": "CTO, sometimes life insurance",
+          "examples": "Physical gold ETC, or coins (physical gold has its own tax rules)"
+        },
+        "commodities": {
+          "where": "CTO",
+          "examples": "UCITS ETF on a broad commodity index"
+        },
+        "trend": {
+          "where": "CTO",
+          "examples": "iMGP DBi Managed Futures, EUR-hedged share class (LU3359622902)"
+        },
+        "longVol": {
+          "where": "—",
+          "examples": "No good equivalent for individuals: VIX futures products lose value over time"
+        },
+        "realEstate": {
+          "where": "CTO, or SCPI / SCI in life insurance",
+          "examples": "UCITS listed real estate ETF"
+        },
+        "bondsIndexed": {
+          "where": "CTO or life insurance",
+          "examples": "Euro area inflation-linked bond ETFs"
+        }
+      },
+      "tips": [
+        "Currency: these portfolios were tested in dollars. Unhedged US bonds add currency risk; even hedged, long-term bonds lost about a third in 2022.",
+        "The euro fund is a good substitute for cash, not for long-term bonds: it doesn't rise when rates fall.",
+        "Rebalance with new contributions rather than by selling in the CTO, where every gain is taxed.",
+        "Tax rates are those of 2026: check them before deciding, they change often."
+      ]
+    }
   }
 }
