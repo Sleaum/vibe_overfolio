@@ -607,7 +607,7 @@
     "noData": "No data: {types}.",
     "columnsRead": "Columns read for the detail: {columns}.",
     "noColumnFor": "No column for: {dims}.",
-    "footer": "The year and month changes compare your wealth today (positions in the portfolio table, gross or net depending on the Charts menu button) with the last record in the history table before January 1st or the 1st of the month; they include your contributions and withdrawals. To update the data, use the Refresh all button on the {sheet} page.",
+    "footer": "The year and month changes compare your wealth today (positions in the portfolio table, gross or net depending on the Charts menu button) with the last record in the history table before January 1st or the 1st of the month; they include your contributions and withdrawals. The 24h change compares with the portfolio total the site saves at each sync, from the previous day. To update the data, use the Refresh all button on the {sheet} page.",
     "defaultSubtitle": "Your wealth today, asset type by asset type.",
     "donutA11y": "Ring of {count} asset types totalling {total}. The largest: {biggest}, {share}.",
     "since": "Since {date}",
@@ -616,6 +616,8 @@
     "noHistory": "History unavailable",
     "thisYear": "This year",
     "thisMonth": "This month",
+    "last24h": "24h",
+    "noPreviousDay": "Available after tomorrow’s sync",
     "yourDebts": "Your debts",
     "debtsTotal": "{amount} in total, by instrument.",
     "typeDebts": "After {amount} of debts; the breakdown shows its assets."

@@ -607,7 +607,7 @@
     "noData": "Sans données : {types}.",
     "columnsRead": "Colonnes lues pour le détail : {columns}.",
     "noColumnFor": "Pas de colonne pour : {dims}.",
-    "footer": "Les variations de l’année et du mois comparent ton patrimoine d’aujourd’hui (positions de la table portfolio, brut ou net selon le bouton du menu de Charts) au dernier relevé de la table history d’avant le 1er janvier ou le 1er du mois ; elles incluent tes versements et retraits. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
+    "footer": "Les variations de l’année et du mois comparent ton patrimoine d’aujourd’hui (positions de la table portfolio, brut ou net selon le bouton du menu de Charts) au dernier relevé de la table history d’avant le 1er janvier ou le 1er du mois ; elles incluent tes versements et retraits. La variation sur 24 h compare au total de portfolio que le site enregistre à chaque synchronisation, celui du jour précédent. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
     "defaultSubtitle": "Ton patrimoine aujourd’hui, type d’actif par type d’actif.",
     "donutA11y": "Anneau de {count} types d’actifs pour {total} au total. Le plus gros : {biggest}, {share}.",
     "since": "Depuis le {date}",
@@ -616,6 +616,8 @@
     "noHistory": "Historique indisponible",
     "thisYear": "Cette année",
     "thisMonth": "Ce mois-ci",
+    "last24h": "24 h",
+    "noPreviousDay": "Disponible après la synchronisation de demain",
     "yourDebts": "Tes dettes",
     "debtsTotal": "{amount} au total, par instrument.",
     "typeDebts": "Après {amount} de dettes ; le détail montre ses actifs."

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import SheetConfig, SheetRow, SheetTable
+from .models import PortfolioDay, SheetConfig, SheetRow, SheetTable
 
 
 @admin.register(SheetTable)
@@ -24,3 +24,9 @@ class SheetRowAdmin(admin.ModelAdmin):
 class SheetConfigAdmin(admin.ModelAdmin):
     list_display = ("__str__", "client_email", "sheet_id", "doc_name", "updated_at")
     exclude = ("private_key",)  # la clé privée ne s'affiche pas dans l'admin
+
+
+@admin.register(PortfolioDay)
+class PortfolioDayAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "assets", "liabilities", "currency", "recorded_at")
+    list_filter = ("user",)

@@ -10,6 +10,7 @@ from . import config
 from .config import DEFAULT_TABS
 from .models import SheetRow, SheetTable
 from .currencies import apply_currencies, detect_currency, earliest_date, tables_to_compute
+from .daily import PORTFOLIO_TABLE, record_portfolio_day
 from .services import SheetError, open_spreadsheet, parse_values, read_worksheet_values
 from fx.ecb import update_rates
 from fx.rates import RateBook
@@ -99,6 +100,7 @@ def sync_sheets(
     - Les tables venues d'un autre document (feuille changée sur la page GoogleSheet), ou d'origine inconnue
       et non relues ici, sont retirées : la base ne garde que des données du document configuré.
     - owner : None = données et configuration du site, sinon celles du compte connecté (jamais mélangées).
+    - portfolio enregistré : son total du jour est gardé (PortfolioDay, daily.py), pour la variation « 24h ».
     """
     tabs = tabs or configured_tabs(owner)
     header_rows = header_rows or {}
@@ -145,6 +147,11 @@ def sync_sheets(
     if not dry_run:
         results.removed = _remove_other_documents(source, owner)
         results.fx = refresh_currencies(owner, [result.tab for result in results if result.saved])
+        if any(result.saved and result.tab == PORTFOLIO_TABLE for result in results):
+            try:
+                record_portfolio_day(owner)  # total du jour, pour la variation « 24h » de Snapshot (daily.py)
+            except Exception:
+                logger.exception("Total du jour de portfolio non enregistré")
     return results
 
 

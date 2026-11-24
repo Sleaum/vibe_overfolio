@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 
 from . import config
 from .currencies import HISTORY_TABLE, merged_rows
+from .daily import previous_day
 from .projection import projected_rows
 from fx.rates import ISO_CODES
 from .models import SheetTable
@@ -91,6 +92,9 @@ def table_detail(request, name):
             "currencies_available": available,  # devises proposées dans « Patrimoine par devise »
             "rates_applied_at": _iso(table.rates_applied_at),
             "projection": projection,  # mois prochain ajouté : {date, rows, unconverted, source_date}, sinon null
+            # portfolio : total du jour gardé le plus récent avant cette synchronisation (variation « 24h » de Snapshot) :
+            # {date, assets, liabilities} dans la devise d'affichage, sinon null
+            "previous_day": previous_day(table, display),
         }
     )
 
