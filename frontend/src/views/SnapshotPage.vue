@@ -1,10 +1,11 @@
 <!--
   Page « Portfolio Snapshot » (/portfolio-snapshot) : où en est ton patrimoine aujourd'hui.
-  Haut : variation de l'année et du mois, anneau des types d'actifs ; puis la variation des prix
+  Haut : variation de l'année, du mois et sur 24 h, anneau des types d'actifs ; puis la variation des prix
   par sous-type sur les périodes choisies (lib/charts/subAssetPerformance.js).
   Bas : pour chaque type d'actif, ses sous-types, instruments, enveloppes, courtiers et zones.
   Calculs dans lib/snapshot.js. Les deux variations vont du dernier relevé de history avant le 1er janvier / le 1er du mois
-  (de la date des positions) jusqu'à portfolio ; si history manque, la page s'affiche quand même.
+  (de la date des positions) jusqu'à portfolio ; si history manque, la page s'affiche quand même. La variation sur 24 h
+  part du total de portfolio gardé par le serveur la veille (previous_day, backend googlesheet/daily.py).
 -->
 <template>
   <div>
@@ -65,7 +66,7 @@
         </div>
 
         <div class="grid grid-cols-12 gap-y-8 p-4 sm:p-6 lg:gap-x-8">
-          <dl class="col-span-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-1 lg:content-center">
+          <dl class="col-span-12 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:col-span-3 lg:grid-cols-1 lg:content-center">
             <div v-for="kpi in kpis" :key="kpi.label" class="rounded-lg border border-line bg-wash p-4">
               <dt class="text-sm text-ink-2">{{ kpi.label }}</dt>
               <dd class="mt-1 text-2xl font-bold tabular-nums text-ink">{{ kpi.value }}</dd>
@@ -233,7 +234,7 @@ const donutSummary = computed(() =>
     : '',
 )
 
-// Deux repères : variation depuis le début de l'année et du mois, jusqu'aux positions de portfolio
+// Trois repères : variation depuis le début de l'année, du mois, et sur 24 h, jusqu'aux positions de portfolio
 const kpis = computed(() => {
   if (status.value !== 'ready') return []
   const m = model.value
@@ -253,6 +254,11 @@ const kpis = computed(() => {
       label: t('snapshotPage.thisMonth'),
       value: m.changes.month ? signedPercent2(m.changes.month.fraction) : '–',
       hint: m.changes.month ? since(m.changes.month) : missing,
+    },
+    {
+      label: t('snapshotPage.last24h'),
+      value: m.changes.day ? signedPercent2(m.changes.day.fraction) : '–',
+      hint: m.changes.day ? since(m.changes.day) : t('snapshotPage.noPreviousDay'),
     },
   ]
 })

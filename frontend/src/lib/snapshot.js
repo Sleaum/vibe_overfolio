@@ -1,5 +1,6 @@
 // Page « Portfolio Snapshot » : un instantané du patrimoine, calculé à partir de la table `portfolio`
-// (positions actuelles) et, pour le point de départ des variations de l'année et du mois, de la table `history`.
+// (positions actuelles) et, pour le point de départ des variations de l'année et du mois, de la table `history` ;
+// la variation sur 24 h part du total de portfolio gardé par le serveur la veille (`previous_day`).
 // Fonctions pures : testables sans navigateur. Seules Asset et Assets Master Currency sont obligatoires ;
 // les autres découpages (sous-type, instrument, enveloppe, courtier, zone) n'apparaissent que si la colonne existe.
 
@@ -61,6 +62,18 @@ export function periodChanges(history, asOfIso, currentTotal) {
   }
 }
 
+/**
+ * Variation sur 24 h : le patrimoine d'aujourd'hui (`currentTotal`) comparé au total de portfolio gardé par le serveur
+ * le jour précédent (`previous` = champ `previous_day` de la table portfolio : { date, assets, liabilities }, déjà
+ * dans la devise d'affichage). Renvoie { fraction, since } ou null (premier jour, taux manquant…).
+ */
+export function dayChange(previous, mode, currentTotal) {
+  if (!previous || !Number.isFinite(currentTotal)) return null
+  const base = mode === 'net' ? previous.assets + previous.liabilities : previous.assets
+  if (!(base > 0)) return null
+  return { fraction: (currentTotal - base) / base, since: previous.date }
+}
+
 /** Montants d'un découpage : les 6 plus gros, le reste en « Autres », avec la part de chacun dans `total`. */
 function topItems(rows, column, valueColumn, total) {
   const { entries } = splitBy(rows, column, valueColumn)
@@ -80,7 +93,7 @@ function topItems(rows, column, valueColumn, total) {
  * @param history   table `history` (ou null) : sert seulement aux variations de l'année et du mois
  * @param today     "AAAA-MM-JJ" : date de référence si la table n'a pas de colonne Date
  * @param mode      'gross' ou 'net' (bouton Brut / Net de Charts, lib/amounts.js) : montants de l'anneau, du détail
- *                  par type et des variations de l'année et du mois.
+ *                  par type et des variations (année, mois, 24 h).
  */
 export function buildSnapshot(portfolio, history = null, today = new Date().toISOString().slice(0, 10), mode = 'gross') {
   const cols = requireColumns(portfolio, { asset: ['Asset'], value: ['Assets Master Currency'] })
@@ -153,9 +166,10 @@ export function buildSnapshot(portfolio, history = null, today = new Date().toIS
       amount: formatAmount(part.value),
       share: percent(part.share),
     })),
-    changes: history
-      ? periodChanges(amountTable(history, mode), asOf, mode === 'net' ? net : gross)
-      : { year: null, month: null },
+    changes: {
+      ...(history ? periodChanges(amountTable(history, mode), asOf, mode === 'net' ? net : gross) : { year: null, month: null }),
+      day: dayChange(portfolio.previous_day, mode, mode === 'net' ? net : gross),
+    },
     types,
     missing,
     usedColumns: dimensions.map((dim) => t('snapshot.usedColumn', { label: dim.label, column: dim.column })),

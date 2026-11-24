@@ -19,9 +19,10 @@ overfolio/
 │   │   ├── data_urls.py
 │   │   ├── middleware.py           # DisableCSPMiddleware
 │   │   ├── errors.py               # forme commune des erreurs de l'API (message, code, params)
-│   │   ├── models.py               # SheetTable, SheetRow, SheetConfig, par propriétaire (voir « Base de données »)
+│   │   ├── models.py               # SheetTable, SheetRow, SheetConfig, PortfolioDay, par propriétaire (voir « Base de données »)
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
-│   │   ├── sync.py                 # copie des onglets vers la base, puis devises recalculées
+│   │   ├── sync.py                 # copie des onglets vers la base, puis devises recalculées et total du jour de portfolio
+│   │   ├── daily.py                # total de portfolio gardé chaque jour : variation « 24h » de Snapshot
 │   │   ├── currencies.py           # devises calculées avec les taux BCE (history, portfolio dans une autre devise)
 │   │   ├── projection.py           # mois prochain de history pour Flow : positions de portfolio, datées du 1er du mois suivant
 │   │   ├── admin.py
@@ -476,7 +477,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 |---|---|---|
 | GET | `/api/sheet?doc_name=&sheet_name=&header_row=&refresh=1` | Lit un onglet dans Google Sheets (cache 60 s, `refresh=1` pour le contourner) |
 | GET | `/api/data/` | Liste des tables en base (nom, nombre de lignes, date de synchronisation) : celles du compte connecté, sinon celles du site. Il en va de même pour toutes les routes `/api/data/` et `/api/sheet-config/`. En-tête facultatif `X-Sheet-Scope: account|site` sur les requêtes qui modifient : 401 `session_expired` ou 409 `scope_changed` si la session ne correspond plus |
-| GET | `/api/data/<onglet>/?currency=THB&projection=1` | Colonnes (dans l'ordre) et lignes d'une table, avec ce que le site calcule (voir « Devises et taux de change ») : montants dans la devise demandée (`currency`, EUR par défaut ; 400 `invalid_currency` si le code n'est pas une devise de la BCE), `display_currency` (devise des montants de la réponse), `currency` (devise des montants dans la feuille), `unconverted_rows` (lignes dont les montants sont vidés faute de taux), `computed_columns` (colonnes de devises ajoutées par le site), `currencies_available` (devises proposées par « Patrimoine par devise »), `rates_applied_at`. `projection=1` (pour `history`, graphiques de Flow et Envelopes) : ajoute le mois prochain tiré de `portfolio` ; `projection` dans la réponse : `{ date, rows, unconverted, source_date }`, ou `null` si rien n'est ajouté (voir « Le mois prochain dans Flow et Envelopes »). |
+| GET | `/api/data/<onglet>/?currency=THB&projection=1` | Colonnes (dans l'ordre) et lignes d'une table, avec ce que le site calcule (voir « Devises et taux de change ») : montants dans la devise demandée (`currency`, EUR par défaut ; 400 `invalid_currency` si le code n'est pas une devise de la BCE), `display_currency` (devise des montants de la réponse), `currency` (devise des montants dans la feuille), `unconverted_rows` (lignes dont les montants sont vidés faute de taux), `computed_columns` (colonnes de devises ajoutées par le site), `currencies_available` (devises proposées par « Patrimoine par devise »), `rates_applied_at`, `previous_day` (pour `portfolio` : `{ date, assets, liabilities }`, le total gardé le jour le plus récent avant celui de sa synchronisation, dans la devise demandée au taux de ce jour-là ; `null` le premier jour ou sans taux ; voir « Snapshot »). `projection=1` (pour `history`, graphiques de Flow et Envelopes) : ajoute le mois prochain tiré de `portfolio` ; `projection` dans la réponse : `{ date, rows, unconverted, source_date }`, ou `null` si rien n'est ajouté (voir « Le mois prochain dans Flow et Envelopes »). |
 | GET | `/api/fx/currencies/` | Devises proposées dans l'en-tête : `{ date, currencies: [{ code, rate }] }`, l'euro puis celles cotées par la BCE le dernier jour publié, avec ce taux (unités pour 1 EUR). Communes à tous |
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas. `fx` : taux BCE mis à jour et devises recalculées (`rates_latest`, `error` : `fx_unreachable` ou `fx_invalid`, `tables`) |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
@@ -511,6 +512,7 @@ erDiagram
   auth_user ||--o| accounts_googleaccount : "compte Google"
   auth_user |o--o{ googlesheet_sheettable : "tables du compte"
   auth_user |o--o| googlesheet_sheetconfig : "feuille du compte"
+  auth_user |o--o{ googlesheet_portfolioday : "totaux du compte"
   googlesheet_sheettable {
     bigint id PK
     int user_id FK "vide = site"
@@ -529,6 +531,16 @@ erDiagram
     int position "unique par table"
     jsonb data "colonne vers valeur"
     jsonb computed "calculé par le site : fx"
+  }
+  googlesheet_portfolioday {
+    bigint id PK
+    int user_id FK "vide = site"
+    date day "jour de synchronisation, unique par propriétaire"
+    float assets "actifs de portfolio"
+    float liabilities "dettes, négatives"
+    varchar currency "devise de la feuille"
+    varchar source "document d'origine"
+    timestamp recorded_at
   }
   googlesheet_sheetconfig {
     bigint id PK
@@ -586,6 +598,7 @@ Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessi
 |---|---|---|
 | `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ), `currency` (devise des montants, lue au-dessus de l'en-tête : case M1 de `portfolio`), `rates_applied_at` (dernier calcul des devises) |
 | `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration. `computed` : ce que le site calcule avec les taux BCE à la synchronisation, sans toucher aux valeurs de la feuille (`fx` : le relevé dans chaque devise, pour `history`) |
+| `googlesheet_portfolioday` | `PortfolioDay` | Total de `portfolio` gardé à chaque synchronisation, une ligne par jour et par propriétaire (la dernière synchronisation du jour remplace la précédente ; jour du serveur, en UTC) : actifs, dettes, devise de la feuille, document d'origine (`source` : un total d'une autre feuille n'est jamais comparé). Sert à la variation « 24h » de Snapshot (`googlesheet/daily.py`) |
 | `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur |
 | `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes), devise d'affichage de Charts et Simulation (`display_currency`, vide = euro) et périodes de Volatility (`volatility_months`, en mois, vide = 1, 3 et 12) et de Snapshot (`performance_days`, en jours, vide = 30, 90 et 365) : gardées ici pour un compte, dans le navigateur pour un visiteur. Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
 | `accounts_googleaccount` | `GoogleAccount` | Compte Google d'un utilisateur : identifiant Google `sub` (unique), e-mail, nom, photo. Mode 3 : jeton de rafraîchissement Google **chiffré** (`drive_refresh_token`, vide si l'accès n'est pas accordé) |
@@ -596,7 +609,7 @@ Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessi
 
 La synchronisation recopie chaque onglet dans `googlesheet_sheettable` et `googlesheet_sheetrow`, pour le propriétaire de la requête : le site, ou le compte connecté. La commande `python manage.py sync_sheets` synchronise le site.
 
-Chaque synchronisation remplace le contenu d'un onglet en une seule transaction. Un onglet en erreur n'empêche pas les autres, et un onglet qui renvoie zéro ligne n'écrase pas des données existantes. Ensuite, les taux de la BCE sont mis à jour et les devises recalculées pour `history` et les tables qui ne sont pas en euros (voir « Devises et taux de change »).
+Chaque synchronisation remplace le contenu d'un onglet en une seule transaction. Un onglet en erreur n'empêche pas les autres, et un onglet qui renvoie zéro ligne n'écrase pas des données existantes. Ensuite, les taux de la BCE sont mis à jour et les devises recalculées pour `history` et les tables qui ne sont pas en euros (voir « Devises et taux de change »). Enfin, si `portfolio` a été enregistrée, son total du jour est gardé dans `googlesheet_portfolioday` (variation « 24h » de Snapshot).
 
 Exemple de requête (total en euros par type d'actif) :
 
@@ -712,7 +725,7 @@ Bibliothèques chargées à la demande seulement : `world-atlas` et `topojson-cl
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone. Montants bruts ou nets selon le bouton Brut / Net |
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Les périodes à afficher (1 mois, 3 mois et 1 an par défaut ; on en ajoute ou on en retire), puis un graphique par période : une bulle par placement, montant détenu et variation du prix unitaire |
 | `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
-| `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : variation de l'année et du mois, anneau des types d'actifs, détail par type ; en mode Brut, la liste « Tes dettes ». Voir « Snapshot » |
+| `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : variation de l'année, du mois et sur 24 h, anneau des types d'actifs, détail par type ; en mode Brut, la liste « Tes dettes ». Voir « Snapshot » |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `components/charts/WorldMapCard.vue`, `lib/strategy.js`, `lib/charts/sunburst.js` et `lib/charts/worldMap.js` | Strategy : une carte du monde des pays de tes actions (colonne `Area`), puis tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
 | `/newpage` | `views/NewPage.vue`, `lib/auth.js` | Connexion avec un compte Google (seule méthode). Connecté : e-mail du compte, Ouvrir Charts, Se déconnecter. Affiche le message traduit d'un échec (`?error=`), et un bouton grisé si Google n'est pas réglé sur le serveur. `?next=/page` : page où revenir après la connexion |
@@ -840,6 +853,7 @@ La page `/portfolio-snapshot` lit la table `portfolio` (et `history` pour le poi
 | Tes dettes | Mode Brut : les dettes par instrument, en positif, avec leur part du total des dettes |
 | Bloc « Ton patrimoine » | Un seul titre en Brut comme en Net : la phrase sous le titre dit si les montants sont bruts ou nets |
 | Cette année, Ce mois-ci | Variation du patrimoine (brut ou net, selon le bouton) entre le dernier relevé de `history` avant le 1er janvier (ou le 1er du mois) **de la date des positions** et le patrimoine d'aujourd'hui, tiré de `portfolio` (brut : somme des `Assets Master Currency` positifs ; net : plus les `Liabilities Master Currency`). Sans relevé avant le 1er, le premier relevé de la période sert de départ ; les relevés datés du jour des positions ou après (mois prochain recopié) sont ignorés. Elle inclut tes versements et retraits : ce n'est pas un rendement. Sans assez de relevés, elle affiche « – » |
+| 24h | Variation du patrimoine (brut ou net, selon le bouton) entre le total de `portfolio` gardé par le serveur le jour précédent (le plus récent avant le jour de la dernière synchronisation : `previous_day`, voir « Base de données ») et le patrimoine d'aujourd'hui. `history` n'ayant qu'un relevé par mois, le site garde lui-même un total par jour à chaque synchronisation (bouton Tout actualiser ou commande `sync_sheets` en cron) : le premier jour, elle affiche « – ». Si la veille n'a pas été synchronisée, elle part du dernier jour gardé, dont la date est écrite dessous |
 | Variation des prix par sous-type | Sous « Ton patrimoine » : voir ci-dessous |
 | Détail par type d'actif | Un bloc par valeur de `Asset`, avec des barres pour chaque découpage dont la colonne existe : Sous-type (`Sub Asset`), Instrument (`Instrument`), Enveloppe (`Envelope`, `Enveloppe`, sinon `Account`), Courtier (`Broker`), Zone (`Area`). Les 6 plus gros sont affichés, le reste est regroupé en « Autres ». Le détail montre toujours les actifs du type ; en net, l'en-tête du type donne son montant net et les dettes retirées |
 
