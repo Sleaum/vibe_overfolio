@@ -1,9 +1,10 @@
 <!--
   Page « Portfolio Snapshot » (/portfolio-snapshot) : où en est ton patrimoine aujourd'hui.
-  Haut : patrimoine brut et net, variation de l'année et du mois, anneau des types d'actifs ; puis la variation des prix
+  Haut : variation de l'année et du mois, anneau des types d'actifs ; puis la variation des prix
   par sous-type sur les périodes choisies (lib/charts/subAssetPerformance.js).
   Bas : pour chaque type d'actif, ses sous-types, instruments, enveloppes, courtiers et zones.
-  Calculs dans lib/snapshot.js. La table history ne sert qu'aux deux variations : si elle manque, la page s'affiche quand même.
+  Calculs dans lib/snapshot.js. Les deux variations vont du dernier relevé de history avant le 1er janvier / le 1er du mois
+  (de la date des positions) jusqu'à portfolio ; si history manque, la page s'affiche quand même.
 -->
 <template>
   <div>
@@ -58,15 +59,13 @@
       <!-- Vue d'ensemble -->
       <section aria-labelledby="titre-actifs" class="mt-10 rounded-xl border border-line bg-paper shadow-soft">
         <div class="border-b border-line px-4 py-4 sm:px-6">
-          <h2 id="titre-actifs" class="text-h3 text-ink">
-            {{ model.mode === 'net' ? t('snapshotPage.yourNetWorth') : t('snapshotPage.yourAssets') }}
-          </h2>
+          <h2 id="titre-actifs" class="text-h3 text-ink">{{ t('snapshotPage.yourWealth') }}</h2>
           <!-- Montants de l'anneau et du détail : bouton Brut / Net du menu de Charts -->
           <p class="mt-1 text-sm text-ink-2">{{ amountsLine }}</p>
         </div>
 
         <div class="grid grid-cols-12 gap-y-8 p-4 sm:p-6 lg:gap-x-8">
-          <dl class="col-span-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-5 lg:content-center">
+          <dl class="col-span-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-1 lg:content-center">
             <div v-for="kpi in kpis" :key="kpi.label" class="rounded-lg border border-line bg-wash p-4">
               <dt class="text-sm text-ink-2">{{ kpi.label }}</dt>
               <dd class="mt-1 text-2xl font-bold tabular-nums text-ink">{{ kpi.value }}</dd>
@@ -74,7 +73,7 @@
             </div>
           </dl>
 
-          <div class="col-span-12 grid items-center gap-8 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:col-span-7">
+          <div class="col-span-12 grid items-center gap-8 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:col-span-9">
             <BaseChart :option="donut" :height="300" :label="donutSummary" />
             <ul class="divide-y divide-line" :aria-label="t('snapshotPage.amountsByType')">
               <li v-for="item in model.legend" :key="item.name" class="flex items-center gap-3 py-2.5">
@@ -184,7 +183,7 @@ const { t } = useI18n()
 const DEBT_COLOR = NEGATIVE
 
 const portfolio = useTable('portfolio')
-const history = useTable('history') // facultative : sert aux variations de l'année et du mois
+const history = useTable('history') // facultative : point de départ des variations de l'année et du mois
 
 // Une DataError (colonne absente…) devient un message lisible ; toute autre erreur est un bug à voir en console.
 const model = computed(() => {
@@ -234,7 +233,7 @@ const donutSummary = computed(() =>
     : '',
 )
 
-// Quatre repères : brut, net, année, mois
+// Deux repères : variation depuis le début de l'année et du mois, jusqu'aux positions de portfolio
 const kpis = computed(() => {
   if (status.value !== 'ready') return []
   const m = model.value
@@ -245,14 +244,6 @@ const kpis = computed(() => {
       ? t('snapshotPage.loadingShort')
       : t('snapshotPage.noHistory')
   return [
-    { label: t('snapshotPage.gross'), value: formatAmount(m.gross), hint: t('chart.totalAssets') },
-    {
-      label: t('chart.netWorth'),
-      value: formatAmount(m.net),
-      hint: m.hasLiabilities
-        ? t('snapshotPage.afterDebts', { amount: formatAmount(Math.abs(m.liabilities)) })
-        : t('snapshotPage.noDebtColumn'),
-    },
     {
       label: t('snapshotPage.thisYear'),
       value: m.changes.year ? signedPercent2(m.changes.year.fraction) : '–',

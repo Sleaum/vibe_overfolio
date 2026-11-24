@@ -245,6 +245,7 @@ import SyncTabs from '../components/SyncTabs.vue'
 import { useTable } from '../composables/useTable.js'
 import ConversionNote from '../components/ConversionNote.vue'
 import { apiMessage, listTables, syncAll } from '../lib/api.js'
+import { loadPortfolioDate } from '../lib/portfolioDate.js'
 import { formatCell, formatDateTime, formatNumber } from '../lib/format.js'
 
 const { t } = useI18n()
@@ -380,7 +381,8 @@ async function refresh() {
   notice.value = ''
   try {
     const result = await syncAll()
-    await Promise.all([loadList({ quiet: true }), selected.value ? reload() : null])
+    // Date des positions de l'en-tête (lib/portfolioDate.js) : portfolio vient peut-être de changer
+    await Promise.all([loadList({ quiet: true }), selected.value ? reload() : null, loadPortfolioDate()])
     const tabs = result.tabs ?? []
     const failed = tabs.filter((tab) => !tab.ok)
     const saved = tabs.length - failed.length

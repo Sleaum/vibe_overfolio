@@ -13,7 +13,8 @@
     "openMenu": "Ouvrir le menu",
     "closeMenu": "Fermer le menu",
     "pdf": "PDF",
-    "pdfTitle": "Tout le site en PDF"
+    "pdfTitle": "Tout le site en PDF",
+    "portfolioDate": "Date de tes positions (table portfolio)"
   },
   "theme": {
     "toDark": "Passer en mode sombre",
@@ -596,7 +597,7 @@
   },
   "snapshotPage": {
     "loading": "Chargement de ton patrimoine…",
-    "yourAssets": "Tes actifs",
+    "yourWealth": "Ton patrimoine",
     "amountsByType": "Montants par type d’actif",
     "detailTitle": "Détail par type d’actif",
     "detailLead": "Pour chaque type : ce qu’il contient, du plus gros au plus petit. Les parts sont celles du type, pas du patrimoine entier.",
@@ -606,19 +607,15 @@
     "noData": "Sans données : {types}.",
     "columnsRead": "Colonnes lues pour le détail : {columns}.",
     "noColumnFor": "Pas de colonne pour : {dims}.",
-    "footer": "Les variations de l’année et du mois comparent le patrimoine (brut ou net, selon le bouton du menu de Charts) aux relevés de la table history ; elles incluent tes versements et retraits. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
+    "footer": "Les variations de l’année et du mois comparent ton patrimoine d’aujourd’hui (positions de la table portfolio, brut ou net selon le bouton du menu de Charts) au dernier relevé de la table history d’avant le 1er janvier ou le 1er du mois ; elles incluent tes versements et retraits. Pour mettre les données à jour, utilise le bouton Tout actualiser de la page {sheet}.",
     "defaultSubtitle": "Ton patrimoine aujourd’hui, type d’actif par type d’actif.",
     "donutA11y": "Anneau de {count} types d’actifs pour {total} au total. Le plus gros : {biggest}, {share}.",
     "since": "Depuis le {date}",
     "notEnough": "Pas assez de relevés dans history",
     "loadingShort": "Chargement…",
     "noHistory": "Historique indisponible",
-    "gross": "Patrimoine brut",
-    "afterDebts": "Après {amount} de dettes",
-    "noDebtColumn": "Pas de colonne de dettes",
     "thisYear": "Cette année",
     "thisMonth": "Ce mois-ci",
-    "yourNetWorth": "Ton patrimoine net",
     "yourDebts": "Tes dettes",
     "debtsTotal": "{amount} au total, par instrument.",
     "typeDebts": "Après {amount} de dettes ; le détail montre ses actifs."
