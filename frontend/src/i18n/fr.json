@@ -915,8 +915,8 @@
       "net": "Net"
     },
     "help": {
-      "gross": "Brut : tes actifs, sans les dettes. S’applique à Flow, Snapshot et Envelopes.",
-      "net": "Net : tes actifs moins tes dettes. S’applique à Flow, Snapshot et Envelopes."
+      "gross": "Brut : tes actifs, sans les dettes. S’applique à Flow, Snapshot, Envelopes et Models.",
+      "net": "Net : tes actifs moins tes dettes. S’applique à Flow, Snapshot, Envelopes et Models."
     },
     "note": {
       "gross": "Montants bruts : tes actifs, sans les dettes.",
@@ -968,9 +968,10 @@
     "sliceTitle": "{label} : {value} %",
     "compare": {
       "title": "Ton patrimoine face aux modèles",
-      "lead": "Ta répartition d'aujourd'hui par type d'actif (table portfolio, actifs sans les dettes) et les trois modèles qui s'en rapprochent le plus.",
+      "lead": "Ta répartition d'aujourd'hui par type d'actif (table portfolio) et les trois modèles qui s'en rapprochent le plus.",
       "loading": "Chargement de ton patrimoine…",
       "noData": "La table portfolio n'est pas encore dans la base : la comparaison apparaîtra après une synchronisation.",
+      "empty": "Rien à comparer : aucun type d'actif n'a de montant positif avec ce choix.",
       "yours": "Ta répartition par type d'actif",
       "closest": "Les modèles les plus proches",
       "gap": "Écart de {points} points",

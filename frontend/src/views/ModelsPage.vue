@@ -1,7 +1,8 @@
 <!--
   Page « Models » (/modeles), à part comme Simulation : les grands portefeuilles modèles (lazy portfolios).
-  1. Ton patrimoine face aux modèles : ta répartition par type d'actif (table portfolio, actifs bruts) et les trois
-     modèles les plus proches, comparés par famille (lib/models.js). Facultatif : sans portfolio, la page s'affiche quand même.
+  1. Ton patrimoine face aux modèles : ta répartition par type d'actif (table portfolio), brute ou nette selon le bouton
+     Brut / Net (le même que celui de Charts), et les trois modèles les plus proches, comparés par famille (lib/models.js).
+     Facultatif : sans portfolio, la page s'affiche quand même.
   2. Les portefeuilles : un tableau à partir de 1280 px, une carte par portefeuille en dessous. Filtre par famille.
      Dessin (PortfolioIcon.vue), créateur (lien Wikipédia dans la langue du site s'il existe), objectif, explication,
      camembert ECharts (lib/charts/modelPie.js : nom de l'actif sur chaque part, tout le détail au survol) aux couleurs
@@ -20,12 +21,29 @@
     <!-- 1. Ton patrimoine face aux modèles -->
     <section aria-labelledby="titre-comparaison" class="mt-10 rounded-xl border border-line bg-paper shadow-soft">
       <div class="border-b border-line px-4 py-4 sm:px-6">
-        <h2 id="titre-comparaison" class="text-h3 text-ink">{{ t('modelsPage.compare.title') }}</h2>
-        <p class="mt-1 text-sm text-ink-2">{{ t('modelsPage.compare.lead') }}</p>
+        <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+          <div class="min-w-0">
+            <h2 id="titre-comparaison" class="text-h3 text-ink">{{ t('modelsPage.compare.title') }}</h2>
+            <p class="mt-1 text-sm text-ink-2">{{ t('modelsPage.compare.lead') }}</p>
+          </div>
+          <!-- Brut / Net : le même choix que le bouton du menu de Charts (lib/amounts.js), gardé par le navigateur -->
+          <SegmentedControl
+            :model-value="amountMode"
+            :options="amountOptions"
+            :label="t('amounts.label')"
+            @update:model-value="setAmountMode"
+          />
+        </div>
+        <p v-if="user" class="mt-2 text-sm text-ink-3">{{ amountsLine }}</p>
       </div>
 
       <div v-if="!portfolio.data.value && !portfolio.error.value" role="status" class="m-4 h-40 rounded-lg bg-wash motion-safe:animate-pulse sm:m-6">
         <span class="sr-only">{{ t('modelsPage.compare.loading') }}</span>
+      </div>
+
+      <div v-else-if="!user && portfolio.data.value" class="px-4 py-6 sm:px-6">
+        <p class="text-ink-2">{{ t('modelsPage.compare.empty') }}</p>
+        <p v-if="amountsLine" class="mt-1 text-sm text-ink-3">{{ amountsLine }}</p>
       </div>
 
       <div v-else-if="!user" class="px-4 py-6 sm:px-6">
@@ -228,6 +246,8 @@ import MiniPie from '../components/models/MiniPie.vue'
 import BaseChart from '../components/charts/BaseChart.vue'
 import PortfolioIcon from '../components/models/PortfolioIcon.vue'
 import { useTable } from '../composables/useTable.js'
+import { collectDropped } from '../lib/aggregate.js'
+import { AMOUNT_MODES, amountMode, amountNote, droppedNote, setAmountMode } from '../lib/amounts.js'
 import { tList } from '../i18n/index.js'
 import { capitalize, formatDecimal, percent } from '../lib/format.js'
 import { GROUPS, LEGEND, MODELS, STYLES, closestModels, modelColors, personUrl, userAllocation } from '../lib/models.js'
@@ -303,7 +323,11 @@ const Creator = defineComponent({
 
 // 1. Ton patrimoine face aux modèles
 const portfolio = useTable('portfolio')
-const user = computed(() => userAllocation(portfolio.data.value))
+// Brut ou net (préférence partagée avec Charts) ; en net, un type dont les dettes dépassent les actifs est écarté et signalé
+const amountOptions = computed(() => AMOUNT_MODES.map((mode) => ({ value: mode, label: t(`amounts.mode.${mode}`) })))
+const userResult = computed(() => collectDropped(() => userAllocation(portfolio.data.value, amountMode.value)))
+const user = computed(() => userResult.value[0])
+const amountsLine = computed(() => [amountNote(amountMode.value), droppedNote(userResult.value[1])].filter(Boolean).join(' '))
 const userSlices = computed(() => {
   if (!user.value) return []
   const { colors: typeColors } = assignAssetColors(user.value.types.map((type) => type.name))

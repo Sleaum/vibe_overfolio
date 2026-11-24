@@ -915,8 +915,8 @@
       "net": "Net"
     },
     "help": {
-      "gross": "Gross: your assets, without debts. Applies to Flow, Snapshot and Envelopes.",
-      "net": "Net: your assets minus your debts. Applies to Flow, Snapshot and Envelopes."
+      "gross": "Gross: your assets, without debts. Applies to Flow, Snapshot, Envelopes and Models.",
+      "net": "Net: your assets minus your debts. Applies to Flow, Snapshot, Envelopes and Models."
     },
     "note": {
       "gross": "Gross amounts: your assets, without debts.",
@@ -968,9 +968,10 @@
     "sliceTitle": "{label}: {value}%",
     "compare": {
       "title": "Your wealth compared with the models",
-      "lead": "Your allocation today by asset type (portfolio table, assets without debts) and the three models closest to it.",
+      "lead": "Your allocation today by asset type (portfolio table) and the three models closest to it.",
       "loading": "Loading your wealth…",
       "noData": "The portfolio table isn't in the database yet: the comparison will appear after a sync.",
+      "empty": "Nothing to compare: no asset type has a positive amount with this choice.",
       "yours": "Your allocation by asset type",
       "closest": "Closest models",
       "gap": "{points} points apart",
