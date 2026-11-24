@@ -51,6 +51,7 @@
     "envelopes": "Enveloppes",
     "volatility": "Volatilité",
     "simulation": "Simulation",
+    "monteCarlo": "Simulation de Monte-Carlo",
     "models": "Portefeuilles modèles",
     "modelsTarget": "Allocation cible",
     "notFound": "Page introuvable"
@@ -879,6 +880,77 @@
       "goalFromHistory": "Lu dans history (ligne sans type d’actif). {unit}",
       "real": "Compté en {currency} d’aujourd’hui.",
       "nominal": "Compté en {currency} courants."
+    }
+  },
+  "simulationLayout": {
+    "soon": "bientôt"
+  },
+  "simMethods": {
+    "planned": "Ce que la page montrera",
+    "shared": "Sur chaque page, tu choisiras le portefeuille à tester : ta répartition d'aujourd'hui, ta cible de Models > Target ou un portefeuille modèle de Classic. Les méthodes historiques utiliseront des rendements de marché publics sur longue période (actions, obligations, monétaire, immobilier, or), avec leur source.",
+    "backToMonteCarlo": "En attendant, ouvrir Monte Carlo",
+    "backtest": {
+      "title": "Backtesting historique",
+      "lead": "Rejoue une allocation d'actifs sur des données réelles passées pour mesurer ses rendements, ses pertes maximales (drawdowns) et sa volatilité.",
+      "will": [
+        "La valeur du portefeuille année par année sur la période choisie, avec rééquilibrage annuel.",
+        "Rendement annuel moyen, volatilité, pire année, perte maximale et temps pour s'en remettre.",
+        "La comparaison avec un portefeuille 100 % actions et avec un 60/40."
+      ]
+    },
+    "stress": {
+      "title": "Tests de résistance",
+      "lead": "Soumet le portefeuille à des chocs extrêmes (krach boursier, pic d'inflation, hausse brutale des taux, crise de liquidité) pour tester sa résilience.",
+      "will": [
+        "Des chocs historiques rejoués sur ta répartition : 1929, 1973-1974, 2000-2002, 2008, 2020, 2022.",
+        "La perte en pourcentage et en montant pour chaque choc, catégorie par catégorie.",
+        "Un choc sur mesure : tu règles la baisse de chaque classe d'actifs."
+      ]
+    },
+    "scenarios": {
+      "title": "Analyse de scénarios",
+      "lead": "Projette l'évolution du portefeuille selon quelques hypothèses fixes (scénario central, optimiste, pessimiste), sans tirage aléatoire.",
+      "will": [
+        "Trois courbes jusqu'à ton objectif : centrale, optimiste et pessimiste.",
+        "Des rendements fixes par classe d'actifs, modifiables, et tes versements.",
+        "L'année où chaque scénario atteint ton objectif, s'il l'atteint."
+      ]
+    },
+    "parametric": {
+      "title": "Modèles paramétriques",
+      "lead": "Calcule directement des mesures de risque et de rendement par des formules, sans tirage aléatoire : Value-at-Risk paramétrique, frontière efficiente de Markowitz.",
+      "will": [
+        "La Value-at-Risk et la perte moyenne au-delà (CVaR) à 95 % et 99 %, sur un mois et sur un an.",
+        "La frontière efficiente : les meilleures répartitions pour chaque niveau de risque, et la place de ton portefeuille.",
+        "Les rendements, volatilités et corrélations utilisés, tirés des données historiques."
+      ]
+    },
+    "bootstrap": {
+      "title": "Bootstrap par blocs",
+      "lead": "Tire au hasard dans les rendements historiques réels, par blocs d'années consécutives, pour garder les enchaînements et les années extrêmes.",
+      "will": [
+        "Des milliers de trajectoires faites de vraies années de marché, tirées par blocs.",
+        "Le même éventail que Monte Carlo (médiane, fourchettes) et la probabilité d'atteindre ton objectif.",
+        "La taille des blocs à régler, et la comparaison avec Monte Carlo."
+      ]
+    },
+    "regimes": {
+      "title": "Modèles à régimes",
+      "lead": "Fait alterner le marché entre plusieurs états (expansion et crise, volatilité faible et forte), avec des probabilités de passer de l'un à l'autre (chaîne de Markov).",
+      "will": [
+        "Deux régimes estimés sur l'historique, avec leurs rendements, leur volatilité et leur durée moyenne.",
+        "Des trajectoires qui passent d'un régime à l'autre, et la probabilité d'atteindre ton objectif.",
+        "Le temps passé en crise sur la période, et son effet sur le résultat."
+      ]
+    },
+    "macro": {
+      "title": "Simulation par facteurs macroéconomiques",
+      "lead": "Relie les rendements des actifs à quelques variables clés (taux d'intérêt, croissance, inflation, écarts de crédit) simulées ensemble.",
+      "will": [
+        "Des trajectoires de l'inflation, des taux et de la croissance, simulées ensemble.",
+        "Les rendements de chaque classe d'actifs qui en découlent, selon leur sensibilité à chaque facteur.",
+        "Les situations où ton portefeuille souffre le plus (par exemple inflation forte et taux en hausse)."
+      ]
     }
   },
   "login": {

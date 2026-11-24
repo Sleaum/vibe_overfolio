@@ -8,6 +8,15 @@ export const MENU_NAMES = {
   charts: 'Charts',
   simulation: 'Simulation',
   models: 'Models',
+  // Menu de la rubrique Simulation (SimulationLayout.vue, lib/simulationMenu.js)
+  monteCarlo: 'Monte Carlo',
+  backtest: 'Backtesting',
+  stress: 'Stress testing',
+  scenarios: 'Scenarios',
+  parametric: 'Parametric',
+  bootstrap: 'Bootstrap',
+  regimes: 'Regimes',
+  macro: 'Macro factors',
   // Menu de la rubrique Models (ModelsLayout.vue)
   target: 'Target',
   classic: 'Classic',

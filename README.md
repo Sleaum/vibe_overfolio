@@ -68,7 +68,9 @@ overfolio/
 │       │   ├── StrategyPage.vue    #   /strategie          les actions : carte du monde, puis anneaux à deux niveaux
 │       │   ├── EnvelopesPage.vue   #   /enveloppes         les enveloppes de placement (CTO, PEA, PER, PEE)
 │       │   ├── VolatilityPage.vue  #   /volatilite         variation du prix de chaque placement
-│       │   ├── SimulationPage.vue  #   /simulation         simulation de Monte-Carlo du patrimoine
+│       │   ├── SimulationLayout.vue #  /simulation         rubrique Simulation : menu à gauche (Monte Carlo et sept méthodes à venir), page choisie à droite
+│       │   ├── SimulationMonteCarloPage.vue # /simulation  Monte Carlo : simulation du patrimoine net, chance d'atteindre l'objectif
+│       │   ├── SimulationMethodPage.vue # /simulation/<méthode>  présentation d'une méthode à venir (« bientôt »)
 │       │   ├── ModelsLayout.vue    #   /modeles            rubrique Models : bouton Brut / Net, menu à gauche (Target, Classic), page choisie à droite
 │       │   ├── ModelsClassicPage.vue # /modeles          Classic : portefeuilles modèles (lazy portfolios), comparés à ton patrimoine
 │       │   ├── ModelsTargetPage.vue #  /modeles/target   Target : ta répartition cible, l'écart avec aujourd'hui, le plan d'actions année par année
@@ -106,7 +108,8 @@ overfolio/
 │           ├── portfolioDate.js    # date des positions (table portfolio) affichée dans l'en-tête, à droite du titre
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
 │           ├── chartDark.js        # passe un graphique en sombre
-│           ├── simulation.js, simulation.worker.js         # calculs de la page Simulation
+│           ├── simulation.js, simulation.worker.js         # calculs de Simulation > Monte Carlo
+│           ├── simulationMenu.js   # menu de la rubrique Simulation : méthodes, adresses, prêtes ou « bientôt »
 │           ├── snapshot.js         # calculs de la page Snapshot
 │           ├── strategy.js         # calculs de la page Strategy
 │           ├── models.js           # Models > Classic : portefeuilles, répartitions, couleurs, comparaison avec ton patrimoine
@@ -248,7 +251,7 @@ docker compose up --build -d
 | http://localhost | Page de présentation : promesse, aperçu, étapes, questions |
 | http://localhost/sheet | GoogleSheet : les onglets de la base (menu déroulant, recherche, pagination, bouton Tout actualiser). L'ancienne adresse `/source` fonctionne toujours |
 | http://localhost/graphiques | Rubrique Charts. Menu à gauche : Flow, Snapshot, Envelopes, Strategy, Volatility et Budget ; la page choisie s'affiche à droite (Flow par défaut). L'ancienne adresse `/echart` fonctionne toujours |
-| http://localhost/simulation | Simulation de Monte-Carlo du patrimoine (page à part, lien « Simulation » de l'en-tête) |
+| http://localhost/simulation | Rubrique Simulation (lien de l'en-tête). Menu à gauche : Monte Carlo (`/simulation`, simulation du patrimoine net), puis sept méthodes marquées « bientôt » : Backtesting (`/simulation/backtest`), Stress testing (`/simulation/stress`), Scenarios (`/simulation/scenarios`), Parametric (`/simulation/parametrique`), Bootstrap (`/simulation/bootstrap`), Regimes (`/simulation/regimes`) et Macro factors (`/simulation/macro`) |
 | http://localhost/modeles | Rubrique Models (lien de l'en-tête). Menu à gauche : Target (`/modeles/target` : ta répartition cible et le plan pour l'atteindre) et Classic (`/modeles` : portefeuilles modèles, ressemblance avec ton patrimoine, réplication en France) |
 | http://localhost/newpage | Connexion avec un compte Google (bouton « Connexion » de l'en-tête) |
 | http://localhost/admin/ | Admin Django |
@@ -261,7 +264,7 @@ Le port 8000 du backend n'est **pas** exposé sur l'hôte : tout passe par nginx
 2. **Copier les données en base** : bouton **Tout actualiser** de la même page (ou `./init.sh --sync`). Les graphiques lisent la base, pas le Google Sheet : sans cette étape, ils restent vides. Recommencer après chaque mise à jour de la feuille, ou automatiser (« Synchronisation automatique »).
 3. **Lire les graphiques** : rubrique **Charts**, menu à gauche (Flow, Snapshot, Envelopes, Strategy, Volatility, Budget). Chaque graphique a une vue Tableau et une page d'explication (source des chiffres).
 4. **Brut ou net** : le bouton **Brut / Net** en haut du menu de Charts (et du menu de Models) choisit les montants de Flow, Snapshot, Envelopes et Models : tes actifs seuls, ou actifs moins dettes (voir « Brut ou net »).
-5. **Projeter** : page **Simulation**, réglages dans la page. **Comparer** : rubrique **Models**, page Classic, les grands portefeuilles modèles et ceux qui ressemblent le plus au tien. **Viser** : page Target, ta répartition cible pour une année et le plan pour l'atteindre.
+5. **Projeter** : rubrique **Simulation**, page Monte Carlo, réglages dans la page (d'autres méthodes arrivent dans le même menu : Backtesting, Stress testing…). **Comparer** : rubrique **Models**, page Classic, les grands portefeuilles modèles et ceux qui ressemblent le plus au tien. **Viser** : page Target, ta répartition cible pour une année et le plan pour l'atteindre.
 6. **Exporter en PDF** : bouton **PDF** de l'en-tête. Tout le site, une page web par page PDF, avec tes réglages du moment (voir « Le PDF »).
 7. **Mode clair / sombre** : le site suit le réglage du système ; le bouton soleil/lune de l'en-tête force l'un ou l'autre, et le choix est gardé par le navigateur (et sur ton compte si tu es connecté).
 8. **Se connecter** (facultatif) : bouton **Connexion** de l'en-tête, avec ton compte Google. Tes couleurs, ton mode clair / sombre et ta devise sont alors enregistrés sur ton compte et retrouvés sur tous tes appareils (voir « Connexion avec Google »).
@@ -733,7 +736,8 @@ Bibliothèques chargées à la demande seulement : `world-atlas` et `topojson-cl
 | `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les graphiques de Flow sur une seule page (« Tes dettes » en plus en mode Brut), avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone. Montants bruts ou nets selon le bouton Brut / Net |
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Les périodes à afficher (1 mois, 3 mois et 1 an par défaut ; on en ajoute ou on en retire), puis un graphique par période : une bulle par placement, montant détenu et variation du prix unitaire |
-| `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
+| `/simulation` | `views/SimulationLayout.vue` et `views/SimulationMonteCarloPage.vue`, `lib/simulationMenu.js`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Rubrique Simulation (lien de l'en-tête) : menu à gauche des méthodes. Monte Carlo : simulation du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
+| `/simulation/<méthode>` | `views/SimulationMethodPage.vue`, `lib/simulationMenu.js` | Méthode à venir (backtest, stress, scenarios, parametrique, bootstrap, regimes, macro) : ce que la page montrera, et un lien vers Monte Carlo. Chaque méthode remplacera cette présentation par sa propre page |
 | `/modeles` | `views/ModelsLayout.vue` et `views/ModelsClassicPage.vue`, `lib/models.js`, `lib/charts/modelPie.js`, `components/models/` | Rubrique Models (lien de l'en-tête) : bouton Brut / Net et menu à gauche (Target, Classic). Classic : les portefeuilles modèles, ta ressemblance avec chacun et comment les répliquer en France. Voir « Les portefeuilles modèles » |
 | `/modeles/target` | `views/ModelsTargetPage.vue`, `lib/target.js`, `lib/modelTarget.js`, `lib/charts/targetPie.js` | Target : ta répartition cible pour une année, l'écart avec aujourd'hui et le plan d'actions. Voir « Ta cible (Models > Target) » |
 | `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : variation de l'année, du mois et sur 24 h, anneau des types d'actifs, détail par type ; en mode Brut, la liste « Tes dettes ». Voir « Snapshot » |
@@ -912,7 +916,7 @@ La page `/strategie` reprend la page « Strategy » de Looker Studio : une carte
 
 Le bouton **PDF** de l'en-tête (entre la devise et Connexion) fabrique un PDF de **tout le site** : une page web = une page PDF, à sa taille réelle, sans découpage en A4. Tout est dans `frontend/src/lib/pdfExport.js` :
 
-- le site parcourt lui-même chaque page (`sitePages()`) : accueil, GoogleSheet, Flow, Snapshot, Envelopes, Strategy, Volatility, la page de chaque graphique (`/graphiques/<nom>`, Budget compris, Volatility pour les périodes choisies), Simulation, Models (Target, puis Classic) et la page de connexion. Une nouvelle page du site y est à ajouter ;
+- le site parcourt lui-même chaque page (`sitePages()`) : accueil, GoogleSheet, Flow, Snapshot, Envelopes, Strategy, Volatility, la page de chaque graphique (`/graphiques/<nom>`, Budget compris, Volatility pour les périodes choisies), Simulation (Monte Carlo ; les méthodes encore « bientôt » n'y sont pas), Models (Target, puis Classic) et la page de connexion. Une nouvelle page du site y est à ajouter ;
 - pour chaque page, il attend la fin du chargement (plus aucun élément `role="status"` dans le contenu pendant près d'une seconde, 25 s au plus), puis la photographie en entier telle qu'elle s'affiche (`html2canvas`) : mise en page, largeur de la fenêtre, mode clair ou sombre, brut ou net, langue, en-tête et pied de page compris ;
 - les images sont assemblées en un PDF (`jsPDF`), téléchargé sous le nom `Overfolio AAAA-MM-JJ.pdf` ; la page de départ revient ensuite. Rien n'est envoyé au serveur ;
 - pendant l'export, un bandeau (`components/PdfProgress.vue`) montre la progression et permet d'annuler ; il n'apparaît pas dans le PDF (`data-pdf-ignore`), et les graphiques ne sont pas animés (`BaseChart.vue`) ;
@@ -922,7 +926,22 @@ Le PDF est fait d'images : le texte n'y est pas sélectionnable. Compter une qua
 
 ### La simulation
 
-La page `/simulation` (lien de l'en-tête, à part de la rubrique Graphiques) tire 5 000 trajectoires mois par mois jusqu'à la date de l'objectif. Elle affiche la médiane, les fourchettes 25-75 % et 10-90 %, et la part des trajectoires qui atteignent l'objectif à sa date.
+La rubrique Simulation (lien de l'en-tête, `views/SimulationLayout.vue`) a, comme Charts et Models, un menu à gauche (une rangée d'onglets au-dessus de la page sur petit écran) : le titre Simulation, puis les méthodes, dans l'ordre de `lib/simulationMenu.js`. Son contenu est aussi large que Models (jusqu'à 88 rem). Pas de bouton Brut / Net : Monte Carlo simule toujours le patrimoine net.
+
+| Menu | Adresse | Méthode | État |
+|---|---|---|---|
+| Monte Carlo | `/simulation` | Milliers de trajectoires aléatoires à partir de ton patrimoine et d'hypothèses de rendement et de volatilité | Prête (ci-dessous) |
+| Backtesting | `/simulation/backtest` | Backtesting historique : rejouer une allocation sur des données réelles passées (rendements, drawdowns, volatilité) | Bientôt |
+| Stress testing | `/simulation/stress` | Tests de résistance : chocs extrêmes (krach, inflation, hausse des taux, crise de liquidité) | Bientôt |
+| Scenarios | `/simulation/scenarios` | Analyse de scénarios déterministe : quelques scénarios définis à la main (optimiste, central, pessimiste) | Bientôt |
+| Parametric | `/simulation/parametrique` | Modèles paramétriques : VaR et frontière efficiente de Markowitz | Bientôt |
+| Bootstrap | `/simulation/bootstrap` | Rééchantillonnage par blocs des rendements historiques réels | Bientôt |
+| Regimes | `/simulation/regimes` | Modèles à régimes (Markov switching) : expansion et crise, volatilité faible et forte | Bientôt |
+| Macro factors | `/simulation/macro` | Rendements liés aux taux, à la croissance, à l'inflation et aux spreads de crédit | Bientôt |
+
+Une méthode « bientôt » ouvre `views/SimulationMethodPage.vue` : ce que la page montrera (rubrique `simMethods` des fichiers de langue) et un lien vers Monte Carlo. Sur chaque méthode, tu choisiras le portefeuille à tester : ta répartition d'aujourd'hui, ta cible de Models > Target ou un portefeuille modèle de Classic. Les méthodes historiques utiliseront des rendements de marché publics sur longue période, avec leur source. Pour rendre une méthode prête : sa page dans `views/`, sa route dans `router/index.ts` à la place de la présentation, `ready: true` dans `lib/simulationMenu.js`, son adresse dans `sitePages()` de `lib/pdfExport.js`, et une ligne de plus dans ce README.
+
+**Monte Carlo** (`views/SimulationMonteCarloPage.vue`) tire 5 000 trajectoires mois par mois jusqu'à la date de l'objectif. Elle affiche la médiane, les fourchettes 25-75 % et 10-90 %, et la part des trajectoires qui atteignent l'objectif à sa date.
 
 - **Point de départ** : la table `portfolio` (montants par `Asset` au dernier relevé, et dette totale tirée de `Liabilities Master Currency`).
 - **Valeurs proposées** : le versement mensuel est la moyenne des 12 derniers mois complets de `inout` (`in - out - tax`). L'objectif est la prochaine ligne d'objectif de `history`. Les hypothèses par type d'actif (rendement, volatilité, lien avec les actions) sont des ordres de grandeur de long terme, dans `DEFAULT_ASSUMPTIONS` de `lib/simulation.js`.
@@ -1023,7 +1042,7 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 
 **Couverture** : tout le site est traduit, pages, graphiques (titres, explications, légendes, infobulles, vues tableau, textes pour les lecteurs d'écran), messages d'erreur du serveur, nombres, dates et pourcentages. Restent tels quels : les données de ta feuille, les noms de colonnes et d'onglets, les noms des menus et les messages destinés aux développeurs (console, ligne de commande). Les traductions thaïes sont à faire relire par une personne qui parle thaï.
 
-**Menus** : leurs noms sont toujours en anglais, dans toutes les langues : en-tête et pied de page (GoogleSheet, Charts, Simulation, Models), menu de la rubrique Charts (Flow, Snapshot, Envelopes, Strategy, Volatility, Budget) et menu de la rubrique Models (Target, Classic). Ils sont dans `frontend/src/i18n/menu.js` (`MENU_NAMES`), pas dans les fichiers de langue. Tout le reste est traduit, titres des pages compris (« Historique du patrimoine » sous le menu Flow, « Patrimoine aujourd’hui » sous Snapshot…). Une phrase qui renvoie à un menu reprend son nom anglais (« la page Charts »).
+**Menus** : leurs noms sont toujours en anglais, dans toutes les langues : en-tête et pied de page (GoogleSheet, Charts, Simulation, Models), menu de la rubrique Charts (Flow, Snapshot, Envelopes, Strategy, Volatility, Budget) menu de la rubrique Simulation (Monte Carlo, Backtesting, Stress testing, Scenarios, Parametric, Bootstrap, Regimes, Macro factors) et menu de la rubrique Models (Target, Classic). Ils sont dans `frontend/src/i18n/menu.js` (`MENU_NAMES`), pas dans les fichiers de langue. Tout le reste est traduit, titres des pages compris (« Historique du patrimoine » sous le menu Flow, « Patrimoine aujourd’hui » sous Snapshot…). Une phrase qui renvoie à un menu reprend son nom anglais (« la page Charts »).
 
 **Dans le code** : un graphique déclare son titre, son résumé, son explication et sa source par des getters (`get title() { return t('charts.<nom>.title') }`), lus au moment de l'affichage ; les paragraphes sont des listes (`tList()`). Un texte au pluriel s'écrit « un | plusieurs » et s'appelle `t('cle', { count }, count)`. Un paragraphe qui contient un lien utilise `<i18n-t keypath="…">` avec un emplacement par lien, pour que le lien tombe au bon endroit dans chaque langue.
 
@@ -1052,6 +1071,9 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 | devise / taux de change / taux de la BCE | currency / exchange rate / ECB rate | สกุลเงิน / อัตราแลกเปลี่ยน / อัตรา ECB |
 | devise (menu de l'en-tête) / valeur d'aujourd'hui / valeur courante | currency / today's value / nominal value | สกุลเงิน / มูลค่าปัจจุบัน / มูลค่าในอนาคต |
 | portefeuille modèle / actions / obligations / liquidités | model portfolio / stocks / bonds / cash | พอร์ตการลงทุนต้นแบบ / หุ้น / พันธบัตร / เงินสด |
+| simulation de Monte-Carlo / backtesting historique / tests de résistance | Monte Carlo simulation / historical backtesting / stress testing | การจำลองแบบมอนติคาร์โล / การทดสอบย้อนหลัง / การทดสอบภาวะวิกฤต |
+| analyse de scénarios / modèles à régimes / facteurs macroéconomiques | scenario analysis / regime-switching models / macroeconomic factors | การวิเคราะห์สถานการณ์ / แบบจำลองสลับสภาวะ / ปัจจัยเศรษฐกิจมหภาค |
+| perte maximale (drawdown) / volatilité / bientôt | maximum loss (drawdown) / volatility / soon | การขาดทุนสูงสุด (drawdown) / ความผันผวน / เร็ว ๆ นี้ |
 
 ## Commandes utiles
 

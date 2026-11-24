@@ -3,6 +3,7 @@ import { onLocaleChange, t } from '../i18n/index.js'
 // La page d'accueil est chargée tout de suite ; les autres pages sont chargées à la demande (bundle d'entrée plus léger,
 // et ECharts n'est téléchargé que lorsqu'on ouvre une page de graphiques).
 import HeroSection from '../views/HeroSection.vue'
+import { UPCOMING_METHODS } from '../lib/simulationMenu.js'
 
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'Home', component: HeroSection, meta: { titleKey: 'pages.home' } },
@@ -31,8 +32,21 @@ const routes: RouteRecordRaw[] = [
       { path: ':slug', name: 'ChartPage', component: () => import('../views/GraphiquePage.vue') },
     ],
   },
-  // Simulation de Monte-Carlo : page à part, hors de la rubrique Graphiques (pas de menu à gauche)
-  { path: '/simulation', name: 'Simulation', component: () => import('../views/SimulationPage.vue'), meta: { titleKey: 'pages.simulation' } },
+  {
+    // Rubrique Simulation : menu des méthodes à gauche (SimulationLayout.vue, lib/simulationMenu.js) ; /simulation ouvre
+    // Monte Carlo. Les méthodes encore en préparation ont une page de présentation (SimulationMethodPage.vue).
+    path: '/simulation',
+    component: () => import('../views/SimulationLayout.vue'),
+    children: [
+      { path: '', name: 'Simulation', component: () => import('../views/SimulationMonteCarloPage.vue'), meta: { titleKey: 'pages.monteCarlo' } },
+      ...UPCOMING_METHODS.map((item) => ({
+        path: item.to.replace('/simulation/', ''),
+        name: `Simulation-${item.key}`,
+        component: () => import('../views/SimulationMethodPage.vue'),
+        meta: { titleKey: `simMethods.${item.key}.title`, method: item.key },
+      })),
+    ],
+  },
   {
     // Rubrique Models : menu à gauche (ModelsLayout.vue), Classic (/modeles, les portefeuilles modèles) et
     // Target (/modeles/target, ta répartition cible et le plan pour l'atteindre)
