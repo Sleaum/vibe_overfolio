@@ -13,7 +13,8 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "pdf": "PDF",
-    "pdfTitle": "The whole site as a PDF"
+    "pdfTitle": "The whole site as a PDF",
+    "portfolioDate": "Date of your positions (portfolio table)"
   },
   "theme": {
     "toDark": "Switch to dark mode",
@@ -596,7 +597,7 @@
   },
   "snapshotPage": {
     "loading": "Loading your wealth…",
-    "yourAssets": "Your assets",
+    "yourWealth": "Your wealth",
     "amountsByType": "Amounts by asset type",
     "detailTitle": "Detail by asset type",
     "detailLead": "For each type: what it holds, from largest to smallest. Shares are of the type, not of your whole wealth.",
@@ -606,19 +607,15 @@
     "noData": "No data: {types}.",
     "columnsRead": "Columns read for the detail: {columns}.",
     "noColumnFor": "No column for: {dims}.",
-    "footer": "The year and month changes compare your wealth (gross or net, depending on the Charts menu button) with the records in the history table; they include your contributions and withdrawals. To update the data, use the Refresh all button on the {sheet} page.",
+    "footer": "The year and month changes compare your wealth today (positions in the portfolio table, gross or net depending on the Charts menu button) with the last record in the history table before January 1st or the 1st of the month; they include your contributions and withdrawals. To update the data, use the Refresh all button on the {sheet} page.",
     "defaultSubtitle": "Your wealth today, asset type by asset type.",
     "donutA11y": "Ring of {count} asset types totalling {total}. The largest: {biggest}, {share}.",
     "since": "Since {date}",
     "notEnough": "Not enough records in history",
     "loadingShort": "Loading…",
     "noHistory": "History unavailable",
-    "gross": "Gross assets",
-    "afterDebts": "After {amount} of debts",
-    "noDebtColumn": "No debt column",
     "thisYear": "This year",
     "thisMonth": "This month",
-    "yourNetWorth": "Your net worth",
     "yourDebts": "Your debts",
     "debtsTotal": "{amount} in total, by instrument.",
     "typeDebts": "After {amount} of debts; the breakdown shows its assets."

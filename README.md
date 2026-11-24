@@ -71,7 +71,7 @@ overfolio/
 │       │   ├── NotFoundPage.vue    #   toute autre adresse
 │       │   └── NewPage.vue         #   /newpage            connexion avec Google
 │       ├── components/
-│       │   ├── Header.vue, Footer.vue   # en-tête : menus, devise, bouton PDF, compte, langue, clair / sombre
+│       │   ├── Header.vue, Footer.vue   # en-tête : bouton PDF, titre, date des positions, menus, devise, compte, langue, clair / sombre
 │       │   ├── ConversionNote.vue  # phrase « montants convertis de … en … » sous le titre d'une page
 │       │   ├── AccountMenu.vue     # en-tête : Connexion, ou photo du compte et menu (e-mail, Se déconnecter)
 │       │   ├── PdfProgress.vue     # bandeau de progression de l'export PDF (absent du PDF)
@@ -98,6 +98,7 @@ overfolio/
 │           ├── preferences.js      # préférences gardées par le navigateur : thème, langue, devise, périodes de Volatility et de Snapshot, réglages de la simulation, brut / net
 │           ├── amounts.js          # bouton Brut / Net de Charts : montants bruts, nets ou dettes seules
 │           ├── pdfExport.js        # bouton PDF : tout le site en un PDF, une page web = une page PDF
+│           ├── portfolioDate.js    # date des positions (table portfolio) affichée dans l'en-tête, à droite du titre
 │           ├── palette.js, chartTheme.js, echartsSetup.js   # couleurs et briques communes des graphiques
 │           ├── chartDark.js        # passe un graphique en sombre
 │           ├── simulation.js, simulation.worker.js         # calculs de la page Simulation
@@ -374,7 +375,7 @@ En-tête « Connexion » ──► /newpage ──► « Continuer avec Google �
 - **Feuille et données** : chaque compte a sa configuration GoogleSheet et ses données synchronisées, invisibles pour les autres (voir « Par compte »). Sans compte, l'API reste publique, avec la feuille et les données du site.
 - **Déconnexion** : la page est rechargée, pour qu'aucune donnée du compte ne reste affichée.
 - **Administrateur** : une session ouverte sur `/admin/` vaut aussi pour le site (même domaine) : l'administrateur y voit son propre profil, pas celui du site. Se déconnecter de l'admin pour revenir au profil du site.
-- **Petits écrans** : sous 640 px, « Connexion » / « Se déconnecter » passent dans le menu burger. Entre 768 et 1024 px, le bouton Connexion et le bouton PDF ne gardent que leur icône, pour laisser la place au menu de devise.
+- **Petits écrans** : sous 640 px, « Connexion » / « Se déconnecter » passent dans le menu burger. Entre 768 et 1024 px, le bouton Connexion et le bouton PDF ne gardent que leur icône et la date des positions est cachée, pour laisser la place au menu de devise.
 
 ### Créer le client OAuth dans Google Cloud
 
@@ -667,7 +668,7 @@ Le site garde en base les **taux de référence de l'euro publiés par la BCE** 
 
 ### Devise d'affichage
 
-Le menu à pièces de l'en-tête (`components/ui/CurrencySelect.vue`), entre le menu Simulation et le bouton PDF, choisit la devise des pages **Charts** et **Simulation**. Sous 768 px, il est dans le menu burger.
+Le menu à pièces de l'en-tête (`components/ui/CurrencySelect.vue`), juste après le menu Simulation, choisit la devise des pages **Charts** et **Simulation**. Sous 768 px, il est dans le menu burger.
 
 | Où | Quoi |
 |---|---|
@@ -711,7 +712,7 @@ Bibliothèques chargées à la demande seulement : `world-atlas` et `topojson-cl
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone. Montants bruts ou nets selon le bouton Brut / Net |
 | `/volatilite` | `views/VolatilityPage.vue` et `lib/charts/volatility.js` | Les périodes à afficher (1 mois, 3 mois et 1 an par défaut ; on en ajoute ou on en retire), puis un graphique par période : une bulle par placement, montant détenu et variation du prix unitaire |
 | `/simulation` | `views/SimulationPage.vue`, `lib/simulation.js`, `lib/simulation.worker.js` et `lib/charts/simulationFan.js` | Page à part (lien « Simulation » de l'en-tête, hors de la rubrique Graphiques) : simulation de Monte-Carlo du patrimoine net (5 000 trajectoires mensuelles) et probabilité d'atteindre l'objectif. Voir « La simulation » |
-| `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : brut, net, variation de l'année et du mois, anneau des types d'actifs, détail par type ; en mode Brut, la liste « Tes dettes ». Voir « Snapshot » |
+| `/portfolio-snapshot` | `views/SnapshotPage.vue` et `lib/snapshot.js` | Le patrimoine d'aujourd'hui : variation de l'année et du mois, anneau des types d'actifs, détail par type ; en mode Brut, la liste « Tes dettes ». Voir « Snapshot » |
 | `/strategie` | `views/StrategyPage.vue`, `components/charts/StrategyCard.vue`, `components/charts/WorldMapCard.vue`, `lib/strategy.js`, `lib/charts/sunburst.js` et `lib/charts/worldMap.js` | Strategy : une carte du monde des pays de tes actions (colonne `Area`), puis tes actions en anneaux à deux niveaux (secteur, moat, localisation, note S&P, business, place de cotation, instruments), avec un choix d'enveloppe |
 | autre adresse | `views/NotFoundPage.vue` | Page introuvable |
 | `/newpage` | `views/NewPage.vue`, `lib/auth.js` | Connexion avec un compte Google (seule méthode). Connecté : e-mail du compte, Ouvrir Charts, Se déconnecter. Affiche le message traduit d'un échec (`?error=`), et un bouton grisé si Google n'est pas réglé sur le serveur. `?next=/page` : page où revenir après la connexion |
@@ -831,23 +832,24 @@ Si une colonne manque, la page du graphique le dit en clair et renvoie vers la p
 
 ### Snapshot
 
-La page `/portfolio-snapshot` lit la table `portfolio` (et `history` pour deux chiffres). Tous les calculs sont dans `frontend/src/lib/snapshot.js`. Les montants sont toujours en euros : si `portfolio` est dans une autre devise (case M1), le serveur les a convertis et la page l'indique sous le titre (voir « Devises et taux de change »).
+La page `/portfolio-snapshot` lit la table `portfolio` (et `history` pour le point de départ de deux chiffres). Tous les calculs sont dans `frontend/src/lib/snapshot.js`. Les montants sont toujours en euros : si `portfolio` est dans une autre devise (case M1), le serveur les a convertis et la page l'indique sous le titre (voir « Devises et taux de change »).
 
 | Élément | Calcul |
 |---|---|
-| Patrimoine brut | Somme des `Assets Master Currency` supérieurs à 0 (anciens relevés : `EUR` positif). Ne dépend pas du bouton Brut / Net |
-| Patrimoine net | Brut + somme des `Liabilities Master Currency` (les dettes sont négatives). Sans cette colonne, net = brut. Ne dépend pas du bouton Brut / Net |
 | Anneau, montants par type | Selon le bouton Brut / Net (voir « Brut ou net »). En net, un type négatif est écarté et signalé |
 | Tes dettes | Mode Brut : les dettes par instrument, en positif, avec leur part du total des dettes |
-| Cette année, Ce mois-ci | Variation du total (brut ou net, selon le bouton) de `history` entre le dernier relevé avant le 1er janvier (ou le 1er du mois) et le dernier relevé jusqu'à la date des positions. Elle inclut tes versements et retraits : ce n'est pas un rendement. Sans assez de relevés, elle affiche « – » |
-| Variation des prix par sous-type | Sous « Tes actifs » / « Ton patrimoine net » : voir ci-dessous |
+| Bloc « Ton patrimoine » | Un seul titre en Brut comme en Net : la phrase sous le titre dit si les montants sont bruts ou nets |
+| Cette année, Ce mois-ci | Variation du patrimoine (brut ou net, selon le bouton) entre le dernier relevé de `history` avant le 1er janvier (ou le 1er du mois) **de la date des positions** et le patrimoine d'aujourd'hui, tiré de `portfolio` (brut : somme des `Assets Master Currency` positifs ; net : plus les `Liabilities Master Currency`). Sans relevé avant le 1er, le premier relevé de la période sert de départ ; les relevés datés du jour des positions ou après (mois prochain recopié) sont ignorés. Elle inclut tes versements et retraits : ce n'est pas un rendement. Sans assez de relevés, elle affiche « – » |
+| Variation des prix par sous-type | Sous « Ton patrimoine » : voir ci-dessous |
 | Détail par type d'actif | Un bloc par valeur de `Asset`, avec des barres pour chaque découpage dont la colonne existe : Sous-type (`Sub Asset`), Instrument (`Instrument`), Enveloppe (`Envelope`, `Enveloppe`, sinon `Account`), Courtier (`Broker`), Zone (`Area`). Les 6 plus gros sont affichés, le reste est regroupé en « Autres ». Le détail montre toujours les actifs du type ; en net, l'en-tête du type donne son montant net et les dettes retirées |
 
 Seules `Asset` et `Assets Master Currency` sont obligatoires. La page écrit en bas les colonnes réellement lues pour chaque découpage, ce qui permet de vérifier d'un coup d'œil. Pour accepter un autre nom de colonne, ajouter ce nom dans la liste `DIMENSIONS` de `snapshot.js`. Sur Snapshot, les zones restent une liste ; la carte du monde est sur la page Strategy.
 
+**Date des positions dans l'en-tête.** Sur toutes les pages, l'en-tête affiche à droite du titre Overfolio la date des positions de `portfolio` (`frontend/src/lib/portfolioDate.js`) : la date la plus récente de sa colonne `Date`, sinon le jour de sa dernière synchronisation. Elle est lue à l'ouverture du site et relue après « Tout actualiser » ; sans table `portfolio`, rien n'est affiché.
+
 #### Snapshot : variation des prix par sous-type
 
-Sous le bloc « Tes actifs » (« Ton patrimoine net » en mode Net), le graphique `performance-sous-types` (`lib/charts/subAssetPerformance.js`) montre de combien le prix de chaque sous-type de placement a bougé, une barre par période :
+Sous le bloc « Ton patrimoine », le graphique `performance-sous-types` (`lib/charts/subAssetPerformance.js`) montre de combien le prix de chaque sous-type de placement a bougé, une barre par période :
 
 | Point | Règle |
 |---|---|
@@ -883,7 +885,7 @@ La page `/strategie` reprend la page « Strategy » de Looker Studio : une carte
 
 ### Le PDF
 
-Le bouton **PDF** de l'en-tête (entre Simulation et la langue) fabrique un PDF de **tout le site** : une page web = une page PDF, à sa taille réelle, sans découpage en A4. Tout est dans `frontend/src/lib/pdfExport.js` :
+Le bouton **PDF** de l'en-tête (tout à gauche, avant le titre Overfolio) fabrique un PDF de **tout le site** : une page web = une page PDF, à sa taille réelle, sans découpage en A4. Tout est dans `frontend/src/lib/pdfExport.js` :
 
 - le site parcourt lui-même chaque page (`sitePages()`) : accueil, GoogleSheet, Flow, Snapshot, Envelopes, Strategy, Volatility, la page de chaque graphique (`/graphiques/<nom>`, Budget compris, Volatility pour les périodes choisies), Simulation et la page de connexion. Une nouvelle page du site y est à ajouter ;
 - pour chaque page, il attend la fin du chargement (plus aucun élément `role="status"` dans le contenu pendant près d'une seconde, 25 s au plus), puis la photographie en entier telle qu'elle s'affiche (`html2canvas`) : mise en page, largeur de la fenêtre, mode clair ou sombre, brut ou net, langue, en-tête et pied de page compris ;

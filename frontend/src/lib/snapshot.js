@@ -1,5 +1,5 @@
 // Page « Portfolio Snapshot » : un instantané du patrimoine, calculé à partir de la table `portfolio`
-// (positions actuelles) et, pour les variations de l'année et du mois, de la table `history`.
+// (positions actuelles) et, pour le point de départ des variations de l'année et du mois, de la table `history`.
 // Fonctions pures : testables sans navigateur. Seules Asset et Assets Master Currency sont obligatoires ;
 // les autres découpages (sous-type, instrument, enveloppe, courtier, zone) n'apparaissent que si la colonne existe.
 
@@ -30,32 +30,32 @@ export function signedPercent2(fraction) {
 }
 
 /**
- * Variation du patrimoine depuis le début de l'année et du mois, d'après `history` (total des actifs par date).
- * Référence : le dernier relevé avant le 1er du mois / de l'année, sinon le premier relevé de la période.
+ * Variation du patrimoine depuis le début de l'année et du mois.
+ * Point d'arrivée : le patrimoine d'aujourd'hui (`currentTotal`, table `portfolio`) à la date des positions `asOfIso`.
+ * Point de départ, d'après `history` (total des actifs par date) : le dernier relevé avant le 1er du mois / de l'année
+ * de la date des positions, sinon le premier relevé de la période (avant la date des positions).
  * La variation inclut les versements et retraits : ce n'est pas un rendement de placement.
  * Renvoie { year, month } ; chaque valeur est { fraction, since } ou null si on ne peut pas la calculer.
  */
-export function periodChanges(history, asOfIso) {
+export function periodChanges(history, asOfIso, currentTotal) {
   const none = { year: null, month: null }
+  if (!asOfIso || !Number.isFinite(currentTotal)) return none
   try {
     const cols = requireColumns(history, { date: ['Date'], value: ['Assets Master Currency'] })
     const totals = totalsByDate(rowsOf(history), cols.date, cols.value)
-    const dates = [...totals.keys()].filter((iso) => iso <= asOfIso).sort()
-    if (dates.length < 2) return none
-
-    const current = dates[dates.length - 1]
-    const currentTotal = totals.get(current)
+    const dates = [...totals.keys()].filter((iso) => iso < asOfIso).sort()
+    if (!dates.length) return none
 
     const change = (periodStart) => {
       const before = dates.filter((iso) => iso < periodStart)
       const reference = before.length ? before[before.length - 1] : dates.find((iso) => iso >= periodStart)
-      if (!reference || reference === current) return null
+      if (!reference) return null
       const base = totals.get(reference)
       if (!(base > 0)) return null
       return { fraction: (currentTotal - base) / base, since: reference }
     }
 
-    return { year: change(`${current.slice(0, 4)}-01-01`), month: change(`${current.slice(0, 7)}-01`) }
+    return { year: change(`${asOfIso.slice(0, 4)}-01-01`), month: change(`${asOfIso.slice(0, 7)}-01`) }
   } catch {
     return none // pas d'historique exploitable : les deux variations restent « – », la page s'affiche quand même
   }
@@ -80,7 +80,7 @@ function topItems(rows, column, valueColumn, total) {
  * @param history   table `history` (ou null) : sert seulement aux variations de l'année et du mois
  * @param today     "AAAA-MM-JJ" : date de référence si la table n'a pas de colonne Date
  * @param mode      'gross' ou 'net' (bouton Brut / Net de Charts, lib/amounts.js) : montants de l'anneau, du détail
- *                  par type et des variations. Les repères « Patrimoine brut » et « Patrimoine net » ne changent pas.
+ *                  par type et des variations de l'année et du mois.
  */
 export function buildSnapshot(portfolio, history = null, today = new Date().toISOString().slice(0, 10), mode = 'gross') {
   const cols = requireColumns(portfolio, { asset: ['Asset'], value: ['Assets Master Currency'] })
@@ -90,8 +90,7 @@ export function buildSnapshot(portfolio, history = null, today = new Date().toIS
   const { entries, total } = splitBy(rows, cols.asset, cols.value)
   if (!entries.length) return { empty: t('errors.noPositive', { table: 'portfolio' }) }
 
-  // Repères : brut et net, quel que soit le mode (dettes = montants négatifs ; net = actifs + dettes)
-  const liabilitiesColumn = findColumn(portfolio.columns, ['Liabilities Master Currency'])
+  // Brut et net d'aujourd'hui (dettes = montants négatifs ; net = actifs + dettes) : point d'arrivée des variations
   const { assets: gross, debts: liabilities } = amountTotals(portfolio)
   const net = gross + liabilities
 
@@ -147,7 +146,6 @@ export function buildSnapshot(portfolio, history = null, today = new Date().toIS
     net,
     liabilities,
     debts,
-    hasLiabilities: Boolean(liabilitiesColumn),
     parts,
     legend: byValue.map((part) => ({
       name: part.name,
@@ -155,7 +153,9 @@ export function buildSnapshot(portfolio, history = null, today = new Date().toIS
       amount: formatAmount(part.value),
       share: percent(part.share),
     })),
-    changes: history ? periodChanges(amountTable(history, mode), asOf) : { year: null, month: null },
+    changes: history
+      ? periodChanges(amountTable(history, mode), asOf, mode === 'net' ? net : gross)
+      : { year: null, month: null },
     types,
     missing,
     usedColumns: dimensions.map((dim) => t('snapshot.usedColumn', { label: dim.label, column: dim.column })),
