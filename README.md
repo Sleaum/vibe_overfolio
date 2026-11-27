@@ -621,7 +621,7 @@ Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessi
 
 La synchronisation recopie chaque onglet dans `googlesheet_sheettable` et `googlesheet_sheetrow`, pour le propriétaire de la requête : le site, ou le compte connecté. La commande `python manage.py sync_sheets` synchronise le site.
 
-Chaque synchronisation remplace le contenu d'un onglet en une seule transaction. Un onglet en erreur n'empêche pas les autres, et un onglet qui renvoie zéro ligne n'écrase pas des données existantes. Ensuite, les taux de la BCE sont mis à jour et les devises recalculées pour `history` et les tables qui ne sont pas en euros (voir « Devises et taux de change »). Enfin, si `portfolio` a été enregistrée, son total du jour est gardé dans `googlesheet_portfolioday` (variation « 24h » de Snapshot).
+Chaque synchronisation remplace le contenu d'un onglet en une seule transaction : si l'écriture échoue en cours de route, l'onglet garde ses anciennes lignes. Un onglet en erreur n'empêche pas les autres, et un onglet qui renvoie zéro ligne n'écrase pas des données existantes. Ensuite, les taux de la BCE sont mis à jour et les devises recalculées pour `history` et les tables qui ne sont pas en euros (voir « Devises et taux de change »). Enfin, si `portfolio` a été enregistrée, son total du jour est gardé dans `googlesheet_portfolioday` (variation « 24h » de Snapshot).
 
 Exemple de requête (total en euros par type d'actif) :
 

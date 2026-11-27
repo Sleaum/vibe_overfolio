@@ -329,6 +329,41 @@ class OtherDocumentTests(TestCase):
         self.assertEqual(SheetTable.objects.count(), 2)
 
 
+@mock.patch.dict("os.environ", PUBLIC_ENV, clear=False)
+class AtomicSaveTests(TestCase):
+    """Une écriture qui échoue en cours de route ne laisse pas un onglet vidé ou à moitié remplacé."""
+
+    def test_failed_write_keeps_previous_rows(self):
+        import datetime
+
+        from django.db import DatabaseError
+        from django.utils import timezone
+
+        from .models import SheetRow, SheetTable
+        from .sync import sync_sheets
+
+        synced_at = timezone.make_aware(datetime.datetime(2026, 1, 2, 3, 4, 5))
+        # Trois lignes, quand la feuille simulée en a deux : un row_count remplacé se verrait
+        old_rows = [{"Asset": f"ancien {i}"} for i in range(1, 4)]
+        table = SheetTable.objects.create(
+            name="portfolio", source="id-public", columns=["Asset"], row_count=3, synced_at=synced_at
+        )
+        SheetRow.objects.bulk_create([SheetRow(table=table, position=i, data=row) for i, row in enumerate(old_rows)])
+
+        with fake_download(xlsx_bytes()), mock.patch.object(
+            SheetRow.objects, "bulk_create", side_effect=DatabaseError("panne simulée")
+        ), self.assertLogs("googlesheet.sync", level="ERROR"):
+            results = sync_sheets(config.doc_name(), tabs=["portfolio"])
+
+        self.assertEqual(results[0].code, "database_error")
+        self.assertFalse(results[0].saved)
+        table.refresh_from_db()
+        self.assertEqual(table.row_count, 3)
+        self.assertEqual(table.columns, ["Asset"])
+        self.assertEqual(table.synced_at, synced_at)
+        self.assertEqual(list(table.rows.values_list("data", flat=True)), old_rows)
+
+
 @mock.patch.dict("os.environ", ENV, clear=False)
 class SaveTabsTests(TestCase):
     url = "/api/sheet-config/tabs/"
