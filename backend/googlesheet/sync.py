@@ -39,7 +39,6 @@ class TabResult:
     params: dict = field(default_factory=dict)
 
 
-@transaction.atomic
 class SyncResults(list):
     """Résultats par onglet (une liste de TabResult), plus `removed` : tables d'un autre document retirées."""
 
@@ -58,6 +57,7 @@ def document_source(doc_name: str, owner=None) -> str:
     return sheet_id if sheet_id else f"nom:{doc_name}"
 
 
+@transaction.atomic
 def _save_table(
     tab: str, header_row: int, columns: List[str], rows: List[dict], source: str = "", owner=None, currency: str = "EUR"
 ) -> None:
