@@ -43,10 +43,9 @@ class SyncResults(list):
         self.fx = {}  # taux BCE et devises recalculées (refresh_currencies)
 
 
-def document_source(doc_name: str, owner=None) -> str:
+def document_source(settings: config.SheetSettings) -> str:
     """Clé du document configuré : son identifiant, sinon « nom:<nom> » (recherche par nom)."""
-    sheet_id = config.sheet_id(owner)
-    return sheet_id if sheet_id else f"nom:{doc_name}"
+    return settings.sheet_id or f"nom:{settings.doc_name}"
 
 
 @transaction.atomic
@@ -74,12 +73,11 @@ def _save_table(
 
 
 def sync_sheets(
-    doc_name: str,
+    settings: config.SheetSettings,
     tabs: Optional[List[str]] = None,
     header_rows: Optional[Dict[str, int]] = None,
     dry_run: bool = False,
     allow_empty: bool = False,
-    owner=None,
 ) -> List[TabResult]:
     """
     Lit chaque onglet dans Google Sheets puis le recopie en base.
@@ -91,13 +89,15 @@ def sync_sheets(
     - Lève SheetError si le document lui-même est inaccessible (rien n'est alors modifié en base).
     - Les tables venues d'un autre document (feuille changée sur la page GoogleSheet), ou d'origine inconnue
       et non relues ici, sont retirées : la base ne garde que des données du document configuré.
-    - owner : None = données et configuration du site, sinon celles du compte connecté (jamais mélangées).
+    - settings : configuration lue une fois (config.load_settings). Son propriétaire (`settings.owner` : None pour
+      le site, sinon le compte connecté) décide des données écrites : jamais celles d'un autre.
     - portfolio enregistré : son total du jour est gardé (PortfolioDay, daily.py), pour la variation « 24h ».
     """
-    tabs = tabs or config.sync_tabs(owner)
+    owner = settings.owner
+    tabs = tabs or settings.tabs
     header_rows = header_rows or {}
-    spreadsheet = open_spreadsheet(doc_name, owner)
-    source = document_source(doc_name, owner)
+    spreadsheet = open_spreadsheet(settings)
+    source = document_source(settings)
 
     results = SyncResults()
     for tab in tabs:

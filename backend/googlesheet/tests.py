@@ -39,7 +39,7 @@ class SheetConfigTests(TestCase):
         self.assertTrue(body["private_key_set"])
         self.assertNotIn("private_key", body["values"])
         self.assertNotIn("PRIVATE KEY", json.dumps(body))
-        self.assertEqual(config.credentials()["private_key"], KEY)
+        self.assertEqual(config.load_settings().credentials["private_key"], KEY)
 
     def test_saved_values_replace_env(self):
         response = self.put(
@@ -53,8 +53,8 @@ class SheetConfigTests(TestCase):
         body = response.json()
         self.assertEqual(body["source"], "page")
         self.assertEqual(body["values"]["sheet_id"], "abc_123-XY")
-        self.assertEqual(config.sync_tabs(), ["budget", "inout"])
-        self.assertEqual(config.credentials()["project_id"], "projet-page")
+        self.assertEqual(config.load_settings().tabs, ["budget", "inout"])
+        self.assertEqual(config.load_settings().credentials["project_id"], "projet-page")
         # clé privée laissée vide : celle du .env est conservée
         self.assertEqual(SheetConfig.objects.get().private_key, KEY)
         self.assertNotIn("PRIVATE KEY", response.content.decode())
@@ -62,7 +62,7 @@ class SheetConfigTests(TestCase):
     def test_new_private_key_is_saved(self):
         other = "-----BEGIN PRIVATE KEY-----\nXYZ\n-----END PRIVATE KEY-----"
         self.assertEqual(self.put(self.form(private_key=other)).status_code, 200)
-        self.assertEqual(config.credentials()["private_key"], other + "\n")
+        self.assertEqual(config.load_settings().credentials["private_key"], other + "\n")
 
     def test_invalid_form_is_rejected(self):
         response = self.put(self.form(client_email="", sheet_id="", doc_name="", sync_tabs=" , "))
@@ -75,7 +75,7 @@ class SheetConfigTests(TestCase):
         self.put(self.form(project_id="projet-page"))
         body = self.client.delete(self.url).json()
         self.assertEqual(body["source"], "env")
-        self.assertEqual(config.credentials()["project_id"], "projet-env")
+        self.assertEqual(config.load_settings().credentials["project_id"], "projet-env")
 
     def test_sync_uses_saved_tabs(self):
         self.put(self.form(sync_tabs="budget"))
@@ -84,10 +84,10 @@ class SheetConfigTests(TestCase):
     def test_client_is_rebuilt_when_credentials_change(self):
         with mock.patch.object(services.gspread, "service_account_from_dict", side_effect=lambda c: object()) as make:
             services._client = None
-            first = services.get_client()
-            self.assertIs(services.get_client(), first)
+            first = services.get_client(config.load_settings())
+            self.assertIs(services.get_client(config.load_settings()), first)
             self.put(self.form(project_id="projet-page"))
-            self.assertIsNot(services.get_client(), first)
+            self.assertIsNot(services.get_client(config.load_settings()), first)
             self.assertEqual(make.call_count, 2)
             self.assertEqual(make.call_args[0][0]["project_id"], "projet-page")
         services._client = None
@@ -187,11 +187,11 @@ class PublicLinkTests(TestCase):
         cache.clear()
 
     def test_mode_depends_on_service_account(self):
-        self.assertEqual(config.access_mode(), "public_link")
+        self.assertEqual(config.load_settings().mode, "public_link")
         with mock.patch.dict("os.environ", ENV):
-            self.assertEqual(config.access_mode(), "service_account")
+            self.assertEqual(config.load_settings().mode, "service_account")
         with mock.patch.dict("os.environ", {"GOOGLE_SHEET_ID": ""}):
-            self.assertEqual(config.access_mode(), "none")
+            self.assertEqual(config.load_settings().mode, "none")
         self.assertEqual(self.client.get("/api/sheet-config/").json()["mode"], "public_link")
 
     def test_public_sheet_is_read_like_the_api(self):
@@ -199,7 +199,7 @@ class PublicLinkTests(TestCase):
         from .sync import sync_sheets
 
         with fake_download(xlsx_bytes()) as get:
-            results = sync_sheets(config.doc_name(), tabs=["portfolio", "absent"])
+            results = sync_sheets(config.load_settings(), tabs=["portfolio", "absent"])
         self.assertIn("id-public/export?format=xlsx", get.call_args[0][0])
         self.assertEqual([r.ok for r in results], [True, False])
         self.assertEqual(results[1].code, "tab_not_found")
@@ -229,7 +229,7 @@ class PublicLinkTests(TestCase):
         )
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(response.json()["mode"], "public_link")
-        self.assertEqual(config.sheet_id(), "xyz")
+        self.assertEqual(config.load_settings().sheet_id, "xyz")
 
     def test_link_is_required_without_service_account(self):
         response = self.client.put("/api/sheet-config/", json.dumps({"sheet_id": "", "doc_name": "overfolio", "sync_tabs": "portfolio"}), content_type="application/json")
@@ -353,7 +353,7 @@ class AtomicSaveTests(TestCase):
         with fake_download(xlsx_bytes()), mock.patch.object(
             SheetRow.objects, "bulk_create", side_effect=DatabaseError("panne simulée")
         ), self.assertLogs("googlesheet.sync", level="ERROR"):
-            results = sync_sheets(config.doc_name(), tabs=["portfolio"])
+            results = sync_sheets(config.load_settings(), tabs=["portfolio"])
 
         self.assertEqual(results[0].code, "database_error")
         self.assertFalse(results[0].saved)
@@ -378,7 +378,7 @@ class SaveTabsTests(TestCase):
         self.assertEqual(body["values"]["sync_tabs"], "portfolio,budget")
         self.assertEqual(body["mode"], "service_account")  # .env repris tel quel, clé comprise
         self.assertTrue(body["private_key_set"])
-        self.assertEqual(config.sync_tabs(), ["portfolio", "budget"])
+        self.assertEqual(config.load_settings().tabs, ["portfolio", "budget"])
 
     def test_empty_list_is_refused(self):
         response = self.put({"sync_tabs": " , "})
@@ -392,4 +392,4 @@ class SaveTabsTests(TestCase):
         values.pop("sync_tabs")
         response = self.client.put("/api/sheet-config/", json.dumps(values), content_type="application/json")
         self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(config.sync_tabs(), ["budget"])
+        self.assertEqual(config.load_settings().tabs, ["budget"])

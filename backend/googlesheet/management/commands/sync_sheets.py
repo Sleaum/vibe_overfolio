@@ -48,9 +48,12 @@ class Command(BaseCommand):
                 raise CommandError(f"--header-row attend ONGLET=N avec N >= 1 (reçu : {item!r})")
             header_rows[name] = int(number)
 
+        settings = config.load_settings()
+        if options["doc"]:
+            settings = settings.with_doc_name(options["doc"])
         try:
             results = sync_sheets(
-                options["doc"] or config.doc_name(),
+                settings,
                 tabs=tabs,
                 header_rows=header_rows,
                 dry_run=options["dry_run"],

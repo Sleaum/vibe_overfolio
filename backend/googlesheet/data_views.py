@@ -61,7 +61,7 @@ def with_owner(view):
     return wrapper
 
 
-def _sync_locked(owner, lock_name, tabs=None):
+def _sync_locked(settings, lock_name, tabs=None):
     """
     Synchronise sous un verrou : deux clics rapprochés ne relisent pas deux fois la feuille.
 
@@ -69,7 +69,7 @@ def _sync_locked(owner, lock_name, tabs=None):
     l'erreur du document. Le verrou dure SYNC_COOLDOWN secondes après un succès ; il est libéré tout de suite si le
     document ne s'ouvre pas ou si aucun onglet n'est enregistré, pour qu'on puisse réessayer après avoir corrigé.
     """
-    lock_key = f"sheet-sync-lock:{_owner_key(owner)}:{lock_name}"
+    lock_key = f"sheet-sync-lock:{_owner_key(settings.owner)}:{lock_name}"
     if not cache.add(lock_key, 1, SYNC_COOLDOWN):
         return None, error_response(
             f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes.",
@@ -78,7 +78,7 @@ def _sync_locked(owner, lock_name, tabs=None):
             {"seconds": SYNC_COOLDOWN},
         )
     try:
-        results = sync_sheets(config.doc_name(owner), tabs=tabs, owner=owner)
+        results = sync_sheets(settings, tabs=tabs)
     except SheetError as exc:
         cache.delete(lock_key)
         return None, error_response(str(exc), exc.code, exc.status, exc.params)
@@ -91,7 +91,7 @@ def _sync_locked(owner, lock_name, tabs=None):
 @with_owner
 def table_list(request, owner):
     """GET /api/data/ : liste des tables recopiées en base (celles du compte connecté, sinon celles du site)."""
-    order = config.sync_tabs(owner)
+    order = config.load_settings(owner).tabs
     tables = sorted(SheetTable.objects.filter(user=owner), key=lambda table: _sort_key(table, order))
     return JsonResponse(
         [
@@ -157,10 +157,11 @@ def table_sync(request, owner, name):
     POST /api/data/<onglet>/sync/ : relit l'onglet dans Google Sheets et met la base à jour.
     Seuls les onglets de la liste de synchronisation sont acceptés.
     """
-    if name not in config.sync_tabs(owner):
+    settings = config.load_settings(owner)
+    if name not in settings.tabs:
         return error_response(f"Onglet '{name}' non synchronisable", "tab_not_syncable", 404, {"name": name})
 
-    results, error = _sync_locked(owner, name, tabs=[name])
+    results, error = _sync_locked(settings, name, tabs=[name])
     if error:
         return error
     result = results[0]
@@ -178,7 +179,7 @@ def sync_all(request, owner):
     Un onglet en erreur garde ses anciennes données et n'empêche pas les autres.
     200 si au moins un onglet a été enregistré, 502 si aucun.
     """
-    results, error = _sync_locked(owner, "__all__")
+    results, error = _sync_locked(config.load_settings(owner), "__all__")
     if error:
         return error
 
@@ -220,12 +221,14 @@ def sheet_config(request, owner):
         if not isinstance(request.data, dict):
             return error_response("Corps JSON attendu", "invalid_json", 400)
         try:
-            config.save(request.data, owner)
+            settings = config.save(request.data, owner)
         except config.ConfigInvalid as exc:
             return error_response("Formulaire incomplet", "form_incomplete", 400, fields=exc.errors, field_codes=exc.codes)
     elif request.method == "DELETE":
-        config.reset(owner)
-    return JsonResponse(config.public_view(owner))
+        settings = config.reset(owner)
+    else:
+        settings = config.load_settings(owner)
+    return JsonResponse(config.public_view(settings))
 
 
 @api_view(["GET", "PUT"])
@@ -242,13 +245,13 @@ def sheet_tabs(request, owner):
         if not isinstance(request.data, dict):
             return error_response("Corps JSON attendu", "invalid_json", 400)
         try:
-            config.save_tabs(request.data.get("sync_tabs"), owner)
+            settings = config.save_tabs(request.data.get("sync_tabs"), owner)
         except config.ConfigInvalid as exc:
             return error_response("Formulaire incomplet", "form_incomplete", 400, fields=exc.errors, field_codes=exc.codes)
-        return JsonResponse(config.public_view(owner))
+        return JsonResponse(config.public_view(settings))
+    settings = config.load_settings(owner)
     try:
-        spreadsheet = open_spreadsheet(config.doc_name(owner), owner)
-        tabs = worksheet_titles(spreadsheet)
+        tabs = worksheet_titles(open_spreadsheet(settings))
     except SheetError as exc:
         return error_response(str(exc), exc.code, exc.status, exc.params)
-    return JsonResponse({"mode": config.access_mode(owner=owner), "tabs": tabs, "selected": config.sync_tabs(owner)})
+    return JsonResponse({"mode": settings.mode, "tabs": tabs, "selected": settings.tabs})

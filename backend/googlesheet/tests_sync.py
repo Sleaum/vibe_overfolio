@@ -39,7 +39,7 @@ class TableSyncTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"name": "portfolio", "row_count": 3, "columns": ["Date", "Asset"]})
         self.assertEqual(sync.call_args.kwargs["tabs"], ["portfolio"])
-        self.assertIsNone(sync.call_args.kwargs["owner"])
+        self.assertIsNone(sync.call_args.args[0].owner)
 
     def test_tab_outside_the_list_is_refused(self):
         response = self.client.post("/api/data/inconnu/sync/")
@@ -187,7 +187,7 @@ class ScopeOnEveryRouteTests(TestCase):
         with fake_sync(TabResult(tab="portfolio", ok=True, saved=True, rows=1)) as sync:
             response = self.client.post("/api/data/sync/", HTTP_X_SHEET_SCOPE="account")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(sync.call_args.kwargs["owner"], self.user)
+        self.assertEqual(sync.call_args.args[0].owner, self.user)
 
     def test_put_without_json_object_is_refused(self):
         for url in ("/api/sheet-config/", "/api/sheet-config/tabs/"):

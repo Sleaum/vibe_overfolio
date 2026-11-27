@@ -65,23 +65,16 @@ def google_errors(log_details: bool = True):
         raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
 
 
-def get_credentials(owner=None) -> dict:
-    """Identifiants du compte de service : ceux saisis sur la page GoogleSheet, sinon ceux du .env (site seulement)."""
-    from . import config  # import différé : config dépend des modèles
-
-    return config.credentials(owner)
-
-
 def _fingerprint(credentials: dict) -> str:
     raw = "\x00".join(f"{key}={credentials.get(key) or ''}" for key in sorted(credentials))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def get_client(owner=None) -> gspread.client.Client:
-    """Client gspread réutilisé tant que les identifiants ne changent pas."""
+def get_client(settings) -> gspread.client.Client:
+    """Client gspread du compte de service de `settings` (config.SheetSettings), réutilisé tant qu'il ne change pas."""
     global _client, _client_fingerprint
 
-    credentials = get_credentials(owner)
+    credentials = settings.credentials
     fingerprint = _fingerprint(credentials)
     if _client is not None and fingerprint == _client_fingerprint:
         return _client
@@ -103,11 +96,6 @@ def get_client(owner=None) -> gspread.client.Client:
         raise SheetConfigError(f"Identifiants Google invalides : {exc}", "credentials_invalid", detail=str(exc)) from exc
     _client_fingerprint = fingerprint
     return _client
-
-
-def initialize_gspread() -> gspread.client.Client:
-    """Conservé pour compatibilité avec l'ancien settings.py."""
-    return get_client()
 
 
 def _convert(value: Any) -> Any:
@@ -303,9 +291,9 @@ def open_google_account_spreadsheet(owner, sheet_id: str):
             )
 
 
-def open_spreadsheet(doc_name: str, owner=None):
+def open_spreadsheet(settings):
     """
-    Ouvre le document, selon le mode choisi par config.access_mode() :
+    Ouvre le document de `settings` (config.SheetSettings), selon son mode :
 
     - « service_account » (solution 2) : API Google Sheets avec le compte de service. Le document est ouvert
       par son identifiant (partie de l'URL entre /d/ et /edit) s'il est connu, sinon cherché par son nom
@@ -313,29 +301,25 @@ def open_spreadsheet(doc_name: str, owner=None):
     - « public_link » (solution 1) : pas de compte de service, seulement le lien d'une feuille partagée
       « Tous les utilisateurs disposant du lien » : export Excel de toute la feuille.
     - « google » (solution 3, compte connecté) : feuille choisie dans le sélecteur de Google, lue avec son compte.
-
-    owner : None = configuration du site, sinon celle du compte connecté.
     """
-    from . import config
-
-    mode = config.access_mode(owner=owner)
+    mode = settings.mode
     if mode == "google":
-        return open_google_account_spreadsheet(owner, config.sheet_id(owner))
+        return open_google_account_spreadsheet(settings.owner, settings.sheet_id)
     if mode == "public_link":
-        return open_public_spreadsheet(config.sheet_id(owner))
+        return open_public_spreadsheet(settings.sheet_id)
     if mode == "none":
         raise SheetConfigError(
             "Aucun accès configuré : colle le lien d'une feuille partagée par lien, ou renseigne un compte de service.",
             "no_access_configured",
         )
 
-    client = get_client(owner)
-    sheet_id = config.sheet_id(owner)
+    client = get_client(settings)
+    sheet_id, doc_name = settings.sheet_id, settings.doc_name
     with google_errors():
         try:
             return client.open_by_key(sheet_id) if sheet_id else client.open(doc_name)
         except gspread.exceptions.SpreadsheetNotFound:
-            email = get_credentials(owner).get("client_email") or "le compte de service"
+            email = settings.credentials.get("client_email") or "le compte de service"
             what = "l'identifiant du document" if sheet_id else f"le nom '{doc_name}'"
             raise SheetNotFound(
                 f"Feuille introuvable (vérifie {what}) ou non partagée avec {email}.",
