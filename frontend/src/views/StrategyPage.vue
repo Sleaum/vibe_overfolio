@@ -13,44 +13,17 @@
       <ConversionNote :table="portfolio.data.value" class="mt-2" />
     </header>
 
-    <div
-      v-if="status === 'loading'"
-      role="status"
-      class="mt-10 flex h-80 items-center justify-center rounded-xl bg-wash text-ink-2 motion-safe:animate-pulse"
+    <PageState
+      :status="status"
+      :error="error"
+      :missing-table="missingTable"
+      :problem="model?.problem"
+      :empty="model?.empty"
+      :reload="reload"
+      table="portfolio"
+      kind="page"
+      :loading-text="t('strategyPage.loading')"
     >
-      {{ t('strategyPage.loading') }}
-    </div>
-
-    <div v-else-if="status === 'error'" role="alert" class="mt-10 rounded-xl border border-danger-line bg-danger-wash p-6">
-      <p class="font-semibold text-danger">
-        {{ missingTable ? t('page.tableMissing', { table: 'portfolio' }) : t('chartUi.loadErrorTitle') }}
-      </p>
-      <p class="mt-1 text-ink">
-        {{ missingTable ? t('page.notSyncedYet') : portfolio.error.value.message }}
-      </p>
-      <div class="mt-4 flex flex-wrap gap-3">
-        <AppButton v-if="missingTable" :to="{ path: '/sheet', query: { onglet: 'portfolio' } }" variant="secondary" size="sm">
-          {{ t('chartUi.openSheet') }}
-        </AppButton>
-        <AppButton variant="secondary" size="sm" @click="portfolio.reload">{{ t('chartUi.retry') }}</AppButton>
-      </div>
-    </div>
-
-    <div v-else-if="status === 'problem'" role="alert" class="mt-10 rounded-xl border border-danger-line bg-danger-wash p-6">
-      <p class="font-semibold text-danger">{{ t('page.problemTitle') }}</p>
-      <p class="mt-1 text-ink">{{ model.problem }}</p>
-      <p class="mt-3 text-sm text-ink-2">{{ t('chartUi.problemHint') }}</p>
-    </div>
-
-    <div
-      v-else-if="status === 'empty'"
-      class="mt-10 flex h-56 flex-col items-center justify-center rounded-xl border border-dashed border-line-strong bg-wash px-6 text-center"
-    >
-      <p class="font-semibold text-ink">{{ t('chartUi.emptyTitle') }}</p>
-      <p class="mt-1 max-w-md text-ink-2">{{ model.empty }}</p>
-    </div>
-
-    <template v-else>
       <!-- Choix de l'enveloppe : filtre tous les anneaux -->
       <div v-if="model.scopes.length" class="mt-10 max-w-sm">
         <label for="enveloppe" class="block text-sm font-medium text-ink">{{ t('strategyPage.envelope') }}</label>
@@ -111,52 +84,33 @@
           </ul>
         </details>
       </div>
-    </template>
+    </PageState>
   </div>
 </template>
 
 <script setup>
 import { useI18n } from 'vue-i18n'
 import { computed, ref } from 'vue'
-import AppButton from '../components/ui/AppButton.vue'
+import PageState from '../components/PageState.vue'
 import StrategyCard from '../components/charts/StrategyCard.vue'
 import WorldMapCard from '../components/charts/WorldMapCard.vue'
-import { useTable } from '../composables/useTable.js'
+import { usePageModel } from '../composables/usePageModel.js'
 import ConversionNote from '../components/ConversionNote.vue'
-import { DataError } from '../lib/aggregate.js'
 import { buildStrategy } from '../lib/strategy.js'
 
 const { t } = useI18n()
 
-const portfolio = useTable('portfolio')
-const stock = useTable('stock') // facultative : une erreur (table absente) n'empêche pas la page de s'afficher
-
 const scopeChoice = ref(undefined) // undefined = choix par défaut (PEA et CTO s'ils existent)
 
-// La page attend que stock ait répondu (ou échoué) pour ne pas afficher un instant des anneaux sans secteur
-const settled = computed(() => Boolean(stock.data.value || stock.error.value))
-
-// Une DataError (colonne absente…) devient un message lisible ; toute autre erreur est un bug à voir en console.
-const model = computed(() => {
-  if (!portfolio.data.value || !settled.value) return null
-  try {
-    return buildStrategy(portfolio.data.value, stock.data.value, scopeChoice.value)
-  } catch (err) {
-    if (err instanceof DataError) return { problem: err.message }
-    console.error(err)
-    return { problem: t('page.buildFailed', { message: err?.message ?? t('chartUi.unknownError') }) }
-  }
+// stock est facultative (une table absente n'empêche pas la page de s'afficher), mais la page attend sa réponse
+// pour ne pas afficher un instant des anneaux sans secteur
+const { status, model, error, missingTable, tables, reload } = usePageModel({
+  required: ['portfolio'],
+  optional: ['stock'],
+  waitOptional: true,
+  build: ({ portfolio, stock }) => buildStrategy(portfolio, stock, scopeChoice.value),
 })
-
-const status = computed(() => {
-  if (!portfolio.data.value) return portfolio.error.value ? 'error' : 'loading'
-  if (!model.value) return 'loading'
-  if (model.value.problem) return 'problem'
-  if (model.value.empty) return 'empty'
-  return 'ready'
-})
-
-const missingTable = computed(() => portfolio.error.value?.status === 404)
+const { portfolio } = tables
 
 const subtitle = computed(
   () => (status.value === 'ready' && model.value.subtitle) || t('strategyPage.defaultSubtitle'),

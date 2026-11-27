@@ -32,46 +32,16 @@
     </header>
 
     <div class="p-4 sm:p-6">
-      <div
-        v-if="status === 'loading'"
-        role="status"
-        class="flex h-72 items-center justify-center rounded-lg bg-wash text-ink-2 motion-safe:animate-pulse"
+      <PageState
+        :status="status"
+        :error="error"
+        :missing-table="missingTable"
+        :problem="model?.problem"
+        :empty="model?.empty"
+        :reload="reload"
+        :table="spec.table"
+        loading-height="h-72"
       >
-        {{ t('chartUi.loading') }}
-      </div>
-
-      <div v-else-if="status === 'error'" role="alert" class="rounded-lg border border-danger-line bg-danger-wash p-5">
-        <p class="font-semibold text-danger">
-          {{ missingTable ? t('chartUi.missingTableTitle') : t('chartUi.loadErrorTitle') }}
-        </p>
-        <p class="mt-1 text-ink">
-          {{
-            missingTable
-              ? t('chartUi.missingTableText', { table: spec.table })
-              : error.message
-          }}
-        </p>
-        <div class="mt-4 flex flex-wrap gap-3">
-          <AppButton v-if="missingTable" :to="sheetLink" variant="secondary" size="sm">{{ t('chartUi.openSheet') }}</AppButton>
-          <AppButton variant="secondary" size="sm" @click="reload">{{ t('chartUi.retry') }}</AppButton>
-        </div>
-      </div>
-
-      <div v-else-if="status === 'problem'" role="alert" class="rounded-lg border border-danger-line bg-danger-wash p-5">
-        <p class="font-semibold text-danger">{{ t('chartUi.problemTitle') }}</p>
-        <p class="mt-1 text-ink">{{ model.problem }}</p>
-        <p class="mt-3 text-sm text-ink-2">{{ t('chartUi.problemHint') }}</p>
-      </div>
-
-      <div
-        v-else-if="status === 'empty'"
-        class="flex h-56 flex-col items-center justify-center rounded-lg border border-dashed border-line-strong bg-wash px-6 text-center"
-      >
-        <p class="font-semibold text-ink">{{ t('chartUi.emptyTitle') }}</p>
-        <p class="mt-1 max-w-md text-ink-2">{{ model.empty }}</p>
-      </div>
-
-      <template v-else>
         <DataTableView
           v-if="view === 'table'"
           :columns="model.table.columns"
@@ -87,7 +57,7 @@
           :label="model.summary"
         />
         <p v-if="model.note" class="mt-4 text-sm text-ink-2">{{ model.note }}</p>
-      </template>
+      </PageState>
     </div>
 
     <footer class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line px-4 py-3 text-sm sm:px-6">
@@ -106,11 +76,11 @@
 import CurrencyPicker from './CurrencyPicker.vue'
 import WindowsPicker from './WindowsPicker.vue'
 import { useI18n } from 'vue-i18n'
-import { computed, ref } from 'vue'
-import { DataError } from '../../lib/aggregate.js'
+import { computed, ref, toRef } from 'vue'
+import { usePageModel } from '../../composables/usePageModel.js'
 import { buildChart } from '../../lib/amounts.js'
 import { formatDateTime } from '../../lib/format.js'
-import AppButton from '../ui/AppButton.vue'
+import PageState from '../PageState.vue'
 import SegmentedControl from '../ui/SegmentedControl.vue'
 import BaseChart from './BaseChart.vue'
 import DataTableView from './DataTableView.vue'
@@ -132,27 +102,13 @@ const VIEWS = [
 const view = ref('chart')
 const titleId = computed(() => `carte-${props.spec.slug}`)
 
-const model = computed(() => {
-  if (!props.data) return null
-  try {
-    return buildChart(props.spec, props.data)
-  } catch (err) {
-    if (err instanceof DataError) return { problem: err.message }
-    console.error(err)
-    return { problem: t('chartUi.buildFailed', { message: err?.message ?? t('chartUi.unknownError') }) }
-  }
+// La table est chargée par la page (une seule fois pour toutes ses cartes) et arrive en props
+const table = { data: toRef(props, 'data'), error: toRef(props, 'error'), reload: () => props.reload() }
+const { status, model, error, missingTable } = usePageModel({
+  required: [{ name: 'chart', table }],
+  failedKey: 'chartUi.buildFailed',
+  build: ({ chart }) => buildChart(props.spec, chart),
 })
-
-const status = computed(() => {
-  if (!props.data) return props.error ? 'error' : 'loading'
-  if (!model.value) return 'loading'
-  if (model.value.problem) return 'problem'
-  if (model.value.empty) return 'empty'
-  return 'ready'
-})
-
-const missingTable = computed(() => props.error?.status === 404)
-const sheetLink = computed(() => ({ path: '/sheet', query: { onglet: props.spec.table } }))
 const subtitle = computed(() => model.value?.subtitle || props.spec.summary)
 const syncLabel = computed(() =>
   props.data?.synced_at ? t('chartUi.tableSynced', { table: props.spec.table, date: formatDateTime(props.data.synced_at) }) : '',

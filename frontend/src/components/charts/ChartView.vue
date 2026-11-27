@@ -52,64 +52,18 @@
           </div>
 
           <div class="p-4 sm:p-6">
-            <!-- Chargement -->
-            <div
-              v-if="status === 'loading'"
-              role="status"
-              class="flex h-80 items-center justify-center rounded-lg bg-wash text-ink-2 motion-safe:animate-pulse"
+            <!-- Chargement, erreur de l'API, données inadaptées, aucune donnée ; sinon le graphique ou le tableau -->
+            <PageState
+              :status="status"
+              :error="error"
+              :missing-table="missingTable"
+              :problem="model?.problem"
+              :empty="model?.empty"
+              :reload="reload"
+              :table="spec.table"
+              empty-height="h-64"
+              empty-link
             >
-              {{ t('chartUi.loading') }}
-            </div>
-
-            <!-- Erreur de l'API -->
-            <div
-              v-else-if="status === 'error'"
-              role="alert"
-              class="rounded-lg border border-danger-line bg-danger-wash p-5"
-            >
-              <p class="font-semibold text-danger">
-                {{ missingTable ? t('chartUi.missingTableTitle') : t('chartUi.loadErrorTitle') }}
-              </p>
-              <p class="mt-1 text-ink">
-                {{
-                  missingTable
-                    ? t('chartUi.missingTableText', { table: spec.table })
-                    : error.message
-                }}
-              </p>
-              <div class="mt-4 flex flex-wrap gap-3">
-                <AppButton v-if="missingTable" :to="sheetLink" variant="secondary" size="sm">
-                  {{ t('chartUi.openSheet') }}
-                </AppButton>
-                <AppButton variant="secondary" size="sm" @click="reload">{{ t('chartUi.retry') }}</AppButton>
-              </div>
-            </div>
-
-            <!-- Colonnes manquantes ou données inadaptées -->
-            <div
-              v-else-if="status === 'problem'"
-              role="alert"
-              class="rounded-lg border border-danger-line bg-danger-wash p-5"
-            >
-              <p class="font-semibold text-danger">{{ t('chartUi.problemTitle') }}</p>
-              <p class="mt-1 text-ink">{{ model.problem }}</p>
-              <p class="mt-3 text-sm text-ink-2">{{ t('chartUi.problemHint') }}</p>
-            </div>
-
-            <!-- Aucune donnée -->
-            <div
-              v-else-if="status === 'empty'"
-              class="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed border-line-strong bg-wash px-6 text-center"
-            >
-              <p class="font-semibold text-ink">{{ t('chartUi.emptyTitle') }}</p>
-              <p class="mt-1 max-w-md text-ink-2">{{ model.empty }}</p>
-              <AppButton :to="sheetLink" variant="secondary" size="sm" class="mt-4">
-                {{ t('chartUi.openSheet') }}
-              </AppButton>
-            </div>
-
-            <!-- Graphique ou tableau -->
-            <template v-else>
               <DataTableView
                 v-if="view === 'table'"
                 :columns="model.table.columns"
@@ -143,7 +97,7 @@
                 </ul>
               </div>
               <p v-if="model.note" class="mt-4 text-sm text-ink-2">{{ model.note }}</p>
-            </template>
+            </PageState>
           </div>
 
           <p v-if="syncLabel" class="border-t border-line px-4 py-3 text-sm text-ink-3 sm:px-6">
@@ -176,11 +130,11 @@ import CurrencyPicker from './CurrencyPicker.vue'
 import WindowsPicker from './WindowsPicker.vue'
 import { useI18n } from 'vue-i18n'
 import { computed, reactive, ref } from 'vue'
-import { DataError, findColumn } from '../../lib/aggregate.js'
+import { findColumn } from '../../lib/aggregate.js'
 import { buildChart } from '../../lib/amounts.js'
 import { formatDateTime } from '../../lib/format.js'
-import { useTable } from '../../composables/useTable.js'
-import AppButton from '../ui/AppButton.vue'
+import { usePageModel } from '../../composables/usePageModel.js'
+import PageState from '../PageState.vue'
 import SegmentedControl from '../ui/SegmentedControl.vue'
 import BaseChart from './BaseChart.vue'
 import DataTableView from './DataTableView.vue'
@@ -199,7 +153,13 @@ const VIEWS = [
 const values = reactive(Object.fromEntries((props.spec.controls ?? []).map((c) => [c.key, c.default])))
 const view = ref('chart')
 
-const { data, error, reload } = useTable(() => props.spec.table, { projection: Boolean(props.spec.projection) })
+// La spécification transforme la table en option ECharts + tableau + textes (la table suit la spécification affichée)
+const { status, model, error, missingTable, tables, reload } = usePageModel({
+  required: [{ name: 'chart', source: () => props.spec.table, projection: Boolean(props.spec.projection) }],
+  failedKey: 'chartUi.buildFailed',
+  build: ({ chart }) => buildChart(props.spec, chart, { ...values }),
+})
+const { data } = tables.chart
 
 // Réglages affichés une fois les colonnes connues. Une option liée à une colonne absente de la table est masquée,
 // et un réglage qui n'a plus qu'un choix disparaît (il ne servirait à rien).
@@ -213,32 +173,6 @@ const controls = computed(() => {
     }))
     .filter((control) => control.options.length > 1)
 })
-
-// La spécification transforme la table en option ECharts + tableau + textes.
-// Une DataError (colonne absente…) devient un message lisible ; toute autre erreur est un bug à voir en console.
-const model = computed(() => {
-  if (!data.value) return null
-  try {
-    return buildChart(props.spec, data.value, { ...values })
-  } catch (err) {
-    if (err instanceof DataError) return { problem: err.message }
-    console.error(err)
-    return { problem: t('chartUi.buildFailed', { message: err?.message ?? t('chartUi.unknownError') }) }
-  }
-})
-
-const status = computed(() => {
-  if (!data.value) return error.value ? 'error' : 'loading'
-  if (!model.value) return 'loading'
-  if (model.value.problem) return 'problem'
-  if (model.value.empty) return 'empty'
-  return 'ready'
-})
-
-const missingTable = computed(() => error.value?.status === 404)
-
-// La page GoogleSheet s'ouvre directement sur l'onglet de ce graphique, prêt à être actualisé
-const sheetLink = computed(() => ({ path: '/sheet', query: { onglet: props.spec.table } }))
 
 const subtitle = computed(
   () => model.value?.subtitle || (status.value === 'loading' ? t('chartUi.loadingData') : props.spec.summary),

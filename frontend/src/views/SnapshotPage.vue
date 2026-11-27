@@ -15,48 +15,17 @@
       <ConversionNote :table="portfolio.data.value" class="mt-2" testid="snapshot-converted" />
     </header>
 
-    <div
-      v-if="status === 'loading'"
-      role="status"
-      class="mt-10 flex h-80 items-center justify-center rounded-xl bg-wash text-ink-2 motion-safe:animate-pulse"
+    <PageState
+      :status="status"
+      :error="error"
+      :missing-table="missingTable"
+      :problem="model?.problem"
+      :empty="model?.empty"
+      :reload="reload"
+      table="portfolio"
+      kind="page"
+      :loading-text="t('snapshotPage.loading')"
     >
-      {{ t('snapshotPage.loading') }}
-    </div>
-
-    <div v-else-if="status === 'error'" role="alert" class="mt-10 rounded-xl border border-danger-line bg-danger-wash p-6">
-      <p class="font-semibold text-danger">
-        {{ missingTable ? t('page.tableMissing', { table: 'portfolio' }) : t('chartUi.loadErrorTitle') }}
-      </p>
-      <p class="mt-1 text-ink">
-        {{
-          missingTable
-            ? t('page.notSyncedYet')
-            : portfolio.error.value.message
-        }}
-      </p>
-      <div class="mt-4 flex flex-wrap gap-3">
-        <AppButton v-if="missingTable" :to="{ path: '/sheet', query: { onglet: 'portfolio' } }" variant="secondary" size="sm">
-          {{ t('chartUi.openSheet') }}
-        </AppButton>
-        <AppButton variant="secondary" size="sm" @click="portfolio.reload">{{ t('chartUi.retry') }}</AppButton>
-      </div>
-    </div>
-
-    <div v-else-if="status === 'problem'" role="alert" class="mt-10 rounded-xl border border-danger-line bg-danger-wash p-6">
-      <p class="font-semibold text-danger">{{ t('page.problemTitle') }}</p>
-      <p class="mt-1 text-ink">{{ model.problem }}</p>
-      <p class="mt-3 text-sm text-ink-2">{{ t('chartUi.problemHint') }}</p>
-    </div>
-
-    <div
-      v-else-if="status === 'empty'"
-      class="mt-10 flex h-56 flex-col items-center justify-center rounded-xl border border-dashed border-line-strong bg-wash px-6 text-center"
-    >
-      <p class="font-semibold text-ink">{{ t('chartUi.emptyTitle') }}</p>
-      <p class="mt-1 max-w-md text-ink-2">{{ model.empty }}</p>
-    </div>
-
-    <template v-else>
       <!-- Vue d'ensemble -->
       <section aria-labelledby="titre-actifs" class="mt-10 rounded-xl border border-line bg-paper shadow-soft">
         <div class="border-b border-line px-4 py-4 sm:px-6">
@@ -157,21 +126,21 @@
           </template>
         </i18n-t>
       </div>
-    </template>
+    </PageState>
   </div>
 </template>
 
 <script setup>
 import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
-import AppButton from '../components/ui/AppButton.vue'
+import PageState from '../components/PageState.vue'
 import BaseChart from '../components/charts/BaseChart.vue'
 import ShareBars from '../components/charts/ShareBars.vue'
-import { useTable } from '../composables/useTable.js'
+import { usePageModel } from '../composables/usePageModel.js'
 import ConversionNote from '../components/ConversionNote.vue'
 import ChartGroup from '../components/charts/ChartGroup.vue'
 import { SNAPSHOT_CHARTS } from '../lib/charts/index.js'
-import { DataError, collectDropped } from '../lib/aggregate.js'
+import { collectDropped } from '../lib/aggregate.js'
 import { amountMode, amountNote, droppedNote } from '../lib/amounts.js'
 import { NEGATIVE } from '../lib/palette.js'
 import { donutOption } from '../lib/charts/assetDonut.js'
@@ -183,33 +152,16 @@ const { t } = useI18n()
 // Dettes : la couleur des baisses du site
 const DEBT_COLOR = NEGATIVE
 
-const portfolio = useTable('portfolio')
-const history = useTable('history') // facultative : point de départ des variations de l'année et du mois
-
-// Une DataError (colonne absente…) devient un message lisible ; toute autre erreur est un bug à voir en console.
-const model = computed(() => {
-  if (!portfolio.data.value) return null
-  try {
-    const [result, dropped] = collectDropped(() =>
-      buildSnapshot(portfolio.data.value, history.data.value, undefined, amountMode.value),
-    )
+// history est facultative (point de départ des variations de l'année et du mois) : la page ne l'attend pas
+const { status, model, error, missingTable, tables, reload } = usePageModel({
+  required: ['portfolio'],
+  optional: ['history'],
+  build: ({ portfolio, history }) => {
+    const [result, dropped] = collectDropped(() => buildSnapshot(portfolio, history, undefined, amountMode.value))
     return { ...result, dropped }
-  } catch (err) {
-    if (err instanceof DataError) return { problem: err.message }
-    console.error(err)
-    return { problem: t('page.buildFailed', { message: err?.message ?? t('chartUi.unknownError') }) }
-  }
+  },
 })
-
-const status = computed(() => {
-  if (!portfolio.data.value) return portfolio.error.value ? 'error' : 'loading'
-  if (!model.value) return 'loading'
-  if (model.value.problem) return 'problem'
-  if (model.value.empty) return 'empty'
-  return 'ready'
-})
-
-const missingTable = computed(() => portfolio.error.value?.status === 404)
+const { portfolio, history } = tables
 
 const subtitle = computed(() =>
   model.value?.asOf
