@@ -2,7 +2,8 @@
 // `source` : un nom de table, une ref ou une fonction qui renvoie le nom. Si le nom change, la table est rechargée.
 // Pendant un rechargement de la même table, les anciennes données restent disponibles (pas de saut d'affichage).
 // Montants dans la devise d'affichage (lib/displayCurrency.js), convertis par le serveur ; `raw: true` (page
-// GoogleSheet) les garde en euros. `projection: true` (graphiques de Flow) : history avec le mois prochain, tiré de
+// GoogleSheet) les garde en euros et demande les cellules telles que la feuille les donne (values=raw), même quand
+// le serveur enverra par défaut les valeurs lues. `projection: true` (graphiques de Flow) : history avec le mois prochain, tiré de
 // portfolio par le serveur (wealth/projection.py).
 
 import { isRef, onMounted, ref, watch } from 'vue'
@@ -28,7 +29,10 @@ export function useTable(source, { immediate = true, raw = false, projection = f
     error.value = null
     try {
       const currency = raw ? '' : displayCurrency.value
-      const body = await getTable(name, currency === DEFAULT_CURRENCY ? '' : currency, { projection })
+      const body = await getTable(name, currency === DEFAULT_CURRENCY ? '' : currency, {
+        projection,
+        values: raw ? 'raw' : '',
+      })
       if (request !== lastRequest) return
       data.value = body
       loadedName = name

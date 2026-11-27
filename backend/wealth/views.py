@@ -10,11 +10,18 @@ from core.errors import error_response
 from fx.rates import ISO_CODES
 from googlesheet.data_views import with_owner
 from googlesheet.models import SheetTable
+from googlesheet.schema import normalize_rows
 from profiles.services import current_profile
 
 from .currencies import HISTORY_TABLE, merged_rows
 from .daily import previous_day
 from .projection import projected_rows
+
+
+# ?values=raw : cellules telles que la feuille les donne (page GoogleSheet) ; ?values=clean : lues par schema.py
+# (noms canoniques, nombres, dates ISO). Sans paramètre : raw, en attendant que tout le site lise clean.
+# Pas ?format= : Django REST Framework le réserve au choix du rendu (URL_FORMAT_OVERRIDE) et répond 404.
+VALUES = ("raw", "clean")
 
 
 def _iso(value):
@@ -41,12 +48,24 @@ def table_detail(request, owner, name):
     display = (request.GET.get("currency") or "EUR").strip().upper()
     if display not in ISO_CODES:
         return error_response("Devise non valable.", "invalid_currency", 400)
+    values = (request.GET.get("values") or "raw").strip().lower()
+    if values not in VALUES:
+        return error_response("Valeur de « values » non valable.", "invalid_values", 400, {"values": ", ".join(VALUES)})
     # ?projection=1 (graphiques de Flow et Envelopes) : history reçoit en plus le mois prochain, tiré de portfolio (projection.py)
     extra, projection = [], None
     if table.name == HISTORY_TABLE and request.GET.get("projection") == "1":
         extra, projection = projected_rows(table)
     selected = current_profile(request).chart_currencies or []
     columns, rows, added, available, unconverted = merged_rows(table, selected, display, extra=extra)
+    clean = {}
+    if values == "clean":
+        normalized = normalize_rows(table.name, columns, rows)
+        columns, rows = list(normalized.columns), normalized.rows
+        clean = {
+            "types": normalized.types,  # {colonne: date | amount | number | text}, colonnes connues seulement
+            "sheet_names": normalized.sheet_names,  # {colonne: nom dans la feuille}, pour les messages d'erreur
+            "invalid_cells": normalized.invalid_cells,  # cellules remplies mais illisibles, envoyées vides
+        }
     return JsonResponse(
         {
             "name": table.name,
@@ -65,5 +84,6 @@ def table_detail(request, owner, name):
             # portfolio : total du jour gardé le plus récent avant cette synchronisation (variation « 24h » de Snapshot) :
             # {date, assets, liabilities} dans la devise d'affichage, sinon null
             "previous_day": previous_day(table, display),
+            **clean,
         }
     )
