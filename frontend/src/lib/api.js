@@ -8,10 +8,9 @@
 //   PUT    /api/sheet-config/       -> enregistre les paramètres saisis
 //   DELETE /api/sheet-config/       -> revient aux valeurs du .env
 //   GET    /api/sheet-config/tabs/  -> onglets du document : { mode, tabs[], selected[] }
-//   GET    /api/profile/            -> réglages gardés en base : { asset_colors: { type: '#rrggbb' }, theme, updated_at }
-//   PUT    /api/profile/            { theme } ou { chart_currencies } -> mode clair / sombre ('light', 'dark', '' = système),
-//                                    devises de « Patrimoine par devise » ([] = toutes)
-//   PUT    /api/profile/asset-colors/ { asset_colors } -> remplace les couleurs des types d'actifs ({} = par défaut)
+//   GET    /api/profile/            -> réglages gardés en base : { asset_colors, theme, chart_currencies, display_currency,
+//                                    volatility_months, performance_days, model_target, updated_at }
+//   PUT    /api/profile/            { un ou plusieurs de ces champs } -> enregistre ceux-là, les autres ne changent pas
 //   (mode : 'service_account' = compte de service, 'public_link' = lien seul, 'none' = rien de configuré)
 //   GET    /api/auth/me/            -> { configured, authenticated, user?: { email, name, picture }, first_login? }
 //   POST   /api/auth/logout/        -> déconnexion
@@ -152,42 +151,13 @@ export const saveSyncTabs = (syncTabs) =>
 // Profil gardé en base (un seul pour le site tant qu'il n'y a pas de comptes)
 export const getProfile = () => request('/api/profile/')
 
-export const saveProfileAssetColors = (assetColors) =>
-  request('/api/profile/asset-colors/', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ asset_colors: assetColors }),
-  })
-
-export const saveProfileCurrencies = (codes) =>
+// Enregistre les réglages envoyés sur le profil (celui du compte connecté, sinon celui du site) ; les autres ne
+// changent pas. Renvoie le profil enregistré. Appelé par lib/profileSetting.js, un réglage à la fois.
+export const saveProfile = (partial) =>
   request('/api/profile/', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chart_currencies: codes }),
-  })
-
-// Réglages du profil d'un compte connecté : seuls les champs envoyés changent
-// (périodes de Volatility et de Snapshot : lib/windows.js)
-export const saveProfileSettings = (values) =>
-  request('/api/profile/', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(values),
-  })
-
-// Devise d'affichage d'un compte connecté ('' = euro)
-export const saveProfileDisplayCurrency = (code) =>
-  request('/api/profile/', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ display_currency: code }),
-  })
-
-export const saveProfileTheme = (theme) =>
-  request('/api/profile/', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ theme }),
+    body: JSON.stringify(partial),
   })
 
 // Connexion (session Django, compte Google)

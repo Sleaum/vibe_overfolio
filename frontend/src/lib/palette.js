@@ -1,8 +1,8 @@
 import { CHART_COLORS, COLORS } from './theme.js'
 
-import { ref } from 'vue'
-import { saveProfileAssetColors } from './api.js'
+import { saveProfile } from './api.js'
 import { readPreference, writePreference } from './preferences.js'
+import { createProfileSetting } from './profileSetting.js'
 
 // Couleurs des graphiques, dans l'esprit des couleurs Google :
 // - types d'actifs : une teinte vive par type (ASSET_SWATCHES), choisie type par type dans le menu de Charts ;
@@ -148,34 +148,33 @@ function validChoices(value) {
   )
 }
 
+const setting = createProfileSetting({ field: 'asset_colors', default: () => ({}), validate: validChoices })
+
 /**
  * Couleurs choisies dans le menu de Charts : { 'crypto': '#f9ab00', … } (clé = type en minuscules).
- * Gardées en base, sur le profil (GET /api/profile/, PUT /api/profile/asset-colors/) : celui du compte connecté,
- * sinon celui du site. Chargées au démarrage et à chaque connexion ou déconnexion (lib/profile.js).
- * Réactif : les graphiques se recalculent quand une couleur change.
+ * Gardées en base, sur le profil (GET / PUT /api/profile/) : celui du compte connecté, sinon celui du site.
+ * Chargées au démarrage et à chaque connexion ou déconnexion (lib/profile.js) ; enregistrement et retour en arrière :
+ * lib/profileSetting.js. Réactif : les graphiques se recalculent quand une couleur change.
  */
-export const assetColorChoices = ref({})
+export const assetColorChoices = setting.value
 
 /** Dernière erreur d'enregistrement ou de chargement des couleurs (message déjà traduit), sinon ''. */
-export const assetColorError = ref('')
-
-// Numéro du dernier changement : un enregistrement refusé ne revient en arrière que s'il est toujours le dernier
-let version = 0
+export const assetColorError = setting.error
 
 /**
- * Couleurs du profil reçu (GET /api/profile/, chargé par lib/profile.js). Les couleurs gardées par le navigateur
- * avant le passage en base sont recopiées sur le profil s'il n'en a pas encore, puis effacées du navigateur.
+ * Réglage des couleurs pour lib/profile.js. Les couleurs gardées par le navigateur avant le passage en base sont
+ * recopiées sur le profil s'il n'en a pas encore, puis effacées du navigateur.
  */
-export async function applyProfileAssetColors(profile) {
-  let choices = validChoices(profile?.asset_colors)
-  const legacy = readLegacyChoices()
-  if (!Object.keys(choices).length && Object.keys(legacy).length) {
-    choices = validChoices((await saveProfileAssetColors(legacy)).asset_colors)
-  }
-  if (Object.keys(legacy).length) writePreference('assetColors', null)
-  version++ // un enregistrement encore en cours ne remettra pas les couleurs d'avant
-  assetColorChoices.value = choices
-  assetColorError.value = ''
+export const assetColorsSetting = {
+  ...setting,
+  async applyProfile(profile, account) {
+    const legacy = readLegacyChoices()
+    if (Object.keys(legacy).length) {
+      if (!Object.keys(validChoices(profile?.asset_colors)).length) profile = await saveProfile({ asset_colors: legacy })
+      writePreference('assetColors', null)
+    }
+    await setting.applyProfile(profile, account)
+  },
 }
 
 function readLegacyChoices() {
@@ -184,25 +183,6 @@ function readLegacyChoices() {
   } catch {
     return {}
   }
-}
-
-// Enregistrements les uns après les autres : le dernier choix est toujours celui qui reste en base
-let saving = Promise.resolve()
-
-function saveChoices(next) {
-  const previous = assetColorChoices.value
-  const mine = ++version
-  assetColorChoices.value = next // affiché tout de suite, annulé si le serveur refuse
-  saving = saving.then(async () => {
-    try {
-      await saveProfileAssetColors(next)
-      assetColorError.value = ''
-    } catch (error) {
-      if (version === mine) assetColorChoices.value = previous // sauf si un autre choix a suivi
-      assetColorError.value = error.message
-    }
-  })
-  return saving
 }
 
 /**
@@ -219,12 +199,12 @@ export function setAssetColor(name, color, names) {
       next[keyOf(other)] = previous
     }
   }
-  saveChoices(next)
+  setting.set(next)
 }
 
 /** Revient aux couleurs par défaut. */
 export function resetAssetColors() {
-  saveChoices({})
+  setting.set({})
 }
 
 /**

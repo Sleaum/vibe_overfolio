@@ -15,4 +15,3 @@ export const volatilityWindows = createWindows({
 export const MAX_MONTHS = volatilityWindows.maxValue
 /** Périodes affichées, en mois (réactif : la page Volatility ajoute ou retire les graphiques). */
 export const volatilityMonths = volatilityWindows.list
-export const applyProfileVolatility = volatilityWindows.applyProfile

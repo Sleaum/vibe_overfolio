@@ -5,29 +5,24 @@
 // devises cochées (ou EUR, USD, CHF, THB tant que rien n'est choisi), plus la devise d'affichage de l'en-tête
 // (lib/displayCurrency.js) : en cocher une nouvelle recharge la table.
 // Le choix est gardé sur le profil, en base (PUT /api/profile/ { chart_currencies }) : celui du compte connecté,
-// sinon celui du site. Choix vide = devises par défaut.
+// sinon celui du site. Choix vide = devises par défaut. Enregistrement et retour en arrière : lib/profileSetting.js.
 
-import { ref } from 'vue'
-import { saveProfileCurrencies } from './api.js'
 import { findCurrencyColumn } from './charts/flowData.js'
+import { createProfileSetting } from './profileSetting.js'
 
 /** Devises connues, dans l'ordre d'affichage. */
 export const KNOWN_CURRENCIES = ['EUR', 'USD', 'CHF', 'THB']
 
 const CODE = /^[A-Z]{3}$/
 
-/** Devises cochées (réactif : le graphique se redessine quand le choix change). */
-export const chartCurrencies = ref([])
-/** Dernière erreur d'enregistrement du choix (message déjà traduit), sinon ''. */
-export const currencyError = ref('')
-
 const valid = (list) => [...new Set((Array.isArray(list) ? list : []).map((code) => String(code).toUpperCase()))].filter((code) => CODE.test(code))
 
-/** Choix reçu avec le profil (lib/profile.js). */
-export function applyProfileCurrencies(profile) {
-  chartCurrencies.value = valid(profile?.chart_currencies)
-  currencyError.value = ''
-}
+export const chartCurrenciesSetting = createProfileSetting({ field: 'chart_currencies', default: () => [], validate: valid })
+
+/** Devises cochées (réactif : le graphique se redessine quand le choix change). */
+export const chartCurrencies = chartCurrenciesSetting.value
+/** Dernière erreur d'enregistrement du choix (message déjà traduit), sinon ''. */
+export const currencyError = chartCurrenciesSetting.error
 
 /**
  * Devises de la table : `shown` = [{ code, column }] celles qui ont une colonne (feuille ou calcul du serveur),
@@ -55,20 +50,5 @@ export function selectedCurrencies(available) {
   return known.length ? known : codes
 }
 
-let version = 0
-
 /** Enregistre le choix ; affiché tout de suite, remis comme avant si le serveur refuse. Vrai si enregistré. */
-export async function setChartCurrencies(codes) {
-  const previous = chartCurrencies.value
-  const mine = ++version
-  chartCurrencies.value = valid(codes)
-  try {
-    await saveProfileCurrencies(chartCurrencies.value)
-    currencyError.value = ''
-    return true
-  } catch (error) {
-    if (version === mine) chartCurrencies.value = previous
-    currencyError.value = error.message
-    return false
-  }
-}
+export const setChartCurrencies = (codes) => chartCurrenciesSetting.set(codes)
