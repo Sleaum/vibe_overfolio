@@ -3,7 +3,7 @@
 // Pendant un rechargement de la même table, les anciennes données restent disponibles (pas de saut d'affichage).
 // Montants dans la devise d'affichage (lib/displayCurrency.js), convertis par le serveur ; `raw: true` (page
 // GoogleSheet) les garde en euros. `projection: true` (graphiques de Flow) : history avec le mois prochain, tiré de
-// portfolio par le serveur (googlesheet/projection.py).
+// portfolio par le serveur (wealth/projection.py).
 
 import { isRef, onMounted, ref, watch } from 'vue'
 import { getTable } from '../lib/api.js'

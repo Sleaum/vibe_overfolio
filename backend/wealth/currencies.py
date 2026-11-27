@@ -7,17 +7,19 @@ Devises calculées par le site, avec les taux de la BCE (app fx).
 - Devise d'affichage (menu de l'en-tête, GET /api/data/<onglet>/?currency=THB) : les colonnes de montants
   (type « amount » dans schema.py) sont converties à la demande, de la devise de la feuille (SheetTable.currency, case M1 de
   portfolio, EUR par défaut) vers la devise demandée, au taux du jour de chaque ligne (merged_rows).
-- Les valeurs de la feuille (SheetRow.data) ne sont jamais modifiées : l'API fusionne (data_views.table_detail).
+- Les valeurs de la feuille (SheetRow.data) ne sont jamais modifiées : l'API fusionne (wealth/views.table_detail).
+- Après chaque synchronisation (signal googlesheet.signals.tables_synced) : taux BCE à jour et devises recalculées
+  (refresh_currencies).
 """
 import datetime
 from typing import Dict, Iterable, List, Optional
 
 from django.utils import timezone
 
+from fx.ecb import update_rates
 from fx.rates import ISO_CODES, RateBook, sort_codes
-
-from .models import SheetRow, SheetTable
-from .schema import (
+from googlesheet.models import SheetRow, SheetTable
+from googlesheet.schema import (
     AMOUNT,
     ASSETS,
     DATE_COLUMN,
@@ -43,23 +45,6 @@ def amount_columns(table_name: str, columns: List[str]) -> List[str]:
     names = [name for column in table_schema(table_name) if column.type == AMOUNT for name in column.names]
     wanted = {normalize_name(name) for name in names}
     return [column for column in columns if normalize_name(column) in wanted]
-
-
-def detect_currency(values: List[list], header_row: int, columns: List[str]) -> str:
-    """
-    Devise des montants, écrite au-dessus de la ligne d'en-tête (case M1 de portfolio) : code ISO connu le plus
-    proche de la colonne « Assets Master Currency ». EUR si rien n'est trouvé.
-    """
-    above = values[: max(0, header_row - 1)]
-    header = values[header_row - 1] if 0 < header_row <= len(values) else []
-    target = next((i for i, cell in enumerate(header) if normalize_name(cell) == normalize_name(ASSETS)), None)
-    found = []
-    for row in above:
-        for index, cell in enumerate(row):
-            code = str(cell or "").strip().upper()
-            if code in ISO_CODES:
-                found.append((abs(index - target) if target is not None else index, code))
-    return min(found)[1] if found else "EUR"
 
 
 def _round(value: float) -> float:
@@ -150,6 +135,25 @@ def tables_to_compute(owner=None, names: Optional[Iterable[str]] = None):
     if names is not None:
         queryset = queryset.filter(name__in=list(names))
     return [table for table in queryset if table.name == HISTORY_TABLE or (table.currency or "EUR") != "EUR"]
+
+
+def refresh_currencies(owner=None, names=None) -> dict:
+    """
+    Taux BCE à jour (jours manquants), puis devises recalculées pour les tables concernées (history, et celles
+    qui ne sont pas en euros). Une panne de la BCE n'empêche rien : les taux déjà en base servent.
+    """
+    tables = tables_to_compute(owner, names)  # owner="all" : toutes les tables (commande update_fx_rates)
+    if not tables:
+        return {}
+    update = update_rates()
+    book = RateBook(since=earliest_date(tables))
+    # Clé : nom de la table ; pour toutes les tables (owner="all"), « nom (compte) » pour les distinguer
+    stats = {(str(table) if owner == "all" else table.name): apply_currencies(table, book) for table in tables}
+    return {
+        "rates_latest": update.latest.isoformat() if update.latest else None,
+        "error": update.error,
+        "tables": stats,
+    }
 
 
 def merged_rows(

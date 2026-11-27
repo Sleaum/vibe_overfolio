@@ -1,7 +1,7 @@
 // Page « Volatilité » (/volatilite) : comment le prix de chaque placement a bougé sur 1 mois, 3 mois et 1 an,
 // comme la page « Portfolio Volatility » de l'ancien rapport Data Studio (une bulle par ligne : montant détenu et variation).
 //
-// Calcul, à partir de la table `history` avec le mois prochain (googlesheet/projection.py) :
+// Calcul, à partir de la table `history` avec le mois prochain (wealth/projection.py) :
 // - prix unitaire d'une ligne = Assets Master Currency / Quantity ; il intègre donc le change (un titre en dollars bouge
 //   aussi avec l'euro/dollar) mais pas tes achats ni tes ventes ;
 // - point d'arrivée : tes positions actuelles (lignes tirées de portfolio par le serveur), à la date des positions ;

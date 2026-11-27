@@ -10,8 +10,10 @@ from django.utils import timezone
 from fx.ecb import Update
 from fx.models import ExchangeRate
 
+from googlesheet.models import SheetTable
+
 from .daily import record_portfolio_day
-from .models import PortfolioDay, SheetTable
+from .models import PortfolioDay
 from .tests_currencies import ENV, read_tab
 
 NOV_20 = datetime.date(2026, 11, 20)
@@ -30,7 +32,7 @@ class PortfolioDayTests(TestCase):
         cache.clear()  # pas de délai entre deux synchronisations du test
         with mock.patch("googlesheet.sync.open_spreadsheet", return_value=object()), \
                 mock.patch("googlesheet.sync.read_worksheet_values", side_effect=read_tab), \
-                mock.patch("googlesheet.sync.update_rates", return_value=Update(latest=NOV_20)):
+                mock.patch("wealth.currencies.update_rates", return_value=Update(latest=NOV_20)):
             response = self.client.post("/api/data/sync/")
         self.assertEqual(response.status_code, 200, response.content)
         # Synchronisation du 21 novembre (la date du jour ne doit pas dépendre du jour où le test tourne)

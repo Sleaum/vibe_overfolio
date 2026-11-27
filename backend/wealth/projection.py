@@ -18,10 +18,10 @@ from typing import List, Optional, Tuple
 from django.utils import timezone
 
 from fx.rates import RateBook
+from googlesheet.models import SheetTable
+from googlesheet.schema import currency_columns, normalize_name, sheet_column, to_date, to_number
 
 from .currencies import amount_columns, history_columns, row_fx, _round
-from .models import SheetTable
-from .schema import currency_columns, normalize_name, sheet_column, to_date, to_number
 
 PORTFOLIO_TABLE = "portfolio"
 LABELS = ["Asset", "Instrument"]

@@ -1,8 +1,8 @@
 """
 Total de portfolio gardé chaque jour (modèle PortfolioDay), pour la variation « 24h » de la page Snapshot.
 
-- record_portfolio_day : après une synchronisation qui a enregistré portfolio, garde son total du jour (le dernier
-  de la journée remplace le précédent).
+- record_portfolio_day : après une synchronisation qui a enregistré portfolio (signals.py), garde son total du
+  jour (le dernier de la journée remplace le précédent).
 - previous_day : le relevé du jour le plus récent avant celui de la dernière synchronisation de portfolio, converti
   dans la devise d'affichage au taux de son jour ; envoyé avec GET /api/data/portfolio/ (champ `previous_day`).
 """
@@ -11,10 +11,12 @@ from typing import Optional
 
 from django.utils import timezone
 
-from .currencies import _round
-from .models import PortfolioDay, SheetTable
-from .schema import ASSETS, LIABILITIES, normalize_rows, sheet_column
 from fx.rates import RateBook
+from googlesheet.models import SheetTable
+from googlesheet.schema import ASSETS, LIABILITIES, normalize_rows, sheet_column
+
+from .currencies import _round
+from .models import PortfolioDay
 
 PORTFOLIO_TABLE = "portfolio"
 

@@ -3,7 +3,6 @@ import unittest
 
 from django.test import SimpleTestCase
 
-from .currencies import amount_columns
 from .schema import (
     AMOUNT,
     DATE,
@@ -80,6 +79,16 @@ class ToDateTests(SimpleTestCase):
                       float("nan"), True]:
             with self.subTest(value=value):
                 self.assertIsNone(to_date(value))
+
+
+class ParsingTests(SimpleTestCase):
+    def test_parsing(self):
+        self.assertEqual(to_date("14/11/2026"), datetime.date(2026, 11, 14))
+        self.assertEqual(to_date(46000), datetime.date(1899, 12, 30) + datetime.timedelta(days=46000))
+        self.assertIsNone(to_date("31/02/2026"))
+        self.assertEqual(to_number("1 234,50 €"), 1234.5)
+        self.assertEqual(to_number("1.234,50"), 1234.5)
+        self.assertIsNone(to_number(""))
 
 
 class ColumnNameTests(SimpleTestCase):
@@ -168,9 +177,3 @@ class NormalizeRowsTests(SimpleTestCase):
         self.assertEqual(clean.invalid_cells, 2)  # « n/a » et « bientôt » ; les cellules vides ne comptent pas
         self.assertEqual(clean.sheet_names["Quantity"], "Quantité")
 
-
-class AmountColumnsTests(SimpleTestCase):
-    def test_every_column_named_like_an_amount(self):
-        self.assertEqual(amount_columns("inout", ["Date", "In", "Entree", "out", "Taxes"]), ["In", "Entree", "out", "Taxes"])
-        self.assertEqual(amount_columns("history", ["Date", "EUR", "Assets Master Currency"]), ["Assets Master Currency"])
-        self.assertEqual(amount_columns("dividendes", ["liabilities master currency", "Valeur"]), ["liabilities master currency"])

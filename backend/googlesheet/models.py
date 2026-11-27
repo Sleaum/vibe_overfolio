@@ -24,7 +24,7 @@ class SheetTable(models.Model):
     # Une synchronisation retire les tables d'un autre document : elles ne correspondent plus à la feuille configurée.
     source = models.CharField(max_length=200, blank=True, default="")
     # Devise des montants (Assets / Liabilities Master Currency) : lue au-dessus de l'en-tête (case M1 de portfolio),
-    # EUR par défaut. Si ce n'est pas l'euro, les montants sont convertis en euros (googlesheet/currencies.py).
+    # EUR par défaut. Si ce n'est pas l'euro, les montants sont convertis en euros (wealth/currencies.py).
     currency = models.CharField(max_length=3, default="EUR")
     # Dernier calcul des devises (taux BCE) pour cette table
     rates_applied_at = models.DateTimeField(null=True, blank=True)
@@ -48,7 +48,7 @@ class SheetRow(models.Model):
     table = models.ForeignKey(SheetTable, on_delete=models.CASCADE, related_name="rows")
     position = models.PositiveIntegerField()  # ordre de la ligne dans l'onglet (à partir de 0)
     data = models.JSONField()
-    # Calculé par le site avec les taux BCE (googlesheet/currencies.py), à part des valeurs de la feuille :
+    # Calculé par le site avec les taux BCE (wealth/currencies.py), à part des valeurs de la feuille :
     # {"fx": {"EUR": 1000.0, "USD": 1160.0, …}, "eur": {"Assets Master Currency": 1000.0, …}}
     computed = models.JSONField(default=dict, blank=True)
 
@@ -99,35 +99,3 @@ class SheetConfig(models.Model):
 
     def __str__(self):
         return "Configuration Google Sheet" + ("" if self.user_id is None else f" de {self.user}")
-
-
-class PortfolioDay(models.Model):
-    """
-    Total de la table portfolio, gardé une fois par jour (le dernier de la journée) à chaque synchronisation :
-    sert à la variation « 24h » de la page Snapshot (googlesheet/daily.py). history n'a qu'un relevé par mois.
-
-    Montants dans la devise de la feuille (`currency`), convertis à la lecture. `source` : document d'où vient
-    portfolio ; un relevé d'un autre document n'est jamais comparé. Une ligne par propriétaire et par jour.
-    """
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name="portfolio_days"
-    )
-    day = models.DateField()  # jour de la synchronisation (fuseau du serveur)
-    assets = models.FloatField(default=0)  # somme des Assets Master Currency positifs
-    liabilities = models.FloatField(default=0)  # somme des Liabilities Master Currency négatifs (≤ 0)
-    currency = models.CharField(max_length=3, default="EUR")
-    source = models.CharField(max_length=200, blank=True, default="")
-    recorded_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["day"]
-        constraints = [
-            models.UniqueConstraint(fields=["user", "day"], name="uniq_portfolioday_user_day"),
-            models.UniqueConstraint(
-                fields=["day"], condition=models.Q(user__isnull=True), name="uniq_portfolioday_site_day"
-            ),
-        ]
-
-    def __str__(self):
-        return f"portfolio {self.day}" + ("" if self.user_id is None else f" ({self.user})")

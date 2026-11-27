@@ -160,7 +160,7 @@ export default {
     return t('charts.trend.summary', { currency: currencyLabel() })
   },
   table: 'history',
-  projection: true, // + le mois prochain, tiré de portfolio (googlesheet/projection.py)
+  projection: true, // + le mois prochain, tiré de portfolio (wealth/projection.py)
   minWidth: 720,
   get explain() {
     return tList('charts.trend.explain', { currency: currencyLabel() })
