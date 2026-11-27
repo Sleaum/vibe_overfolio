@@ -2,23 +2,20 @@
 //
 // - Liste : l'euro et les devises cotées par la BCE le dernier jour publié (GET /api/fx/currencies/), avec ce taux.
 // - Choix : par défaut l'euro. Gardé par le navigateur (préférence « currency » de lib/preferences.js) ; avec un compte
-//   connecté, aussi sur son profil en base (display_currency), retrouvé sur tous ses appareils.
+//   connecté, aussi sur son profil en base (display_currency), retrouvé sur tous ses appareils. Enregistrement et
+//   retour en arrière : lib/profileSetting.js.
 // - Effet : useTable demande les tables dans cette devise (GET /api/data/<onglet>/?currency=THB : le serveur
 //   convertit les montants au taux du jour de chaque ligne) ; lib/format.js écrit les montants avec son symbole ;
 //   la page affichée est refaite au changement (App.vue). La page GoogleSheet garde les montants en euros.
 
 import { ref } from 'vue'
-import { getCurrencies, saveProfileDisplayCurrency } from './api.js'
-import { session } from './auth.js'
-import { readPreference, writePreference } from './preferences.js'
+import { getCurrencies } from './api.js'
+import { createProfileSetting } from './profileSetting.js'
 
 export const DEFAULT_CURRENCY = 'EUR'
 const CODE = /^[A-Z]{3}$/
 
 const valid = (code) => (typeof code === 'string' && CODE.test(code.trim().toUpperCase()) ? code.trim().toUpperCase() : '')
-
-/** Devise choisie (réactif). */
-export const displayCurrency = ref(valid(readPreference('currency')) || DEFAULT_CURRENCY)
 
 /** Devises proposées : [{ code, rate }] (taux = unités pour 1 EUR, au dernier jour publié). */
 export const currencyList = ref([{ code: DEFAULT_CURRENCY, rate: 1 }])
@@ -26,6 +23,25 @@ export const currencyList = ref([{ code: DEFAULT_CURRENCY, rate: 1 }])
 export const ratesDate = ref('')
 
 let listLoaded = false
+const listed = (code) => !listLoaded || currencyList.value.some((item) => item.code === code)
+
+export const displayCurrencySetting = createProfileSetting({
+  field: 'display_currency',
+  preference: 'currency',
+  default: DEFAULT_CURRENCY,
+  // '' sur le profil = euro ; une devise que la liste chargée ne propose pas est refusée
+  validate: (raw) => {
+    if (raw === '') return DEFAULT_CURRENCY
+    const code = valid(raw)
+    return code && listed(code) ? code : null
+  },
+  serialize: (code) => (code === DEFAULT_CURRENCY ? '' : code),
+  toPreference: (code) => code,
+  onlyWhenSignedIn: true,
+})
+
+/** Devise choisie (réactif). */
+export const displayCurrency = displayCurrencySetting.value
 
 /** Charge la liste ; une devise choisie qui n'y est pas (plus cotée, base sans taux) revient à l'euro. */
 export async function loadCurrencies() {
@@ -38,38 +54,12 @@ export async function loadCurrencies() {
   } catch {
     return // liste indisponible : le choix enregistré reste, le serveur dira si la devise est inconnue
   }
-  if (!currencyList.value.some((item) => item.code === displayCurrency.value)) displayCurrency.value = DEFAULT_CURRENCY
-}
-
-function apply(code) {
-  displayCurrency.value = code
-  writePreference('currency', code === DEFAULT_CURRENCY ? null : code)
+  // Devise gardée que la liste ne propose plus (plus cotée, base sans taux) : l'euro, sans rien enregistrer
+  if (!listed(displayCurrency.value)) displayCurrency.value = DEFAULT_CURRENCY
 }
 
 /** Choix dans le menu de l'en-tête : appliqué tout de suite ; un compte connecté l'enregistre aussi sur son profil. */
-export function setDisplayCurrency(code) {
-  const next = valid(code)
-  if (!next || next === displayCurrency.value) return
-  if (listLoaded && !currencyList.value.some((item) => item.code === next)) return
-  apply(next)
-  if (session.authenticated) saveProfileDisplayCurrency(next === DEFAULT_CURRENCY ? '' : next).catch(() => {})
-}
-
-/**
- * Devise du profil d'un compte connecté ('' = euro). À la création du compte (firstLogin), un profil sans devise
- * reprend celle de ce navigateur. Un visiteur garde la préférence de son navigateur.
- */
-export async function applyProfileDisplayCurrency(profile, { authenticated = false, firstLogin = false } = {}) {
-  if (!authenticated) return
-  const fromProfile = valid(profile?.display_currency)
-  if (!fromProfile && firstLogin && displayCurrency.value !== DEFAULT_CURRENCY) {
-    await saveProfileDisplayCurrency(displayCurrency.value).catch(() => {})
-    return
-  }
-  const code = fromProfile || DEFAULT_CURRENCY
-  if (listLoaded && !currencyList.value.some((item) => item.code === code)) return
-  apply(code)
-}
+export const setDisplayCurrency = (code) => displayCurrencySetting.set(code)
 
 /** Taux de la liste : unités de `code` pour 1 EUR, ou null. */
 function latestRate(code) {

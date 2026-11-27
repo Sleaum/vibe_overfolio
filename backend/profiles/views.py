@@ -122,6 +122,7 @@ def profile_detail(request):
     """
     GET /api/profile/ : réglages gardés en base (profil du compte connecté, sinon profil du site).
     PUT /api/profile/ : enregistre ce qui est envoyé, le reste ne change pas :
+      {"asset_colors": {"crypto": "#f9ab00"}} couleurs des types d'actifs (remplacées en entier ; {} = par défaut) ;
       {"theme": "dark"}                   mode ("light", "dark", ou "" pour suivre le système) ;
       {"chart_currencies": ["EUR", "THB"]} devises de « Patrimoine par devise » ([] = toutes) ;
       {"display_currency": "THB"}         devise des pages Charts et Simulation ("" = euro) ;
@@ -134,12 +135,18 @@ def profile_detail(request):
     if request.method == "PUT":
         body = request.data if isinstance(request.data, dict) else {}
         fields = []
-        if "theme" in body or not body.keys() & {"chart_currencies", "display_currency", "model_target", *WINDOWS}:
+        if "theme" in body or not body.keys() & {"asset_colors", "chart_currencies", "display_currency", "model_target", *WINDOWS}:
             theme = body.get("theme")
             if theme not in THEMES:
                 return error_response("Mode d'affichage non valable", "invalid_theme", 400)
             profile.theme = theme
             fields.append("theme")
+        if "asset_colors" in body:
+            colors = _clean_asset_colors(body.get("asset_colors"))
+            if colors is None:
+                return error_response("Couleurs des actifs non valables", "invalid_asset_colors", 400)
+            profile.asset_colors = colors
+            fields.append("asset_colors")
         if "chart_currencies" in body:
             currencies = _clean_currencies(body.get("chart_currencies"))
             if currencies is None:
@@ -172,7 +179,11 @@ def profile_detail(request):
 
 @api_view(["PUT"])
 def profile_asset_colors(request):
-    """PUT /api/profile/asset-colors/ {"asset_colors": {type: couleur}} : remplace les couleurs choisies ({} = par défaut)."""
+    """
+    PUT /api/profile/asset-colors/ {"asset_colors": {type: couleur}} : remplace les couleurs choisies ({} = par défaut).
+    Ancienne route : le site passe maintenant par PUT /api/profile/ {"asset_colors": …}, même effet. Gardée pour un
+    onglet resté ouvert avec l'ancien site pendant un déploiement ; à retirer ensuite.
+    """
     body = request.data if isinstance(request.data, dict) else None
     colors = _clean_asset_colors(body.get("asset_colors")) if body is not None else None
     if colors is None:

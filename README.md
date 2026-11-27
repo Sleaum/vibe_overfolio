@@ -101,7 +101,8 @@ overfolio/
 │           ├── api.js              # appels /api/… (jeton CSRF ajouté aux requêtes qui modifient)
 │           ├── auth.js             # état de la connexion (session), se connecter, se déconnecter
 │           ├── googlePicker.js     # sélecteur de fichiers de Google (mode 3 de la page GoogleSheet)
-│           ├── profile.js          # profil en base au démarrage et après connexion : couleurs, mode, devises
+│           ├── profile.js          # profil en base au démarrage et après connexion : SETTINGS, la liste des réglages appliqués
+│           ├── profileSetting.js   # createProfileSetting : un réglage du profil (affiché tout de suite, enregistré, annulé si refusé)
 │           ├── currencies.js       # devises de « Patrimoine par devise » : proposées, cochées, ajoutées, enregistrées sur le profil
 │           ├── windows.js          # choix de périodes (navigateur, profil), ajout, retrait : createWindows()
 │           ├── volatilityWindows.js, performanceWindows.js   # périodes de Volatility (mois) et de Snapshot (jours)
@@ -494,8 +495,8 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/data/sync/` | Relit tous les onglets de la liste et met la base à jour. Un onglet en erreur garde ses anciennes données s'il vient du même document. Les tables d'un **autre document** (feuille changée sur la page GoogleSheet), ou d'origine inconnue et non relues, sont retirées et listées dans `removed`. 502 si aucun onglet n'a pu être enregistré. Rien n'est retiré si le document ne s'ouvre pas. `fx` : taux BCE mis à jour et devises recalculées (`rates_latest`, `error` : `fx_unreachable` ou `fx_invalid`, `tables`) |
 | POST | `/api/data/<onglet>/sync/` | Relit l'onglet dans Google Sheets et met la base à jour |
 | GET, PUT, DELETE | `/api/sheet-config/` | Paramètres d'accès au Google Sheet, avec le mode en vigueur (`mode` : `public_link`, `service_account` ou `none`) et le compte de service à proposer en mode 2 (`account` : `source` `page`/`env`, `values` sans la clé, `private_key_set`). `PUT` avec `clear_credentials: true` retire le compte de service (voir « Paramètres saisis sur la page GoogleSheet ») |
-| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, updated_at }`. `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon). `PUT {"chart_currencies": ["EUR", "THB"]}` : devises de « Patrimoine par devise » (codes ISO, `[]` = toutes ; 400 `invalid_currencies`). `PUT {"display_currency": "THB"}` : devise d'affichage de Charts et Simulation (`""` = euro ; 400 `invalid_currency`). `PUT {"volatility_months": [1, 3, 6]}` : périodes de Volatility en mois (1 à 240, 12 au plus, `[]` = 1, 3 et 12 ; 400 `invalid_volatility_months`). `PUT {"performance_days": [30, 90]}` : périodes de « Variation des prix par sous-type » de Snapshot, en jours (1 à 3650, 8 au plus, `[]` = 30, 90 et 365 ; 400 `invalid_performance_days`). `PUT {"model_target": {"year": 2040, "basis": "types", "types": {"public equity": 60}, "classes": {}, "monthly": null}}` : cible de Models > Target (année 2000 à 2200, `basis` `types` ou `classes`, pourcentages de 0 à 100, 60 lignes au plus, versement mensuel positif ou `null` ; `{}` l'efface ; 400 `invalid_model_target`). Seul ce qui est envoyé change |
-| PUT | `/api/profile/asset-colors/` | `{"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut). Types mis en minuscules ; 400 `invalid_asset_colors` si une couleur n'est pas au format `#rrggbb`, si un type est vide ou dépasse 100 caractères, ou au-delà de 200 types |
+| GET, PUT | `/api/profile/` | Profil gardé en base : celui du compte connecté, sinon celui du site. `GET` : `{ asset_colors: { type: "#rrggbb" }, theme, chart_currencies, display_currency, volatility_months, performance_days, model_target, updated_at }`. `PUT {"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut ; mêmes règles que la route ci-dessous, 400 `invalid_asset_colors`). `PUT {"theme": "dark"}` : mode clair / sombre (`light`, `dark`, ou `""` pour suivre le système ; 400 `invalid_theme` sinon). `PUT {"chart_currencies": ["EUR", "THB"]}` : devises de « Patrimoine par devise » (codes ISO, `[]` = toutes ; 400 `invalid_currencies`). `PUT {"display_currency": "THB"}` : devise d'affichage de Charts et Simulation (`""` = euro ; 400 `invalid_currency`). `PUT {"volatility_months": [1, 3, 6]}` : périodes de Volatility en mois (1 à 240, 12 au plus, `[]` = 1, 3 et 12 ; 400 `invalid_volatility_months`). `PUT {"performance_days": [30, 90]}` : périodes de « Variation des prix par sous-type » de Snapshot, en jours (1 à 3650, 8 au plus, `[]` = 30, 90 et 365 ; 400 `invalid_performance_days`). `PUT {"model_target": {"year": 2040, "basis": "types", "types": {"public equity": 60}, "classes": {}, "monthly": null}}` : cible de Models > Target (année 2000 à 2200, `basis` `types` ou `classes`, pourcentages de 0 à 100, 60 lignes au plus, versement mensuel positif ou `null` ; `{}` l'efface ; 400 `invalid_model_target`). Seul ce qui est envoyé change |
+| PUT | `/api/profile/asset-colors/` | **Ancienne route**, gardée le temps qu'un onglet ouvert avec l'ancien site se recharge (le site passe par `PUT /api/profile/ {"asset_colors"}`) : `{"asset_colors": {"crypto": "#f9ab00"}}` : remplace les couleurs choisies (`{}` = couleurs par défaut). Types mis en minuscules ; 400 `invalid_asset_colors` si une couleur n'est pas au format `#rrggbb`, si un type est vide ou dépasse 100 caractères, ou au-delà de 200 types |
 | GET | `/api/auth/google/start/?next=/page` | Navigation (pas d'appel JSON) : part se connecter chez Google, puis revient sur `next` (une page du site seulement). Sans réglages Google : retour sur `/newpage?error=google_not_configured` |
 | GET | `/api/auth/google/callback/` | Retour de Google (adresse déclarée dans Google Cloud) : vérifie `state`, échange le code (PKCE), vérifie le jeton d'identité, ouvre la session. Échec : `/newpage?error=` `google_denied`, `google_state_invalid`, `google_token_failed`, `google_token_invalid`, `google_email_unverified`, `account_disabled` (compte désactivé dans l'admin) |
 | GET | `/api/auth/google/drive/start/?next=/sheet` | Navigation, compte connecté : autorise l'accès aux feuilles choisies (`drive.file`, accès hors ligne, autorisation progressive). Retour sur `next` avec `?google=connected`, ou `?google_error=` `google_drive_not_configured`, `google_account_mismatch` (autre compte choisi chez Google), `google_drive_denied` (case décochée), `google_token_failed`… |
@@ -974,6 +975,36 @@ La page `/modeles/target` sert à viser une répartition pour une année donnée
 | Plan d'actions | Une ligne par année jusqu'à l'année visée, une colonne par catégorie (`buildPlan`). Chaque année, les versements (12 × le versement mensuel) vont d'abord aux catégories sous leur cible, au prorata de ce qui leur manque ; s'il en reste, il est réparti selon la cible. Rien n'est vendu avant la dernière année ; si la cible n'est pas atteinte à ce moment-là (à 0,5 point près), le plan vend ce qui dépasse (en rouge) et rachète ce qui manque. Une phrase dit l'année où la cible est atteinte par les seuls versements, ou qu'il faudra vendre. Hypothèses : pas de rendement ni d'inflation, montants d'aujourd'hui dans la devise d'affichage |
 
 **Où est gardée la cible** : sur le profil (`model_target`, `PUT /api/profile/`), celui du compte connecté, sinon celui du site : elle se retrouve sur tous les appareils. Chargée avec le profil au démarrage et à chaque connexion ; enregistrée 0,6 s après le dernier changement ; « Tout effacer » l'efface du profil.
+
+### Réglages du profil
+
+Sept réglages sont gardés sur le profil en base. Tous passent par `createProfileSetting` (`lib/profileSetting.js`), avec un seul comportement :
+
+- **Affichage :** le choix s'affiche tout de suite.
+- **Enregistrement :** les envois à `PUT /api/profile/` partent un par un, dans l'ordre ; un choix remplacé avant son envoi n'est pas envoyé.
+- **Refus du serveur :** retour à la dernière valeur acceptée par le serveur, et message d'erreur (`error`).
+- **Réponses périmées :** la réponse d'un choix dépassé ne change plus rien, et un profil appliqué entre-temps (connexion, déconnexion) n'est pas défait.
+
+`lib/profile.js` les applique tous, dans l'ordre de `SETTINGS`, au démarrage et après une connexion ou une déconnexion. Un réglage en erreur n'empêche pas les autres.
+
+| Réglage | Module | Gardé par | Par défaut |
+|---|---|---|---|
+| Couleurs des types d'actifs | `lib/palette.js` | profil (site ou compte) | `{}` (couleurs par défaut) |
+| Devises de « Patrimoine par devise » | `lib/currencies.js` | profil (site ou compte) | `[]` (EUR, USD, CHF, THB) |
+| Cible de Models > Target | `lib/modelTarget.js` | profil (site ou compte) | aucune (`{}` sur le profil) |
+| Mode clair / sombre | `composables/useTheme.js` | navigateur ; profil aussi pour un compte connecté | suivre le système |
+| Devise d'affichage | `lib/displayCurrency.js` | navigateur ; profil aussi pour un compte connecté | EUR |
+| Périodes de Volatility | `lib/volatilityWindows.js` (`lib/windows.js`) | navigateur ; profil aussi pour un compte connecté | 1, 3 et 12 mois |
+| Périodes de Snapshot | `lib/performanceWindows.js` (`lib/windows.js`) | navigateur ; profil aussi pour un compte connecté | 30, 90 et 365 jours |
+
+**Première connexion.** À la création d'un compte, le serveur recopie le profil du site : couleurs, mode et devises du graphique (`Profile.copy_site_profile`). Ensuite, chaque réglage gardé aussi par le navigateur, encore vide sur le nouveau profil, y reprend le choix de ce navigateur. Cela vaut pour le mode, la devise d'affichage et les périodes.
+
+**Anciennes couleurs.** Les couleurs gardées autrefois par le navigateur sont recopiées une fois sur un profil qui n'en a pas, puis effacées du navigateur.
+
+**Ajouter un réglage :**
+1. Un champ sur `Profile`, et sa validation dans `PUT /api/profile/`.
+2. Un `createProfileSetting({ field, default, validate, serialize?, preference?, toPreference?, onlyWhenSignedIn? })` dans son module.
+3. Une ligne dans `SETTINGS`.
 
 ### Rubriques à menu
 

@@ -14,4 +14,3 @@ export const performanceWindows = createWindows({
 
 /** Périodes affichées, en jours (réactif). */
 export const performanceDays = performanceWindows.list
-export const applyProfilePerformance = performanceWindows.applyProfile

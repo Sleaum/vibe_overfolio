@@ -55,6 +55,36 @@ class ProfileAssetColorsTests(TestCase):
         self.assertNotEqual(site.pk, mine.pk)
 
 
+
+class ProfileAssetColorsOnProfileRouteTests(ProfileAssetColorsTests):
+    """Mêmes vérifications sur PUT /api/profile/ {"asset_colors": …}, la route qu'emploie maintenant le site."""
+
+    colors_url = "/api/profile/"
+
+    def test_invalid_colors_are_refused(self):
+        for payload in (
+            {"asset_colors": {"crypto": "red"}},
+            {"asset_colors": {"crypto": "#f9ab0"}},
+            {"asset_colors": {"": "#f9ab00"}},
+            {"asset_colors": ["#f9ab00"]},
+            {"asset_colors": {"x" * 101: "#f9ab00"}},
+            {"asset_colors": None},
+        ):
+            response = self.put(payload)
+            self.assertEqual(response.status_code, 400, payload)
+            self.assertEqual(response.json()["code"], "invalid_asset_colors")
+
+    def test_colors_leave_other_settings_alone(self):
+        self.client.put(self.url, json.dumps({"theme": "dark", "chart_currencies": ["THB"]}), content_type="application/json")
+        body = self.put({"asset_colors": {"crypto": "#f9ab00"}}).json()
+        self.assertEqual((body["theme"], body["chart_currencies"]), ("dark", ["THB"]))
+        both = self.put({"asset_colors": {}, "display_currency": "USD"}).json()
+        self.assertEqual((both["asset_colors"], both["display_currency"], both["theme"]), ({}, "USD", "dark"))
+
+    def test_empty_body_is_still_a_theme_change(self):
+        response = self.put({})
+        self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_theme"))
+
 class ChartCurrenciesTests(TestCase):
     url = "/api/profile/"
 
