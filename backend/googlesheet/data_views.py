@@ -2,8 +2,7 @@ import os
 
 from django.core.cache import cache
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view
 
 from . import config
 from .currencies import HISTORY_TABLE, merged_rows
@@ -100,7 +99,6 @@ def table_detail(request, name):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
 def table_sync(request, name):
     """
     POST /api/data/<onglet>/sync/ : relit l'onglet dans Google Sheets et met la base à jour.
@@ -136,7 +134,6 @@ def table_sync(request, name):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
 def sync_all(request):
     """
     POST /api/data/sync/ : relit tous les onglets de la liste de synchronisation et met la base à jour.
@@ -185,7 +182,6 @@ def sync_all(request):
 
 
 @api_view(["GET", "PUT", "DELETE"])
-@permission_classes([AllowAny])
 def sheet_config(request):
     """
     /api/sheet-config/ : paramètres d'accès au Google Sheet (page GoogleSheet).
@@ -214,7 +210,6 @@ def sheet_config(request):
 
 
 @api_view(["GET", "PUT"])
-@permission_classes([AllowAny])
 def sheet_tabs(request):
     """
     /api/sheet-config/tabs/ : onglets du document (section Onglet de la page GoogleSheet).

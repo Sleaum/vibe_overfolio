@@ -1,8 +1,7 @@
 import re
 
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view
 
 from fx.rates import ISO_CODES
 from googlesheet.errors import error_response
@@ -133,7 +132,6 @@ def _clean_currencies(value):
 
 
 @api_view(["GET", "PUT"])
-@permission_classes([AllowAny])
 def profile_detail(request):
     """
     GET /api/profile/ : réglages gardés en base (profil du compte connecté, sinon profil du site).
@@ -187,7 +185,6 @@ def profile_detail(request):
 
 
 @api_view(["PUT"])
-@permission_classes([AllowAny])
 def profile_asset_colors(request):
     """PUT /api/profile/asset-colors/ {"asset_colors": {type: couleur}} : remplace les couleurs choisies ({} = par défaut)."""
     body = request.data if isinstance(request.data, dict) else None

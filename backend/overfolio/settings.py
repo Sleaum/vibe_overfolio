@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -9,7 +8,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
 
 # SECURITY WARNING: keep the secret key used in production secret!
-#SECRET_KEY = 'django-insecure-ae)mt582mhtd2dv(#$2a#_+%y-i+fz$3l)n+nln5rd0r%t85lf'
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # Vérification de sécurité
@@ -46,6 +44,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # En tête, comme le demande django-cors-headers : les réponses produites plus bas (CommonMiddleware…) ont aussi leurs en-têtes CORS
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -53,7 +53,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'overfolio.urls'
@@ -104,10 +103,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:5173,http://127.0.0.1:5173'
-).split(',')
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',')
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -129,7 +125,9 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
     # Lecteurs (parsers) par défaut de DRF : JSON, formulaire, multipart (comportement inchangé)
-    # API publique : sans connexion, le site marche comme avant (profil et données du site)
+    # API publique pour l'instant : sans connexion, le site marche comme avant (profil et données du site).
+    # Aucune vue ne redéclare AllowAny ; pour réserver une route aux comptes connectés, poser
+    # @permission_classes([IsAuthenticated]) sur cette vue.
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],

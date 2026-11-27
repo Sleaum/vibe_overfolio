@@ -165,11 +165,6 @@ def parse_values(
     return header_index + 1, [name for _, name in columns], rows
 
 
-def rows_from_values(values: List[List[Any]], header_row: Optional[int] = None) -> List[dict]:
-    """Comme parse_values, mais ne renvoie que les lignes."""
-    return parse_values(values, header_row)[2]
-
-
 def _read_values(worksheet) -> List[List[Any]]:
     """
     Valeurs brutes (nombres réels, indépendants de la langue de la feuille : pas de
@@ -364,12 +359,3 @@ def read_worksheet_values(spreadsheet, sheet_name: Optional[str] = None) -> List
     except RequestException as exc:
         logger.warning("Google Sheets injoignable : %s", exc)
         raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
-
-
-def get_all_rows(
-    doc_name: str, sheet_name: Optional[str] = None, header_row: Optional[int] = None
-) -> List[dict]:
-    """Lit un onglet d'un Google Sheet (par défaut le premier) et renvoie ses lignes."""
-    spreadsheet = open_spreadsheet(doc_name)
-    values = read_worksheet_values(spreadsheet, sheet_name)
-    return rows_from_values(values, header_row)
