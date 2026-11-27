@@ -24,7 +24,7 @@ describe('toNumber', () => {
   )
 
   // À confirmer : une valeur écrite à l'anglaise (virgule des milliers) est lue comme une décimale.
-  // Le serveur lit pareil (to_number de googlesheet/currencies.py) ; l'API Google renvoie d'habitude des nombres.
+  // Le serveur lit pareil (to_number de googlesheet/schema.py) ; l'API Google renvoie d'habitude des nombres.
   it.skip('lit "1,234.56" comme 1234.56 (format anglais)', () => {
     expect(toNumber('1,234.56')).toBe(1234.56)
   })

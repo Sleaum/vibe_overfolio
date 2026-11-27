@@ -17,20 +17,11 @@ from typing import List, Optional, Tuple
 
 from django.utils import timezone
 
-from fx.rates import ISO_CODES, RateBook
+from fx.rates import RateBook
 
-from .currencies import (
-    amount_columns,
-    currency_token,
-    find_column,
-    history_columns,
-    normalize,
-    row_fx,
-    to_date,
-    to_number,
-    _round,
-)
+from .currencies import amount_columns, history_columns, row_fx, _round
 from .models import SheetTable
+from .schema import currency_columns, normalize_name, sheet_column, to_date, to_number
 
 PORTFOLIO_TABLE = "portfolio"
 LABELS = ["Asset", "Instrument"]
@@ -51,7 +42,7 @@ def projected_rows(history: SheetTable, today: Optional[datetime.date] = None) -
     rien à ajouter. infos = {date, rows, unconverted, source_date}.
     """
     columns = list(history.columns or [])
-    date_col = find_column(columns, "Date")
+    date_col = sheet_column(history.name, columns, "Date")
     if not date_col:
         return [], None
     portfolio = SheetTable.objects.filter(user_id=history.user_id, name=PORTFOLIO_TABLE).first()
@@ -60,31 +51,29 @@ def projected_rows(history: SheetTable, today: Optional[datetime.date] = None) -
 
     p_columns = list(portfolio.columns or [])
     p_rows = list(portfolio.rows.order_by("position").values_list("data", flat=True))
-    p_labels = [column for column in (find_column(p_columns, name) for name in LABELS) if column]
+    p_labels = [column for column in (sheet_column(PORTFOLIO_TABLE, p_columns, name) for name in LABELS) if column]
     p_rows = [data or {} for data in p_rows if _labelled(data or {}, p_labels)]
     if not p_rows:
         return [], None
 
     # Date des positions : la plus récente de portfolio (selon la place de cotation, une photo porte plusieurs dates)
-    p_date = find_column(p_columns, "Date")
+    p_date = sheet_column(PORTFOLIO_TABLE, p_columns, "Date")
     days = [day for day in (to_date(data.get(p_date)) for data in p_rows) if day] if p_date else []
     positions = max(days) if days else (today or timezone.localdate())
     target = next_month(positions)
 
     # Mois déjà relevé dans history : la feuille fait foi
-    h_labels = [column for column in (find_column(columns, name) for name in LABELS) if column]
+    h_labels = [column for column in (sheet_column(history.name, columns, name) for name in LABELS) if column]
     for data in history.rows.values_list("data", flat=True):
         day = to_date((data or {}).get(date_col))
         if day and (day.year, day.month) == (target.year, target.month) and _labelled(data or {}, h_labels):
             return [], None
 
     # Colonnes de history remplies depuis portfolio (même nom, sans tenir compte de la casse ni des accents)
-    by_name = {normalize(column): column for column in p_columns}
-    mapping = {column: by_name.get(normalize(column)) for column in columns}
+    by_name = {normalize_name(column): column for column in p_columns}
+    mapping = {column: by_name.get(normalize_name(column)) for column in columns}
     amounts = amount_columns(history.name, columns)
-    sheet_currencies = {
-        column: code for column in columns for code in ISO_CODES if currency_token(column, code)
-    }  # colonnes EUR, USD… encore présentes dans la feuille : remplies avec les montants calculés
+    sheet_currencies = currency_columns(columns)  # colonnes EUR, USD… de la feuille : remplies avec les montants calculés
 
     source = (portfolio.currency or "EUR").upper()
     target_currency = (history.currency or "EUR").upper()

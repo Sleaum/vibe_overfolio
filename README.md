@@ -25,9 +25,10 @@ overfolio/
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env ; load_settings() -> SheetSettings, lu une fois par requête
 │   │   ├── sync.py                 # copie des onglets vers la base, puis devises recalculées et total du jour de portfolio
 │   │   ├── daily.py                # total de portfolio gardé chaque jour : variation « 24h » de Snapshot
+│   │   ├── schema.py               # colonnes connues de chaque onglet : nom canonique, autres noms acceptés, type ; lecture des cellules
 │   │   ├── currencies.py           # devises calculées avec les taux BCE (history, portfolio dans une autre devise)
 │   │   ├── projection.py           # mois prochain de history pour Flow : positions de portfolio, datées du 1er du mois suivant
-│   │   ├── admin.py, tests.py, tests_currencies.py, tests_daily.py, tests_history.py, tests_encryption.py, tests_queries.py, tests_services.py, tests_sync.py
+│   │   ├── admin.py, tests.py, tests_currencies.py, tests_daily.py, tests_history.py, tests_encryption.py, tests_queries.py, tests_schema.py, tests_services.py, tests_sync.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
 │   ├── accounts/                   # app : connexion avec Google (session Django)
@@ -637,6 +638,26 @@ where t.name = 'portfolio'
 group by 1 order by 2 desc;"
 ```
 
+### Colonnes reconnues
+
+`backend/googlesheet/schema.py` déclare les colonnes connues de chaque onglet (`portfolio`, `history`, `stock`, `inout`, `budget`) : un nom canonique, les autres noms acceptés et un type.
+
+| Type | Valeur lue | Exemple |
+|---|---|---|
+| `date` | `AAAA-MM-JJ`, ou vide | `14/11/2026`, `2026-11-14`, numéro de série Google Sheets |
+| `amount` | nombre, ou vide ; converti dans la devise d'affichage | `1 234,56 €`, `1.234,56` |
+| `number` | nombre, ou vide ; jamais converti | une quantité |
+| `text` | texte sans espaces autour | |
+
+- **Noms** : comparés sans tenir compte de la casse, des accents, des espaces, de `_` ni de `-`. Par exemple, `Enveloppe`, `Compte` et `Wrapper` sont lus comme `Envelope`.
+- **Doublons** : si deux colonnes portent des noms du même canonique, la première dans l'ordre de la feuille l'emporte.
+- **Colonnes inconnues** : elles passent telles quelles.
+- **Colonnes de devise** : dans `history`, `EUR`, `USD` ou `Total USD` sont des montants dans cette devise.
+- **Autres onglets** : un onglet ajouté à la liste de synchronisation n'a que ses montants reconnus (`Assets Master Currency`, `Liabilities Master Currency`).
+- **Cellule illisible** : un montant ou une date qu'on ne sait pas lire est vidé et compté (`invalid_cells` de `normalize_rows`), jamais remplacé par 0.
+
+La base garde les cellules telles que la feuille les donne. La lecture se fait à chaque requête (`normalize_rows`) : un nom accepté ajouté dans `schema.py` vaut tout de suite, sans resynchroniser. Les calculs du serveur passent déjà par ce fichier (devises, total du jour, mois prochain). Le site a encore ses propres listes de noms (`findColumn`, `toNumber`, `toIsoDate`) : elles disparaîtront quand l'API enverra les lignes déjà lues.
+
 ## Synchronisation Google Sheets vers la base
 
 ```bash
@@ -1169,6 +1190,8 @@ cd frontend && npm run test:watch # relance à chaque modification
 - **Hasard** : la simulation prend une graine (`seed`, 42 par défaut) ; les tests la fixent.
 - **Bugs connus** : un test marqué `it.skip` décrit un comportement faux pas encore corrigé, avec son explication. Le corriger, c'est retirer le `.skip` dans la même PR que le correctif.
 - Une PR qui change un calcul de `src/lib/` ajoute ou adapte ses tests.
+
+**Côté serveur**, `googlesheet/tests_schema.py` reprend les cas de lecture des nombres, des dates et des noms de colonnes de `aggregate.test.js` et `dates.test.js` : les deux côtés lisent la feuille de la même façon. Le test sauté de la lecture à l'anglaise (`1,234.56`) l'est des deux côtés.
 
 ## Commandes utiles
 
