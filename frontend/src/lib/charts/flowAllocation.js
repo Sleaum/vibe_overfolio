@@ -68,7 +68,7 @@ export default {
     return t('charts.allocation.summary')
   },
   table: 'history',
-  projection: true, // + le mois prochain, tiré de portfolio (googlesheet/projection.py)
+  projection: true, // + le mois prochain, tiré de portfolio (wealth/projection.py)
   minWidth: 720,
   get explain() {
     return tList('charts.allocation.explain')

@@ -25,7 +25,7 @@ class OneConfigReadTests(TestCase):
     def setUp(self):
         cache.clear()
         # Taux BCE : rien à télécharger pendant ces tests (le nombre de requêtes ne dépend pas du réseau)
-        patcher = mock.patch("googlesheet.sync.update_rates", return_value=mock.Mock(latest=None, error=None))
+        patcher = mock.patch("wealth.currencies.update_rates", return_value=mock.Mock(latest=None, error=None))
         patcher.start()
         self.addCleanup(patcher.stop)
 

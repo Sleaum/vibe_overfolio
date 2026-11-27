@@ -1,7 +1,7 @@
 // Devises du graphique « Patrimoine par devise » (lib/charts/flowCurrency.js).
 //
 // Devises proposées : celles que le serveur sait calculer avec les taux de la BCE (table.currencies_available,
-// googlesheet/currencies.py), et celles qui ont une colonne dans la feuille. Le serveur n'envoie en colonnes que les
+// wealth/currencies.py), et celles qui ont une colonne dans la feuille. Le serveur n'envoie en colonnes que les
 // devises cochées (ou EUR, USD, CHF, THB tant que rien n'est choisi), plus la devise d'affichage de l'en-tête
 // (lib/displayCurrency.js) : en cocher une nouvelle recharge la table.
 // Le choix est gardé sur le profil, en base (PUT /api/profile/ { chart_currencies }) : celui du compte connecté,

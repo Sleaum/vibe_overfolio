@@ -5,7 +5,7 @@
   Bas : pour chaque type d'actif, ses sous-types, instruments, enveloppes, courtiers et zones.
   Calculs dans lib/snapshot.js. Les deux variations vont du dernier relevé de history avant le 1er janvier / le 1er du mois
   (de la date des positions) jusqu'à portfolio ; si history manque, la page s'affiche quand même. La variation sur 24 h
-  part du total de portfolio gardé par le serveur la veille (previous_day, backend googlesheet/daily.py).
+  part du total de portfolio gardé par le serveur la veille (previous_day, backend wealth/daily.py).
 -->
 <template>
   <div>

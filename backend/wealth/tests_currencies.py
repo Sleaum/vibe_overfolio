@@ -13,9 +13,9 @@ from django.test import TestCase
 from fx.ecb import Update
 from fx.models import ExchangeRate
 
-from .currencies import detect_currency, earliest_date
-from .models import SheetRow, SheetTable
-from .schema import to_date, to_number
+from googlesheet.models import SheetRow, SheetTable
+
+from .currencies import amount_columns, earliest_date
 
 ENV = {"GOOGLE_SHEET_ID": "id-site", "SHEET_SYNC_TABS": "history,portfolio"}
 HEADER = ["Date", "Asset", "Instrument", "Assets Master Currency", "Liabilities Master Currency"]
@@ -49,7 +49,7 @@ class CurrencySyncTests(TestCase):
     def sync(self):
         with mock.patch("googlesheet.sync.open_spreadsheet", return_value=object()), \
                 mock.patch("googlesheet.sync.read_worksheet_values", side_effect=read_tab), \
-                mock.patch("googlesheet.sync.update_rates", return_value=Update(latest=datetime.date(2026, 11, 20))):
+                mock.patch("wealth.currencies.update_rates", return_value=Update(latest=datetime.date(2026, 11, 20))):
             response = self.client.post("/api/data/sync/")
         self.assertEqual(response.status_code, 200, response.content)
         return response.json()
@@ -96,7 +96,7 @@ class CurrencySyncTests(TestCase):
         ExchangeRate.objects.all().delete()
         with mock.patch("googlesheet.sync.open_spreadsheet", return_value=object()), \
                 mock.patch("googlesheet.sync.read_worksheet_values", side_effect=read_tab), \
-                mock.patch("googlesheet.sync.update_rates", return_value=Update(error="fx_unreachable")):
+                mock.patch("wealth.currencies.update_rates", return_value=Update(error="fx_unreachable")):
             body = self.client.post("/api/data/sync/").json()
         self.assertEqual(body["fx"]["error"], "fx_unreachable")
         self.assertEqual(body["saved"], 2)
@@ -160,8 +160,8 @@ class CommandTests(TestCase):
             SheetRow.objects.create(table=table, position=0, data={"Date": "2026-11-20", "EUR": 100})
         out = io.StringIO()
         update = Update(latest=datetime.date(2026, 11, 20))
-        with mock.patch("fx.management.commands.update_fx_rates.update_rates", return_value=update), \
-                mock.patch("googlesheet.sync.update_rates", return_value=update):
+        with mock.patch("wealth.management.commands.update_fx_rates.update_rates", return_value=update), \
+                mock.patch("wealth.currencies.update_rates", return_value=update):
             call_command("update_fx_rates", "--recompute", stdout=out)
         self.assertIn("history : 1 lignes", out.getvalue())
         self.assertIn("history (alice) : 1 lignes", out.getvalue())
@@ -170,20 +170,6 @@ class CommandTests(TestCase):
 
 
 class HelpersTests(TestCase):
-    def test_detect_currency(self):
-        values = [["Total", "", "EUR", "", "", "THB"], ["Date", "Asset", "x", "y", "Envelope", "Assets Master Currency"]]
-        self.assertEqual(detect_currency(values, 2, values[1]), "THB")  # la plus proche de la colonne des montants
-        self.assertEqual(detect_currency([["Date", "Assets Master Currency"]], 1, ["Date", "Assets Master Currency"]), "EUR")
-        self.assertEqual(detect_currency([["usd"], ["Date", "Assets Master Currency"]], 2, []), "USD")
-
-    def test_parsing(self):
-        self.assertEqual(to_date("14/11/2026"), datetime.date(2026, 11, 14))
-        self.assertEqual(to_date(46000), datetime.date(1899, 12, 30) + datetime.timedelta(days=46000))
-        self.assertIsNone(to_date("31/02/2026"))
-        self.assertEqual(to_number("1 234,50 €"), 1234.5)
-        self.assertEqual(to_number("1.234,50"), 1234.5)
-        self.assertIsNone(to_number(""))
-
     def test_earliest_date(self):
         table = SheetTable.objects.create(name="history", columns=["Date", "EUR"], row_count=3)
         for position, day in enumerate(["2026-03-02", "02/01/2025", "pas une date"]):
@@ -254,3 +240,10 @@ class ProjectionTests(TestCase):
         self.assertEqual(body["rows"][-2]["Assets Master Currency"], "")
         self.portfolio.delete()
         self.assertIsNone(self.get()["projection"])
+
+
+class AmountColumnsTests(TestCase):
+    def test_every_column_named_like_an_amount(self):
+        self.assertEqual(amount_columns("inout", ["Date", "In", "Entree", "out", "Taxes"]), ["In", "Entree", "out", "Taxes"])
+        self.assertEqual(amount_columns("history", ["Date", "EUR", "Assets Master Currency"]), ["Assets Master Currency"])
+        self.assertEqual(amount_columns("dividendes", ["liabilities master currency", "Valeur"]), ["liabilities master currency"])

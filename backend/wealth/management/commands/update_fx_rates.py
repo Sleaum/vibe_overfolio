@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from fx.ecb import update_rates
-from googlesheet.sync import refresh_currencies
+from wealth.currencies import refresh_currencies
 
 
 class Command(BaseCommand):

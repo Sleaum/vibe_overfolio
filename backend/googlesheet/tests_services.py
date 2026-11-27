@@ -7,7 +7,7 @@ from django.test import TestCase
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from . import config, services
-from .services import SheetAPIError, SheetNotFound
+from .services import SheetAPIError, SheetNotFound, detect_currency
 
 
 def api_error(message="quota dépassé"):
@@ -114,3 +114,11 @@ class GoogleErrorTranslationTests(TestCase):
             with self.assertLogs("googlesheet.services", level="WARNING") as logs, self.assertRaises(SheetAPIError):
                 services.open_google_account_spreadsheet(object(), "id-choisi")
         self.assertNotIn("Alice", "\n".join(logs.output))
+
+
+class DetectCurrencyTests(TestCase):
+    def test_detect_currency(self):
+        values = [["Total", "", "EUR", "", "", "THB"], ["Date", "Asset", "x", "y", "Envelope", "Assets Master Currency"]]
+        self.assertEqual(detect_currency(values, 2, values[1]), "THB")  # la plus proche de la colonne des montants
+        self.assertEqual(detect_currency([["Date", "Assets Master Currency"]], 1, ["Date", "Assets Master Currency"]), "EUR")
+        self.assertEqual(detect_currency([["usd"], ["Date", "Assets Master Currency"]], 2, []), "USD")

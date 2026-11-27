@@ -10,6 +10,10 @@ import gspread
 import requests
 from requests.exceptions import RequestException
 
+from fx.rates import ISO_CODES
+
+from .schema import ASSETS, normalize_name
+
 logger = logging.getLogger(__name__)
 
 # Client gspread créé à la première requête (et non au démarrage de Django), puis réutilisé
@@ -171,6 +175,23 @@ def parse_values(
             }
         )
     return header_index + 1, [name for _, name in columns], rows
+
+
+def detect_currency(values: List[list], header_row: int, columns: List[str]) -> str:
+    """
+    Devise des montants, écrite au-dessus de la ligne d'en-tête (case M1 de portfolio) : code ISO connu le plus
+    proche de la colonne « Assets Master Currency ». EUR si rien n'est trouvé.
+    """
+    above = values[: max(0, header_row - 1)]
+    header = values[header_row - 1] if 0 < header_row <= len(values) else []
+    target = next((i for i, cell in enumerate(header) if normalize_name(cell) == normalize_name(ASSETS)), None)
+    found = []
+    for row in above:
+        for index, cell in enumerate(row):
+            code = str(cell or "").strip().upper()
+            if code in ISO_CODES:
+                found.append((abs(index - target) if target is not None else index, code))
+    return min(found)[1] if found else "EUR"
 
 
 def _read_values(worksheet) -> List[List[Any]]:

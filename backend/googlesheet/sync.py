@@ -8,11 +8,8 @@ from django.utils import timezone
 
 from . import config
 from .models import SheetRow, SheetTable
-from .currencies import apply_currencies, detect_currency, earliest_date, tables_to_compute
-from .daily import PORTFOLIO_TABLE, record_portfolio_day
-from .services import SheetError, open_spreadsheet, parse_values, read_worksheet_values
-from fx.ecb import update_rates
-from fx.rates import RateBook
+from .services import SheetError, detect_currency, open_spreadsheet, parse_values, read_worksheet_values
+from .signals import tables_synced
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +29,18 @@ class TabResult:
 
 
 class SyncResults(list):
-    """Résultats par onglet (une liste de TabResult), plus `removed` : tables d'un autre document retirées."""
+    """
+    Résultats par onglet (une liste de TabResult), plus `removed` : tables d'un autre document retirées, et
+    `computed` : ce que les receveurs de tables_synced ont renvoyé (wealth : {"fx": taux BCE et devises recalculées}).
+    """
 
     removed: List[str]
-    fx: dict
+    computed: dict
 
     def __init__(self, *args):
         super().__init__(*args)
         self.removed = []
-        self.fx = {}  # taux BCE et devises recalculées (refresh_currencies)
+        self.computed = {}
 
 
 def document_source(settings: config.SheetSettings) -> str:
@@ -91,7 +91,7 @@ def sync_sheets(
       et non relues ici, sont retirées : la base ne garde que des données du document configuré.
     - settings : configuration lue une fois (config.load_settings). Son propriétaire (`settings.owner` : None pour
       le site, sinon le compte connecté) décide des données écrites : jamais celles d'un autre.
-    - portfolio enregistré : son total du jour est gardé (PortfolioDay, daily.py), pour la variation « 24h ».
+    - Ensuite, le signal tables_synced laisse les autres apps recalculer (wealth : devises, total du jour).
     """
     owner = settings.owner
     tabs = tabs or settings.tabs
@@ -138,32 +138,10 @@ def sync_sheets(
 
     if not dry_run:
         results.removed = _remove_other_documents(source, owner)
-        results.fx = refresh_currencies(owner, [result.tab for result in results if result.saved])
-        if any(result.saved and result.tab == PORTFOLIO_TABLE for result in results):
-            try:
-                record_portfolio_day(owner)  # total du jour, pour la variation « 24h » de Snapshot (daily.py)
-            except Exception:
-                logger.exception("Total du jour de portfolio non enregistré")
+        saved = [result.tab for result in results if result.saved]
+        for _, computed in tables_synced.send(sender=SheetTable, owner=owner, tabs=saved):
+            results.computed.update(computed or {})
     return results
-
-
-def refresh_currencies(owner=None, names=None) -> dict:
-    """
-    Taux BCE à jour (jours manquants), puis devises recalculées pour les tables concernées (history, et celles
-    qui ne sont pas en euros). Une panne de la BCE n'empêche rien : les taux déjà en base servent.
-    """
-    tables = tables_to_compute(owner, names)  # owner="all" : toutes les tables (commande update_fx_rates)
-    if not tables:
-        return {}
-    update = update_rates()
-    book = RateBook(since=earliest_date(tables))
-    # Clé : nom de la table ; pour toutes les tables (owner="all"), « nom (compte) » pour les distinguer
-    stats = {(str(table) if owner == "all" else table.name): apply_currencies(table, book) for table in tables}
-    return {
-        "rates_latest": update.latest.isoformat() if update.latest else None,
-        "error": update.error,
-        "tables": stats,
-    }
 
 
 def _remove_other_documents(source: str, owner=None) -> List[str]:

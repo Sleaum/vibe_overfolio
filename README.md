@@ -19,18 +19,26 @@ overfolio/
 │   │   └── management/commands/rotate_encryption_key.py   # rechiffre les secrets avec la première clé
 │   ├── googlesheet/                # app : lecture et copie du Google Sheet
 │   │   ├── services.py             # connexion Google, lecture des onglets ; google_errors() traduit les erreurs de Google
-│   │   ├── data_views.py           # /api/data/ et /api/sheet-config/ ; with_owner : propriétaire de la requête, contrôle de X-Sheet-Scope
+│   │   ├── data_views.py           # /api/data/ (liste, synchronisation) et /api/sheet-config/ ; with_owner : propriétaire de la requête, contrôle de X-Sheet-Scope
 │   │   ├── data_urls.py
-│   │   ├── models.py               # SheetTable, SheetRow, SheetConfig, PortfolioDay, par propriétaire (voir « Base de données »)
+│   │   ├── models.py               # SheetTable, SheetRow, SheetConfig, par propriétaire (voir « Base de données »)
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env ; load_settings() -> SheetSettings, lu une fois par requête
-│   │   ├── sync.py                 # copie des onglets vers la base, puis devises recalculées et total du jour de portfolio
-│   │   ├── daily.py                # total de portfolio gardé chaque jour : variation « 24h » de Snapshot
+│   │   ├── sync.py                 # copie des onglets vers la base, puis signal tables_synced
+│   │   ├── signals.py              # tables_synced : les autres apps recalculent après une synchronisation
 │   │   ├── schema.py               # colonnes connues de chaque onglet : nom canonique, autres noms acceptés, type ; lecture des cellules
-│   │   ├── currencies.py           # devises calculées avec les taux BCE (history, portfolio dans une autre devise)
-│   │   ├── projection.py           # mois prochain de history pour Flow : positions de portfolio, datées du 1er du mois suivant
-│   │   ├── admin.py, tests.py, tests_currencies.py, tests_daily.py, tests_history.py, tests_encryption.py, tests_queries.py, tests_schema.py, tests_services.py, tests_sync.py
+│   │   ├── admin.py, tests.py, tests_history.py, tests_encryption.py, tests_queries.py, tests_schema.py, tests_services.py, tests_sync.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
+│   ├── wealth/                     # app : calculs sur la copie de la feuille (voir « Apps du backend »)
+│   │   ├── currencies.py           # devises calculées avec les taux BCE (history, portfolio dans une autre devise), devise d'affichage
+│   │   ├── projection.py           # mois prochain de history pour Flow : positions de portfolio, datées du 1er du mois suivant
+│   │   ├── daily.py                # total de portfolio gardé chaque jour : variation « 24h » de Snapshot
+│   │   ├── models.py               # PortfolioDay (table googlesheet_portfolioday, nom gardé)
+│   │   ├── signals.py              # after_sync : devises et total du jour recalculés à chaque synchronisation
+│   │   ├── views.py, urls.py       # GET /api/data/<onglet>/ : lignes de l'onglet et ce que le site en calcule
+│   │   ├── admin.py, tests_currencies.py, tests_daily.py, tests_migrations.py
+│   │   ├── migrations/
+│   │   └── management/commands/update_fx_rates.py   # taux BCE manquants ; --recompute : devises de toutes les tables
 │   ├── accounts/                   # app : connexion avec Google (session Django)
 │   │   ├── google.py               # OAuth 2.0 (code + PKCE), vérification du jeton d'identité
 │   │   ├── drive.py                # mode 3 : accès aux feuilles choisies (drive.file), jeton chiffré, jeton court du Picker
@@ -51,8 +59,7 @@ overfolio/
 │   │   ├── models.py               # ExchangeRate (date, devise, taux)
 │   │   ├── views.py, urls.py       # GET /api/fx/currencies/ (devises proposées dans l'en-tête, dernier taux)
 │   │   ├── admin.py, tests.py
-│   │   ├── migrations/
-│   │   └── management/commands/update_fx_rates.py
+│   │   └── migrations/
 ├── frontend/
 │   ├── Dockerfile                  # stage "build" (Node 24, npm ci, Vite)
 │   ├── index.html                  # page HTML ; pose le mode sombre avant l'affichage
@@ -465,6 +472,25 @@ frontend (build, exit 0) ──────────────────�
                  PostgreSQL        (API Sheets)        (taux de change)
 ```
 
+### Apps du backend
+
+| App | Rôle |
+|---|---|
+| `googlesheet` | Accès à Google (trois modes), configuration par propriétaire, copie brute des onglets en base, colonnes connues (`schema.py`). Liste et synchronisation des onglets (`/api/data/`, `/api/data/sync/`, `/api/data/<onglet>/sync/`), `/api/sheet-config/` |
+| `wealth` | Ce que le site calcule à partir de cette copie : devises (taux BCE), devise d'affichage, mois prochain de `history`, total du jour de `portfolio`. Lecture d'un onglet (`GET /api/data/<onglet>/`) |
+| `fx` | Taux de l'euro publiés par la BCE, sans rien savoir de la feuille |
+| `profiles`, `accounts`, `core` | Profil, connexion avec Google, code commun |
+
+```
+googlesheet ◄──── wealth ────► fx
+     │  signal tables_synced   ▲
+     └────────────────────────►┘ (receveur : wealth.signals.after_sync)
+```
+
+- **Un seul sens** : `wealth` lit les modèles de `googlesheet` ; `googlesheet` n'importe jamais `wealth`.
+- **Après une synchronisation**, `sync_sheets` envoie le signal `tables_synced` (propriétaire, onglets enregistrés). `wealth` le reçoit, met les taux à jour, recalcule les devises et garde le total du jour. Ce qu'il renvoie (`fx`) part avec la réponse de la synchronisation.
+- **Une seule adresse** : `/api/data/` est montée deux fois dans `overfolio/urls.py`, `googlesheet` d'abord, puis `wealth`.
+
 ### Chemins des données
 
 ```
@@ -613,7 +639,7 @@ Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessi
 |---|---|---|
 | `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ), `currency` (devise des montants, lue au-dessus de l'en-tête : case M1 de `portfolio`), `rates_applied_at` (dernier calcul des devises) |
 | `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration. `computed` : ce que le site calcule avec les taux BCE à la synchronisation, sans toucher aux valeurs de la feuille (`fx` : le relevé dans chaque devise, pour `history`) |
-| `googlesheet_portfolioday` | `PortfolioDay` | Total de `portfolio` gardé à chaque synchronisation, une ligne par jour et par propriétaire (la dernière synchronisation du jour remplace la précédente ; jour du serveur, en UTC) : actifs, dettes, devise de la feuille, document d'origine (`source` : un total d'une autre feuille n'est jamais comparé). Sert à la variation « 24h » de Snapshot (`googlesheet/daily.py`) |
+| `googlesheet_portfolioday` | `PortfolioDay` | Total de `portfolio` gardé à chaque synchronisation, une ligne par jour et par propriétaire (la dernière synchronisation du jour remplace la précédente ; jour du serveur, en UTC) : actifs, dettes, devise de la feuille, document d'origine (`source` : un total d'une autre feuille n'est jamais comparé). Sert à la variation « 24h » de Snapshot (`wealth/daily.py`). Modèle de l'app `wealth`, sous le nom de table qu'il avait dans `googlesheet` |
 | `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur. Le compte de service, clé privée comprise, est dans `service_account` : un JSON chiffré (voir « Chiffrement des secrets »), jamais renvoyé au navigateur |
 | `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes), devise d'affichage de Charts et Simulation (`display_currency`, vide = euro) et périodes de Volatility (`volatility_months`, en mois, vide = 1, 3 et 12) et de Snapshot (`performance_days`, en jours, vide = 30, 90 et 365) : gardées ici pour un compte, dans le navigateur pour un visiteur. Cible de Models > Target (`model_target` : année, base, pourcentages, versement mensuel), toujours sur le profil. Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
 | `accounts_googleaccount` | `GoogleAccount` | Compte Google d'un utilisateur : identifiant Google `sub` (unique), e-mail, nom, photo. Mode 3 : jeton de rafraîchissement Google **chiffré** (`drive_refresh_token`, vide si l'accès n'est pas accordé) |
@@ -688,7 +714,7 @@ Sous WSL, le service cron doit être démarré (`sudo service cron start`), et l
 
 ## Devises et taux de change
 
-Le site garde en base les **taux de référence de l'euro publiés par la BCE** (Banque centrale européenne) : 29 devises, chaque jour ouvré vers 16 h (heure de Francfort), depuis 1999. Il s'en sert pour deux calculs (`backend/googlesheet/currencies.py`). Les valeurs de la feuille ne sont jamais modifiées.
+Le site garde en base les **taux de référence de l'euro publiés par la BCE** (Banque centrale européenne) : 29 devises, chaque jour ouvré vers 16 h (heure de Francfort), depuis 1999. Il s'en sert pour deux calculs (`backend/wealth/currencies.py`). Les valeurs de la feuille ne sont jamais modifiées.
 
 ```
    BCE (www.ecb.europa.eu)                     onglets synchronisés
@@ -696,7 +722,7 @@ Le site garde en base les **taux de référence de l'euro publiés par la BCE** 
              ▼                                          ▼
    fx_exchangerate (date, devise, taux)      googlesheet_sheetrow.data (feuille)
              └──────────────┬───────────────────────────┘
-                            ▼  currencies.py
+                            ▼  wealth/currencies.py (signal tables_synced)
         après chaque synchronisation : googlesheet_sheetrow.computed["fx"]
                                        (history, le relevé dans chaque devise)
         à chaque lecture : montants de la feuille convertis dans la devise demandée
@@ -854,7 +880,7 @@ Les graphiques de `patrimoine-devises` à `patrimoine-tendance` forment la page 
 
 #### Le mois prochain dans Flow et Envelopes
 
-Les graphiques de `history` de la page Flow et « Évolution de chaque enveloppe » (page Envelopes), ainsi que leur page `/graphiques/<nom>`, montrent aussi le **mois prochain** : tes positions actuelles. Le serveur recopie chaque ligne de `portfolio` dans les colonnes de `history`, datée du **1er du mois qui suit la date des positions** (la plus récente de `portfolio`) : positions du 23 novembre → relevé du 1er décembre (`backend/googlesheet/projection.py`, `GET /api/data/history/?projection=1`). Rien n'est écrit en base ; la page GoogleSheet montre `history` telle quelle.
+Les graphiques de `history` de la page Flow et « Évolution de chaque enveloppe » (page Envelopes), ainsi que leur page `/graphiques/<nom>`, montrent aussi le **mois prochain** : tes positions actuelles. Le serveur recopie chaque ligne de `portfolio` dans les colonnes de `history`, datée du **1er du mois qui suit la date des positions** (la plus récente de `portfolio`) : positions du 23 novembre → relevé du 1er décembre (`backend/wealth/projection.py`, `GET /api/data/history/?projection=1`). Rien n'est écrit en base ; la page GoogleSheet montre `history` telle quelle.
 
 - Colonnes reprises par leur nom (sans tenir compte de la casse ni des accents) ; une colonne de `history` absente de `portfolio` reste vide. Une ligne de `portfolio` sans `Asset` ni `Instrument` n'est pas reprise (dans `history`, ce serait un objectif).
 - Montants en euros, comme le reste de `history` : un `portfolio` dans une autre devise (case M1) est converti au taux du jour des positions. Les colonnes de devise (« Patrimoine par devise », colonnes `EUR`, `USD`… encore présentes dans la feuille) sont calculées comme pour les autres relevés.
