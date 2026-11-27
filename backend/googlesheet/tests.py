@@ -56,7 +56,8 @@ class SheetConfigTests(TestCase):
         self.assertEqual(config.load_settings().tabs, ["budget", "inout"])
         self.assertEqual(config.load_settings().credentials["project_id"], "projet-page")
         # clé privée laissée vide : celle du .env est conservée
-        self.assertEqual(SheetConfig.objects.get().private_key, KEY)
+        self.assertEqual(config.load_settings().values["private_key"], KEY)
+        self.assertNotIn("PRIVATE KEY", SheetConfig.objects.get().service_account)  # chiffrée en base
         self.assertNotIn("PRIVATE KEY", response.content.decode())
 
     def test_new_private_key_is_saved(self):
@@ -247,7 +248,7 @@ class ClearCredentialsTests(TestCase):
         body = response.json()
         self.assertEqual(body["mode"], "public_link")
         self.assertFalse(body["private_key_set"])
-        self.assertEqual(SheetConfig.objects.get().private_key, "")
+        self.assertEqual(config.load_settings().values["private_key"], "")
 
 
 @mock.patch.dict("os.environ", ENV, clear=False)
@@ -267,7 +268,7 @@ class AccountToLoadTests(TestCase):
         response = self.client.put("/api/sheet-config/", json.dumps(again), content_type="application/json")
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(response.json()["mode"], "service_account")
-        self.assertIn("PRIVATE KEY", SheetConfig.objects.get().private_key)
+        self.assertIn("PRIVATE KEY", config.load_settings().values["private_key"])
 
     def test_saved_account_is_offered_first(self):
         values = self.client.get("/api/sheet-config/").json()["values"]

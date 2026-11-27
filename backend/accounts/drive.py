@@ -3,7 +3,7 @@ Mode 3 de la page GoogleSheet : lire SA feuille avec SON compte Google.
 
 La personne connectée autorise Overfolio (scope drive.file : seulement les fichiers qu'elle choisit dans le
 sélecteur de Google, le « Picker »), puis choisit sa feuille. Le jeton de rafraîchissement reçu est gardé en base,
-chiffré (Fernet, clé FIELD_ENCRYPTION_KEY) ; il n'est jamais renvoyé au navigateur. Le Picker reçoit seulement
+chiffré (core/crypto.py ; ce mode exige FIELD_ENCRYPTION_KEY) ; il n'est jamais renvoyé au navigateur. Le Picker reçoit seulement
 un jeton d'accès de courte durée (picker_token).
 
 Réglages du .env, en plus de ceux de la connexion (accounts/google.py) :
@@ -15,11 +15,12 @@ import logging
 import os
 
 import requests
-from cryptography.fernet import Fernet, InvalidToken
 from django.utils import timezone
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+
+from core import crypto
 
 from . import google
 
@@ -42,41 +43,31 @@ def settings_values():
     return {
         "api_key": os.getenv("GOOGLE_PICKER_API_KEY", "").strip(),
         "app_id": os.getenv("GOOGLE_CLOUD_PROJECT_NUMBER", "").strip(),
-        "encryption_key": os.getenv("FIELD_ENCRYPTION_KEY", "").strip(),
     }
-
-
-def _fernet():
-    key = settings_values()["encryption_key"]
-    if not key:
-        return None
-    try:
-        return Fernet(key.encode())
-    except (ValueError, TypeError):
-        logger.error("FIELD_ENCRYPTION_KEY n'est pas une clé Fernet valable")
-        return None
 
 
 def is_configured() -> bool:
     """Mode 3 disponible : connexion Google réglée, clé API et numéro de projet du Picker, clé de chiffrement valable."""
     values = settings_values()
-    return google.is_configured() and bool(values["api_key"] and values["app_id"]) and _fernet() is not None
+    return google.is_configured() and bool(values["api_key"] and values["app_id"]) and crypto.has_explicit_key()
+
+
+def _require_key() -> None:
+    # Le mode 3 garde un accès au Drive de la personne : pas de repli sur la clé dérivée de SECRET_KEY
+    if not crypto.has_explicit_key():
+        raise DriveError("Clé de chiffrement absente ou invalide (FIELD_ENCRYPTION_KEY).", "google_drive_not_configured", 503)
 
 
 def encrypt(text: str) -> str:
-    fernet = _fernet()
-    if fernet is None:
-        raise DriveError("Clé de chiffrement absente ou invalide (FIELD_ENCRYPTION_KEY).", "google_drive_not_configured", 503)
-    return fernet.encrypt(text.encode()).decode()
+    _require_key()
+    return crypto.encrypt(text)
 
 
 def decrypt(token: str) -> str:
-    fernet = _fernet()
-    if fernet is None:
-        raise DriveError("Clé de chiffrement absente ou invalide (FIELD_ENCRYPTION_KEY).", "google_drive_not_configured", 503)
+    _require_key()
     try:
-        return fernet.decrypt(token.encode()).decode()
-    except InvalidToken:
+        return crypto.decrypt(token)
+    except crypto.DecryptError:
         # Clé changée depuis l'autorisation : il faut autoriser de nouveau
         raise DriveError("Accès Google à autoriser de nouveau.", "google_not_authorized", 409)
 

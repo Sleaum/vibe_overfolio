@@ -77,18 +77,10 @@ class SheetConfig(models.Model):
     # "" : mode déduit des valeurs (lien public ou compte de service) ; "google" : compte Google de la personne
     method = models.CharField(max_length=20, blank=True, default="")
 
-    # Compte de service Google (champs du fichier JSON téléchargé depuis Google Cloud)
-    type = models.CharField(max_length=50, blank=True, default="service_account")
-    project_id = models.CharField(max_length=200, blank=True, default="")
-    private_key_id = models.CharField(max_length=200, blank=True, default="")
-    private_key = models.TextField(blank=True, default="")
-    client_email = models.CharField(max_length=320, blank=True, default="")
-    client_id = models.CharField(max_length=200, blank=True, default="")
-    auth_uri = models.CharField(max_length=500, blank=True, default="")
-    token_uri = models.CharField(max_length=500, blank=True, default="")
-    auth_provider_x509_cert_url = models.CharField(max_length=500, blank=True, default="")
-    client_x509_cert_url = models.CharField(max_length=500, blank=True, default="")
-    universe_domain = models.CharField(max_length=200, blank=True, default="")
+    # Compte de service Google : les champs du fichier JSON téléchargé depuis Google Cloud (type, project_id,
+    # private_key, client_email…), en JSON chiffré (core/crypto.py) ; vide : pas de compte de service.
+    # Lu et écrit par googlesheet/config.py, jamais renvoyé au navigateur.
+    service_account = models.TextField(blank=True, default="")
 
     # Document
     sheet_id = models.CharField(max_length=200, blank=True, default="")

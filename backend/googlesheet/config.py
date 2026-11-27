@@ -19,6 +19,8 @@ La configuration est lue une fois par opération (load_settings : une requête) 
 open_spreadsheet, sync_sheets et les vues travaillent sur ce SheetSettings.
 """
 import datetime
+import json
+import logging
 import os
 import re
 from dataclasses import dataclass, replace
@@ -27,7 +29,11 @@ from typing import Dict, List, Mapping, Optional
 
 from django.db import IntegrityError, transaction
 
+from core import crypto
+
 from .models import SheetConfig
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_TABS = ["portfolio", "inout", "stock", "budget", "history"]
 DEFAULT_DOC_NAME = "overfolio"
@@ -35,7 +41,10 @@ DEFAULT_DOC_NAME = "overfolio"
 
 @dataclass(frozen=True)
 class Field:
-    """Un champ de la configuration : colonne de SheetConfig, variable du .env, et son rôle."""
+    """
+    Un champ de la configuration : variable du .env, et son rôle. En base, un champ du document est une colonne de
+    SheetConfig ; ceux du compte de service sont dans le JSON chiffré de SheetConfig.service_account.
+    """
 
     name: str
     env: str
@@ -145,13 +154,38 @@ def base_values(owner=None) -> Dict[str, str]:
     return env_values() if owner is None else default_values()
 
 
+def _read_account(row: SheetConfig) -> Optional[Dict[str, str]]:
+    """
+    Compte de service d'une ligne enregistrée, déchiffré ({} si la ligne n'en a pas). None s'il est illisible
+    (clé de chiffrement changée sans garder l'ancienne) : la page le redemande, avec sa clé privée.
+    """
+    if not row.service_account:
+        return {}
+    try:
+        account = json.loads(crypto.decrypt(row.service_account))
+    except (crypto.DecryptError, ValueError):
+        logger.warning("Compte de service enregistré illisible (configuration %s) : clé de chiffrement changée ?", row.pk)
+        return None
+    return account if isinstance(account, dict) else None
+
+
+def _write_account(values: Mapping[str, str]) -> str:
+    """JSON chiffré des champs du compte de service, ou "" s'ils sont tous vides."""
+    account = {field: values.get(field, "") for field in CREDENTIAL_FIELDS}
+    return crypto.encrypt(json.dumps(account)) if any(account.values()) else ""
+
+
 def _row_values(row: SheetConfig) -> Dict[str, str]:
     """Valeurs d'une ligne enregistrée. Seuls les champs du document reprennent leur valeur par défaut :
     un compte de service enregistré est gardé tel quel, un champ vide reste vide."""
+    account = _read_account(row)
     values = {}
     for field in FIELDS:
-        value = getattr(row, field.name) or ""
-        values[field.name] = value or ("" if field.credential else field.default)
+        if field.credential:
+            # Illisible : valeurs d'un compte neuf (type par défaut), pour le saisir de nouveau
+            values[field.name] = field.default if account is None else str(account.get(field.name) or "")
+        else:
+            values[field.name] = getattr(row, field.name) or field.default
     values["private_key"] = _normalize_private_key(values["private_key"])
     values["method"] = row.method or ""
     return values
@@ -428,7 +462,9 @@ def _store(owner, values: Dict[str, str], row: Optional[SheetConfig] = None) -> 
             row = _saved_row(owner)
         row = row or SheetConfig(user=owner)
         for field, value in values.items():
-            setattr(row, field, value)
+            if field not in CREDENTIAL_FIELDS:
+                setattr(row, field, value)
+        row.service_account = _write_account(values)
         try:
             with transaction.atomic():
                 row.save()

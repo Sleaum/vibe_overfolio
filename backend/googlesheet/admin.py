@@ -22,8 +22,8 @@ class SheetRowAdmin(admin.ModelAdmin):
 
 @admin.register(SheetConfig)
 class SheetConfigAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "client_email", "sheet_id", "doc_name", "updated_at")
-    exclude = ("private_key",)  # la clé privée ne s'affiche pas dans l'admin
+    list_display = ("__str__", "method", "sheet_id", "doc_name", "updated_at")
+    exclude = ("service_account",)  # compte de service chiffré, clé privée comprise : ni affiché ni modifiable
 
 
 @admin.register(PortfolioDay)
