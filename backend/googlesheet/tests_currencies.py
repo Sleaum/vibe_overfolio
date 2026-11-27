@@ -13,8 +13,9 @@ from django.test import TestCase
 from fx.ecb import Update
 from fx.models import ExchangeRate
 
-from .currencies import detect_currency, earliest_date, to_date, to_number
+from .currencies import detect_currency, earliest_date
 from .models import SheetRow, SheetTable
+from .schema import to_date, to_number
 
 ENV = {"GOOGLE_SHEET_ID": "id-site", "SHEET_SYNC_TABS": "history,portfolio"}
 HEADER = ["Date", "Asset", "Instrument", "Assets Master Currency", "Liabilities Master Currency"]

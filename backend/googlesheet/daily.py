@@ -11,8 +11,9 @@ from typing import Optional
 
 from django.utils import timezone
 
-from .currencies import ASSETS, LIABILITIES, _round, find_column, to_number
+from .currencies import _round
 from .models import PortfolioDay, SheetTable
+from .schema import ASSETS, LIABILITIES, normalize_rows, sheet_column
 from fx.rates import RateBook
 
 PORTFOLIO_TABLE = "portfolio"
@@ -20,20 +21,16 @@ PORTFOLIO_TABLE = "portfolio"
 
 def portfolio_totals(table: SheetTable):
     """(actifs ≥ 0, dettes ≤ 0) de portfolio, dans la devise de la feuille ; comme les repères du site (lib/amounts.js)."""
-    columns = table.columns or []
-    assets_col, debts_col = find_column(columns, ASSETS), find_column(columns, LIABILITIES)
-    assets = debts = 0.0
-    for data in table.rows.values_list("data", flat=True):
-        data = data or {}
-        assets += max(to_number(data.get(assets_col)) or 0, 0) if assets_col else 0
-        debts += min(to_number(data.get(debts_col)) or 0, 0) if debts_col else 0
-    return assets, debts
+    rows = normalize_rows(PORTFOLIO_TABLE, table.columns or [], table.rows.values_list("data", flat=True)).rows
+    assets = sum(max(row.get(ASSETS) or 0, 0) for row in rows)
+    debts = sum(min(row.get(LIABILITIES) or 0, 0) for row in rows)
+    return float(assets), float(debts)
 
 
 def record_portfolio_day(owner=None, day: Optional[datetime.date] = None) -> Optional[PortfolioDay]:
     """Garde le total de portfolio de ce propriétaire pour le jour `day` (aujourd'hui par défaut)."""
     table = SheetTable.objects.filter(user=owner, name=PORTFOLIO_TABLE).first()
-    if table is None or find_column(table.columns or [], ASSETS) is None:
+    if table is None or sheet_column(PORTFOLIO_TABLE, table.columns or [], ASSETS) is None:
         return None
     assets, debts = portfolio_totals(table)
     record, _ = PortfolioDay.objects.update_or_create(
