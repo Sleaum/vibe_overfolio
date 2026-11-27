@@ -1,0 +1,27 @@
+{
+  "name": "portfolio",
+  "columns": ["Date", "Asset", "Sub Asset", "Instrument", "Envelope", "Broker", "Assets Master Currency", "Liabilities Master Currency"],
+  "header_row": 2,
+  "row_count": 10,
+  "synced_at": "2026-11-14T08:00:00+00:00",
+  "rows": [
+    { "Date": "2026-11-14", "Asset": "public equity", "Sub Asset": "ETF", "Instrument": "MSCI World", "Envelope": "PEA", "Broker": "Boursorama", "Assets Master Currency": 60000, "Liabilities Master Currency": "" },
+    { "Date": "2026-11-14", "Asset": "public equity", "Sub Asset": "Stock", "Instrument": "Apple", "Envelope": "CTO", "Broker": "Interactive Brokers", "Assets Master Currency": 15000, "Liabilities Master Currency": "" },
+    { "Date": "2026-11-14", "Asset": "fiat", "Sub Asset": "Cash", "Instrument": "Livret A", "Envelope": "Livret", "Broker": "Banque", "Assets Master Currency": 10000, "Liabilities Master Currency": "" },
+    { "Date": "2026-11-14", "Asset": "real estate", "Sub Asset": "House", "Instrument": "Maison", "Envelope": "", "Broker": "", "Assets Master Currency": 200000, "Liabilities Master Currency": "" },
+    { "Date": "2026-11-14", "Asset": "real estate", "Sub Asset": "Loan", "Instrument": "Prêt maison", "Envelope": "", "Broker": "Banque", "Assets Master Currency": "", "Liabilities Master Currency": -150000 },
+    { "Date": "2026-11-14", "Asset": "crypto", "Sub Asset": "Bitcoin", "Instrument": "BTC", "Envelope": "", "Broker": "Ledger", "Assets Master Currency": 5000, "Liabilities Master Currency": "" },
+    { "Date": "2026-11-14", "Asset": "commodity", "Sub Asset": "gold", "Instrument": "Or physique", "Envelope": "", "Broker": "", "Assets Master Currency": 4000, "Liabilities Master Currency": "" },
+    { "Date": "2026-11-13", "Asset": "commodity", "Sub Asset": "oil", "Instrument": "ETC Pétrole", "Envelope": "CTO", "Broker": "Interactive Brokers", "Assets Master Currency": 1000, "Liabilities Master Currency": "" },
+    { "Date": "2026-11-14", "Asset": "depreciating", "Sub Asset": "Car", "Instrument": "Voiture", "Envelope": "", "Broker": "", "Assets Master Currency": 8000, "Liabilities Master Currency": "" },
+    { "Date": "2026-11-14", "Asset": "depreciating", "Sub Asset": "Loan", "Instrument": "Prêt auto", "Envelope": "", "Broker": "Banque", "Assets Master Currency": "", "Liabilities Master Currency": -12000 }
+  ],
+  "currency": "EUR",
+  "display_currency": "EUR",
+  "unconverted_rows": 0,
+  "computed_columns": [],
+  "currencies_available": [],
+  "rates_applied_at": null,
+  "projection": null,
+  "previous_day": { "date": "2026-11-13", "assets": 300000, "liabilities": -160000 }
+}

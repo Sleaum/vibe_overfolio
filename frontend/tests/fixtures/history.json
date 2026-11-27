@@ -1,0 +1,26 @@
+{
+  "name": "history",
+  "columns": ["Date", "Asset", "Instrument", "Assets Master Currency", "Liabilities Master Currency"],
+  "header_row": 1,
+  "row_count": 9,
+  "synced_at": "2026-11-14T08:00:00+00:00",
+  "rows": [
+    { "Date": "2025-11-30", "Asset": "public equity", "Instrument": "MSCI World", "Assets Master Currency": 40000, "Liabilities Master Currency": "" },
+    { "Date": "2025-11-30", "Asset": "real estate", "Instrument": "Maison", "Assets Master Currency": 200000, "Liabilities Master Currency": "" },
+    { "Date": "2025-11-30", "Asset": "real estate", "Instrument": "Prêt maison", "Assets Master Currency": "", "Liabilities Master Currency": -175000 },
+    { "Date": "2025-12-31", "Asset": "public equity", "Instrument": "MSCI World", "Assets Master Currency": 50000, "Liabilities Master Currency": "" },
+    { "Date": "2025-12-31", "Asset": "real estate", "Instrument": "Maison", "Assets Master Currency": 200000, "Liabilities Master Currency": "" },
+    { "Date": "2025-12-31", "Asset": "real estate", "Instrument": "Prêt maison", "Assets Master Currency": "", "Liabilities Master Currency": -170000 },
+    { "Date": "31/10/2026", "Asset": "public equity", "Instrument": "MSCI World", "Assets Master Currency": 90000, "Liabilities Master Currency": "" },
+    { "Date": "31/10/2026", "Asset": "real estate", "Instrument": "Maison", "Assets Master Currency": 200000, "Liabilities Master Currency": "" },
+    { "Date": "31/10/2026", "Asset": "real estate", "Instrument": "Prêt maison", "Assets Master Currency": "", "Liabilities Master Currency": -165000 }
+  ],
+  "currency": "EUR",
+  "display_currency": "EUR",
+  "unconverted_rows": 0,
+  "computed_columns": [],
+  "currencies_available": [],
+  "rates_applied_at": null,
+  "projection": null,
+  "previous_day": null
+}
