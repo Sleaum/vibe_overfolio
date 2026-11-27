@@ -1,0 +1,21 @@
+{
+  "name": "inout",
+  "columns": ["date", "in", "out", "tax"],
+  "header_row": 1,
+  "row_count": 4,
+  "synced_at": "2026-11-14T08:00:00+00:00",
+  "rows": [
+    { "date": "2026-08-31", "in": 4000, "out": -2500, "tax": -300 },
+    { "date": "2026-09-30", "in": "4 000,00 €", "out": -2700, "tax": "" },
+    { "date": "2026-10-31", "in": 4200, "out": 2600, "tax": -400 },
+    { "date": "2026-11-10", "in": 9000, "out": 0, "tax": 0 }
+  ],
+  "currency": "EUR",
+  "display_currency": "EUR",
+  "unconverted_rows": 0,
+  "computed_columns": [],
+  "currencies_available": [],
+  "rates_applied_at": null,
+  "projection": null,
+  "previous_day": null
+}

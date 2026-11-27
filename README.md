@@ -52,6 +52,8 @@ overfolio/
 │   ├── index.html                  # page HTML ; pose le mode sombre avant l'affichage
 │   ├── vite.config.ts              # build ; plugins « theme » (index.html, contrôle des couleurs) et « langues » (contrôle des traductions)
 │   ├── tailwind.config.js          # classes de couleur et variables CSS générées depuis lib/theme.js, typographie, ombres
+│   ├── vitest.config.js            # tests (npm test) : sous Node, sans les plugins du build
+│   ├── tests/                      # tests Vitest des calculs de src/lib/ ; fixtures/ : tables inventées au format de l'API
 │   └── src/
 │       ├── App.vue                 # en-tête, page affichée, pied de page, bandeau de l'export PDF
 │       ├── router/index.ts         # routes (pages chargées à la demande)
@@ -1065,6 +1067,36 @@ t('nav.charts')     titre de l'onglet    nombres et dates       (menu de l'en-t�
 | simulation de Monte-Carlo / backtesting historique / tests de résistance | Monte Carlo simulation / historical backtesting / stress testing | การจำลองแบบมอนติคาร์โล / การทดสอบย้อนหลัง / การทดสอบภาวะวิกฤต |
 | analyse de scénarios / modèles à régimes / facteurs macroéconomiques | scenario analysis / regime-switching models / macroeconomic factors | การวิเคราะห์สถานการณ์ / แบบจำลองสลับสภาวะ / ปัจจัยเศรษฐกิจมหภาค |
 | perte maximale (drawdown) / volatilité / bientôt | maximum loss (drawdown) / volatility / soon | การขาดทุนสูงสุด (drawdown) / ความผันผวน / เร็ว ๆ นี้ |
+
+## Tests
+
+```bash
+# Backend (Django, base PostgreSQL de test créée puis supprimée)
+docker compose exec backend python manage.py test
+
+# Frontend (Vitest, sous Node, sans navigateur)
+cd frontend && npm test          # une fois
+cd frontend && npm run test:watch # relance à chaque modification
+```
+
+`npm run build` lance aussi les tests du frontend, après le contrôle des types et le build Vite : un test en échec arrête le build, y compris celui de l'image Docker.
+
+**Ce que couvrent les tests du frontend** (`frontend/tests/`) : les calculs de `src/lib/`, des fonctions pures.
+
+| Fichier | Module | Ce qui est vérifié |
+|---|---|---|
+| `aggregate.test.js` | `lib/aggregate.js` | Lecture des nombres (`12,5`, `1 234,56 €`, `1.234,56`…), colonnes retrouvées sans tenir compte de la casse ni des accents, message des colonnes manquantes, groupes négatifs écartés |
+| `dates.test.js` | `lib/dates.js` | Formats de date acceptés, numéros de série Google Sheets, dates impossibles |
+| `snapshot.test.js` | `lib/snapshot.js` | Page Snapshot en brut et en net : totaux, parts, dettes, détail par type, variations sur l'année, le mois et 24 h, `history` absente |
+| `target.test.js` | `lib/target.js` | Plan « versements puis ventes » de Models > Target : cible déjà atteinte, versements suffisants, ventes la dernière année ; bases types et classes |
+| `simulation.test.js` | `lib/simulation.js` | Monte Carlo : mêmes résultats avec la même graine, centiles ordonnés, rendement moyen égal à `mu`, cas sans hasard (versements, dette, frais, objectif, ruine) |
+
+- **Données** : `tests/fixtures/` contient de petites tables inventées au format de `GET /api/data/<onglet>/` (`portfolio`, `history`, `inout`). `tests/fixtures/index.js` en donne une copie à chaque appel : un test peut la modifier sans gêner les autres.
+- **Hors de `src/`** : le contrôle des traductions du build lit tout `src/` ; des tests rangés là y seraient lus comme du code du site.
+- **Langue** : les messages sont vérifiés en français (`tests/setup.js`), quelle que soit la langue de la machine.
+- **Hasard** : la simulation prend une graine (`seed`, 42 par défaut) ; les tests la fixent.
+- **Bugs connus** : un test marqué `it.skip` décrit un comportement faux pas encore corrigé, avec son explication. Le corriger, c'est retirer le `.skip` dans la même PR que le correctif.
+- Une PR qui change un calcul de `src/lib/` ajoute ou adapte ses tests.
 
 ## Commandes utiles
 
