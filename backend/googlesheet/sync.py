@@ -7,7 +7,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from . import config
-from .config import DEFAULT_TABS
 from .models import SheetRow, SheetTable
 from .currencies import apply_currencies, detect_currency, earliest_date, tables_to_compute
 from .daily import PORTFOLIO_TABLE, record_portfolio_day
@@ -16,13 +15,6 @@ from fx.ecb import update_rates
 from fx.rates import RateBook
 
 logger = logging.getLogger(__name__)
-
-__all__ = ["DEFAULT_TABS", "configured_tabs", "sync_sheets", "TabResult"]
-
-
-def configured_tabs(owner=None) -> List[str]:
-    """Onglets à synchroniser : ceux saisis sur la page GoogleSheet, sinon SHEET_SYNC_TABS (site), sinon la liste par défaut."""
-    return config.sync_tabs(owner)
 
 
 @dataclass
@@ -35,7 +27,7 @@ class TabResult:
     rows: int = 0
     currency: str = "EUR"  # devise des montants, lue au-dessus de l'en-tête (case M1 de portfolio)
     message: str = ""
-    code: str = ""  # même erreur que message, pour le site (voir errors.py)
+    code: str = ""  # même erreur que message, pour le site (voir core/errors.py)
     params: dict = field(default_factory=dict)
 
 
@@ -102,7 +94,7 @@ def sync_sheets(
     - owner : None = données et configuration du site, sinon celles du compte connecté (jamais mélangées).
     - portfolio enregistré : son total du jour est gardé (PortfolioDay, daily.py), pour la variation « 24h ».
     """
-    tabs = tabs or configured_tabs(owner)
+    tabs = tabs or config.sync_tabs(owner)
     header_rows = header_rows or {}
     spreadsheet = open_spreadsheet(doc_name, owner)
     source = document_source(doc_name, owner)

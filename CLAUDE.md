@@ -24,7 +24,7 @@ Ce fichier est lu au début de chaque session sur ce dépôt. Le README décrit 
 - **Noms des menus toujours en anglais**, dans toutes les langues : GoogleSheet, Charts, Simulation, Models, Flow, Snapshot, Envelopes, Strategy, Volatility, Budget, Monte Carlo, Backtesting, Stress testing, Scenarios, Parametric, Bootstrap, Regimes, Macro factors, Target, Classic. Ils sont dans `frontend/src/i18n/menu.js` (`MENU_NAMES`), jamais dans les fichiers de langue. Tout le reste est traduit, y compris les titres des pages ; une phrase qui renvoie à un menu reprend son nom anglais.
 - Tout le site est traduit : tout nouveau texte arrive dans les trois langues dans la même PR, avec les mots du **glossaire** du README (section « Langues »). Signaler que le thaï est à faire relire.
 - Graphiques : titre, résumé, explication et source en getters (`get title() { return t(…) }`), jamais en chaîne fixe.
-- Erreurs de l'API : toujours avec un `code` (`backend/googlesheet/errors.py`), traduit dans la rubrique `apiErrors` des fichiers de langue.
+- Erreurs de l'API : toujours avec un `code` (`backend/core/errors.py`), traduit dans la rubrique `apiErrors` des fichiers de langue.
 
 ## Préférences
 

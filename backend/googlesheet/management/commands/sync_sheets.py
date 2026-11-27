@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 from googlesheet import config
 from googlesheet.services import SheetError
-from googlesheet.sync import DEFAULT_TABS, sync_sheets
+from googlesheet.sync import sync_sheets
 
 
 class Command(BaseCommand):
@@ -18,7 +18,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--tabs",
             help="Onglets séparés par des virgules. Défaut : ceux de la page GoogleSheet, sinon SHEET_SYNC_TABS, sinon "
-            + ",".join(DEFAULT_TABS),
+            + ",".join(config.DEFAULT_TABS),
         )
         parser.add_argument(
             "--header-row",

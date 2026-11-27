@@ -12,18 +12,19 @@ overfolio/
 │   ├── overfolio/                  # projet Django : configuration
 │   │   ├── settings.py
 │   │   └── urls.py                 # routage principal
+│   ├── core/                       # code partagé par les apps, sans modèle (simple paquet Python, pas une app Django)
+│   │   └── errors.py               # forme commune des erreurs de l'API (message, code, params)
 │   ├── googlesheet/                # app : lecture et copie du Google Sheet
-│   │   ├── services.py             # connexion Google, lecture des onglets
-│   │   ├── data_views.py           # /api/data/ (lecture et synchronisation de la base)
+│   │   ├── services.py             # connexion Google, lecture des onglets ; google_errors() traduit les erreurs de Google
+│   │   ├── data_views.py           # /api/data/ et /api/sheet-config/ ; with_owner : propriétaire de la requête, contrôle de X-Sheet-Scope
 │   │   ├── data_urls.py
-│   │   ├── errors.py               # forme commune des erreurs de l'API (message, code, params)
 │   │   ├── models.py               # SheetTable, SheetRow, SheetConfig, PortfolioDay, par propriétaire (voir « Base de données »)
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
 │   │   ├── sync.py                 # copie des onglets vers la base, puis devises recalculées et total du jour de portfolio
 │   │   ├── daily.py                # total de portfolio gardé chaque jour : variation « 24h » de Snapshot
 │   │   ├── currencies.py           # devises calculées avec les taux BCE (history, portfolio dans une autre devise)
 │   │   ├── projection.py           # mois prochain de history pour Flow : positions de portfolio, datées du 1er du mois suivant
-│   │   ├── admin.py
+│   │   ├── admin.py, tests.py, tests_currencies.py, tests_daily.py, tests_history.py, tests_services.py, tests_sync.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
 │   ├── accounts/                   # app : connexion avec Google (session Django)
@@ -36,6 +37,7 @@ overfolio/
 │   │   └── migrations/
 │   ├── profiles/                   # app : profil gardé en base (couleurs des actifs, mode, devises), un par compte
 │   │   ├── models.py               # Profile (utilisateur facultatif, asset_colors, theme, chart_currencies, display_currency)
+│   │   ├── services.py             # current_profile : profil du compte connecté, sinon celui du site
 │   │   ├── views.py, urls.py       # /api/profile/
 │   │   ├── admin.py, tests.py
 │   │   └── migrations/
@@ -497,7 +499,7 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 | POST | `/api/auth/logout/` | Ferme la session (jeton CSRF exigé si une session est ouverte) |
 | GET, PUT | `/api/sheet-config/tabs/` | `GET` : onglets du document, `{ mode, tabs, selected }`, dans les deux modes. `PUT {"sync_tabs": "portfolio, budget"}` : enregistre seulement la liste des onglets à synchroniser et renvoie les paramètres comme `/api/sheet-config/` (400 `sync_tabs_required` si la liste est vide) |
 
-Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "code_stable", "params": {…}}` (`backend/googlesheet/errors.py`) : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google). Le site affiche le message dans la langue choisie à partir de `code` et `params` (rubrique `apiErrors` de `frontend/src/i18n/*.json`) ; `error` reste en français pour la ligne de commande. Un formulaire invalide (`400`) ajoute `fields` (messages par champ) et `field_codes` (codes par champ). Le résultat de chaque onglet d'une synchronisation porte aussi `code` et `params`.
+Les erreurs sont renvoyées en JSON `{"error": "message en français", "code": "code_stable", "params": {…}}` (`backend/core/errors.py`) : `404` (onglet ou document introuvable), `429` (synchronisation trop rapprochée), `502` (erreur de l'API Google). Le site affiche le message dans la langue choisie à partir de `code` et `params` (rubrique `apiErrors` de `frontend/src/i18n/*.json`) ; `error` reste en français pour la ligne de commande. Un formulaire invalide (`400`) ajoute `fields` (messages par champ) et `field_codes` (codes par champ). Le résultat de chaque onglet d'une synchronisation porte aussi `code` et `params`.
 
 **Ajouter une erreur** : choisir un code, le passer à `error_response` (ou à `SheetError(message, code, **params)`), puis ajouter `apiErrors.<code>` dans les trois fichiers de langue.
 
@@ -984,7 +986,7 @@ Deux cas particuliers : un type ECharts encore inutilisé (par exemple `radar`) 
 Toutes dans `frontend/src/lib/palette.js`, dans l'esprit des couleurs Google :
 
 - **Types d'actifs** (colonne `Asset`) : une teinte vive par type, la même dans tous les graphiques (anneau, barres empilées, volatilité, Snapshot). Les teintes proposées sont `ASSET_SWATCHES` : 8 teintes Google (bleu, rouge, jaune, vert, orange, rose, violet, cyan), en vif et en clair. Par défaut : public equity bleu, real estate orange, fiat vert, crypto jaune, commodity cyan, managed futures violet, exotic rose, depreciating rouge ; un autre type prend une teinte restée libre. Dans le menu de Charts, « Couleurs des actifs » liste les types habituels et ceux de la feuille (table `portfolio`) : un clic sur un type ouvre ses teintes. Si la teinte est déjà prise, les deux types échangent leurs couleurs. Le choix est **enregistré en base, sur le profil** (`GET /api/profile/`, `PUT /api/profile/asset-colors/`, app `backend/profiles`) : il se retrouve sur tous les navigateurs et appareils. Les couleurs sont chargées au démarrage et à chaque connexion ou déconnexion (`lib/profile.js`, puis `applyProfileAssetColors` de `lib/palette.js`), affichées tout de suite à chaque clic, et remises comme avant avec un message si l'enregistrement échoue. « Couleurs par défaut » efface le choix. Les couleurs gardées par le navigateur avant ce changement sont recopiées une fois sur le profil, puis effacées du navigateur.
-- **Profil et comptes** : sans connexion, le profil du site (sans utilisateur) s'applique. Connecté avec Google, chacun a son propre profil (`current_profile` dans `backend/profiles/views.py`) ; à la création du compte, il reprend une fois les couleurs du profil du site.
+- **Profil et comptes** : sans connexion, le profil du site (sans utilisateur) s'applique. Connecté avec Google, chacun a son propre profil (`current_profile` dans `backend/profiles/services.py`) ; à la création du compte, il reprend une fois les couleurs du profil du site.
 - **Tout le reste** (devises, enveloppes, catégories de Strategy, courbes du patrimoine, simulation, carte, budget) : des nuances de bleu (`BLUES`, du bleu nuit au bleu pâle). `blues(n)` donne `n` nuances bien séparées, la plus foncée pour la plus grosse catégorie ; `BLUE` est le bleu principal, `NAVY` le repère posé sur du bleu (tendance, objectif).
 - **Montants négatifs** (baisse d'un mois sur l'autre, sorties d'argent, dettes) : rouge `NEGATIVE`, et orange `NEGATIVE_2` pour un second montant négatif (impôts).
 - « Autres » reste gris (`CONTEXT`), « Non renseigné » gris clair.
