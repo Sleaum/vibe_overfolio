@@ -22,8 +22,7 @@ from django.middleware.csrf import get_token
 from django.shortcuts import redirect
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.http import require_GET
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view
 
 from googlesheet.errors import error_response
 
@@ -170,7 +169,6 @@ def _no_store(response):
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
 def picker_token(request):
     if not request.user.is_authenticated:
         return error_response("Connecte-toi d'abord.", "login_required", 401)
@@ -181,7 +179,6 @@ def picker_token(request):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
 def drive_revoke(request):
     if not request.user.is_authenticated:
         return error_response("Connecte-toi d'abord.", "login_required", 401)
@@ -199,7 +196,6 @@ def _user_view(user):
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
 def me(request):
     get_token(request)  # cookie csrftoken : le site le renvoie dans l'en-tête X-CSRFToken
     user = request.user
@@ -211,7 +207,6 @@ def me(request):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
 def logout_view(request):
     logout(request)  # vide la session
     get_token(request)

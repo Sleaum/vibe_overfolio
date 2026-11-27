@@ -1,6 +1,6 @@
 # Overfolio
 
-Suivi de patrimoine : frontend Vue.js, API Django, PostgreSQL, orchestrés avec Docker Compose et servis par nginx. Les données viennent d'un Google Sheet, lu en direct ou recopié en base.
+Suivi de patrimoine : frontend Vue.js, API Django, PostgreSQL, orchestrés avec Docker Compose et servis par nginx. Les données viennent d'un Google Sheet, recopié en base.
 
 ## Structure du projet
 
@@ -14,10 +14,8 @@ overfolio/
 │   │   └── urls.py                 # routage principal
 │   ├── googlesheet/                # app : lecture et copie du Google Sheet
 │   │   ├── services.py             # connexion Google, lecture des onglets
-│   │   ├── views.py, urls.py       # GET /api/sheet (lecture en direct)
 │   │   ├── data_views.py           # /api/data/ (lecture et synchronisation de la base)
 │   │   ├── data_urls.py
-│   │   ├── middleware.py           # DisableCSPMiddleware
 │   │   ├── errors.py               # forme commune des erreurs de l'API (message, code, params)
 │   │   ├── models.py               # SheetTable, SheetRow, SheetConfig, PortfolioDay, par propriétaire (voir « Base de données »)
 │   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
@@ -187,8 +185,6 @@ python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 |---|---|---|
 | `GOOGLE_SHEET_ID` | vide | Identifiant du document (partie de l'URL entre `/d/` et `/edit`). Si vide, le document est cherché par son nom, ce qui demande l'API Drive |
 | `GOOGLE_SHEET_DOC_NAME` | `overfolio` | Nom du document, utilisé seulement si `GOOGLE_SHEET_ID` est vide |
-| `ALLOWED_SHEET_DOCS` | vide | Liste blanche des documents lisibles via `/api/sheet` (séparés par des virgules). Vide : aucune restriction |
-| `SHEET_CACHE_SECONDS` | `60` | Cache de `/api/sheet` (0 pour le désactiver) |
 | `SHEET_SYNC_TABS` | `portfolio,inout,stock,budget,history` | Onglets recopiés en base (modifiables sur la page GoogleSheet, au-dessus de Tout actualiser) |
 | `SYNC_COOLDOWN_SECONDS` | `10` | Délai minimal entre deux synchronisations d'une même table |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | vide | Client OAuth « Application Web » de Google Cloud, pour la connexion avec Google (voir « Connexion avec Google »). Vides : bouton grisé, site utilisable sans compte |
@@ -314,7 +310,7 @@ compte Google + feuille choisie ──► API Google Sheets (gspread) ───�
 
 ### Par compte
 
-Sans connexion, la page GoogleSheet règle la **feuille du site** (repli sur le `.env`) et montre les **données du site**. Connecté avec Google, chacun a **sa propre configuration et ses propres données** : sa ligne `googlesheet_sheetconfig`, ses tables `googlesheet_sheettable`, invisibles pour les autres comptes et pour les visiteurs. Un compte part de zéro : il n'hérite ni du `.env`, ni de la configuration ou des données du site (sinon tout compte pourrait lire la feuille du site). Le compte de service du `.env` n'est jamais proposé à un compte, et sa clé jamais reprise. Côté serveur, tout passe par le propriétaire de la requête (`config.request_owner(request)` : l'utilisateur connecté, sinon `None` pour le site) : `config.py`, `sync.py`, `services.open_spreadsheet()` et `data_views.py`. La commande `sync_sheets` et `/api/sheet` travaillent pour le site.
+Sans connexion, la page GoogleSheet règle la **feuille du site** (repli sur le `.env`) et montre les **données du site**. Connecté avec Google, chacun a **sa propre configuration et ses propres données** : sa ligne `googlesheet_sheetconfig`, ses tables `googlesheet_sheettable`, invisibles pour les autres comptes et pour les visiteurs. Un compte part de zéro : il n'hérite ni du `.env`, ni de la configuration ou des données du site (sinon tout compte pourrait lire la feuille du site). Le compte de service du `.env` n'est jamais proposé à un compte, et sa clé jamais reprise. Côté serveur, tout passe par le propriétaire de la requête (`config.request_owner(request)` : l'utilisateur connecté, sinon `None` pour le site) : `config.py`, `sync.py`, `services.open_spreadsheet()` et `data_views.py`. La commande `sync_sheets` travaille pour le site.
 
 **Session changée pendant que la page est ouverte** : chaque modification (enregistrer, effacer, onglets, Tout actualiser) porte l'en-tête `X-Sheet-Scope` (`account` ou `site`), la configuration que la page affiche. Si la session a expiré ou changé dans un autre onglet, le serveur refuse (`session_expired`, `scope_changed`) au lieu d'écrire dans une autre configuration — sinon une feuille privée pourrait finir dans celle du site, lisible par tous — et la page se recharge.
 
@@ -339,7 +335,7 @@ Sans connexion, la page GoogleSheet règle la **feuille du site** (repli sur le 
 Les variables Google du `.env` (`TYPE`, `PROJECT_ID`, `PRIVATE_KEY_ID`, `PRIVATE_KEY`, `CLIENT_EMAIL`, `CLIENT_ID`, `AUTH_URI`, `TOKEN_URI`, `AUTH_PROVIDER_X509_CERT_URL`, `CLIENT_X509_CERT_URL`, `UNIVERSE_DOMAIN`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_DOC_NAME`, `SHEET_SYNC_TABS`) se modifient aussi depuis la page GoogleSheet :
 
 - Les champs sont préremplis avec les valeurs en vigueur. Tant que rien n'a été enregistré, ce sont celles du `.env`.
-- **Enregistrer** les écrit en base (table `googlesheet_sheetconfig`, une ligne pour le site, une par compte connecté). Elles remplacent alors le `.env` pour la synchronisation, la commande `sync_sheets` et `/api/sheet`, sans redémarrer le backend.
+- **Enregistrer** les écrit en base (table `googlesheet_sheetconfig`, une ligne pour le site, une par compte connecté). Elles remplacent alors le `.env` pour la synchronisation et la commande `sync_sheets`, sans redémarrer le backend.
 - **Revenir aux valeurs du .env** efface la ligne enregistrée (connecté : **Effacer ces paramètres**, qui efface celle du compte).
 - **Importer le fichier JSON** remplit les champs du compte de service depuis le fichier téléchargé dans Google Cloud (lu dans le navigateur).
 - L'identifiant du document accepte aussi l'adresse complète du Google Sheet.
@@ -456,14 +452,10 @@ frontend (build, exit 0) ──────────────────�
                  PostgreSQL        (API Sheets)        (taux de change)
 ```
 
-### Deux chemins pour les données
+### Chemins des données
 
 ```
-Chemin 1 : lecture en direct (toujours à jour, cache 60 s)
-  Navigateur ──► /api/sheet?doc_name=...&sheet_name=... ──► Google Sheets
-  disponible, mais plus utilisé par l'interface actuelle
-
-Chemin 2 : lecture de la base (rapide, à jour après synchronisation)
+Lecture de la base (rapide, à jour après synchronisation)
   Navigateur ──► /api/data/<onglet>/ ──► PostgreSQL
   utilisé par : la page GoogleSheet, les pages de Charts et la page Simulation
 
@@ -486,7 +478,6 @@ La base n'est **jamais mise à jour automatiquement**. Pour une mise à jour ré
 
 | Méthode | URL | Rôle |
 |---|---|---|
-| GET | `/api/sheet?doc_name=&sheet_name=&header_row=&refresh=1` | Lit un onglet dans Google Sheets (cache 60 s, `refresh=1` pour le contourner) |
 | GET | `/api/data/` | Liste des tables en base (nom, nombre de lignes, date de synchronisation) : celles du compte connecté, sinon celles du site. Il en va de même pour toutes les routes `/api/data/` et `/api/sheet-config/`. En-tête facultatif `X-Sheet-Scope: account|site` sur les requêtes qui modifient : 401 `session_expired` ou 409 `scope_changed` si la session ne correspond plus |
 | GET | `/api/data/<onglet>/?currency=THB&projection=1` | Colonnes (dans l'ordre) et lignes d'une table, avec ce que le site calcule (voir « Devises et taux de change ») : montants dans la devise demandée (`currency`, EUR par défaut ; 400 `invalid_currency` si le code n'est pas une devise de la BCE), `display_currency` (devise des montants de la réponse), `currency` (devise des montants dans la feuille), `unconverted_rows` (lignes dont les montants sont vidés faute de taux), `computed_columns` (colonnes de devises ajoutées par le site), `currencies_available` (devises proposées par « Patrimoine par devise »), `rates_applied_at`, `previous_day` (pour `portfolio` : `{ date, assets, liabilities }`, le total gardé le jour le plus récent avant celui de sa synchronisation, dans la devise demandée au taux de ce jour-là ; `null` le premier jour ou sans taux ; voir « Snapshot »). `projection=1` (pour `history`, graphiques de Flow et Envelopes) : ajoute le mois prochain tiré de `portfolio` ; `projection` dans la réponse : `{ date, rows, unconverted, source_date }`, ou `null` si rien n'est ajouté (voir « Le mois prochain dans Flow et Envelopes »). |
 | GET | `/api/fx/currencies/` | Devises proposées dans l'en-tête : `{ date, currencies: [{ code, rate }] }`, l'euro puis celles cotées par la BCE le dernier jour publié, avec ce taux (unités pour 1 EUR). Communes à tous |
@@ -1116,9 +1107,8 @@ cd frontend && npm audit && npm outdated
 | `SECRET_KEY not found in environment variables` | Variable absente ou mal nommée dans `.env` | Corriger `.env`, recréer le backend |
 | `db` reste `unhealthy`, `backend` en `Created` | Healthcheck en échec | `docker inspect --format '{{range .State.Health.Log}}{{.Output}}{{end}}' db` |
 | `role "..." does not exist` | Volume initialisé avec d'anciens identifiants | `docker compose down -v` puis relancer |
-| `ImportError: cannot import name 'SheetError'` | `views.py` et `services.py` de versions différentes | Copier les deux fichiers ensemble |
+| `ImportError: cannot import name 'SheetError'` | `data_views.py` et `services.py` de versions différentes | Copier les deux fichiers ensemble |
 | `Unknown command: 'sync_sheets'` | `management/commands/` ou un `__init__.py` manquant | Vérifier l'arborescence de `backend/googlesheet/` |
-| `Document non autorisé` | Nom absent de `ALLOWED_SHEET_DOCS` | Corriger `.env`, puis `docker compose up -d --force-recreate backend` |
 | `Feuille introuvable` | Document non partagé avec `CLIENT_EMAIL`, ou mauvais `GOOGLE_SHEET_ID` | Partager en Lecteur, vérifier l'identifiant |
 | « La feuille n'est pas partagée par lien » | Mode lien public, mais la feuille est en accès limité | Dans Google Sheets : Partager → « Tous les utilisateurs disposant du lien », ou renseigner un compte de service |
 | `Onglet 'x' introuvable` | Nom d'onglet différent (casse, espaces) | Utiliser le nom exact |
@@ -1159,7 +1149,7 @@ cd frontend && npm audit && npm outdated
 - Passer à `DEBUG=False` (lu dans `.env`) et restreindre `ALLOWED_HOSTS` en production : en mode debug, une page d'erreur montre des valeurs internes.
 - Paquets du backend : toutes les versions sont fixées dans `backend/requirements.txt` (Django 5.2, version à support long jusqu'en avril 2028). Vérifier régulièrement les failles connues avec `pip-audit` (voir « Commandes utiles »), puis monter les versions et reconstruire l'image (`./init.sh`).
 - Paquets du frontend : les versions installées sont celles de `frontend/package-lock.json` (l'image les installe avec `npm ci`). Vérifier avec `npm audit` ; `npm audit fix` corrige ce qui ne demande pas de changer de version majeure. Après une mise à jour, refaire `npm run build` et tester le bouton PDF et quelques graphiques.
-- Les routes `/api/sheet`, `/api/data/` et `/api/sheet-config/` sont publiques sans connexion : les restreindre avant toute exposition sur Internet.
+- Les routes `/api/data/` et `/api/sheet-config/` sont publiques sans connexion : les restreindre avant toute exposition sur Internet.
 - Connexion avec Google : flux « authorization code » côté serveur avec `state` (à usage unique) et PKCE, jeton d'identité vérifié (signature, destinataire, e-mail vérifié), compte retrouvé par `sub`, nouvelle clé de session à la connexion, adresse de retour limitée aux pages du site. Aucun mot de passe n'est gardé ; le seul jeton Google gardé (mode 3) est chiffré avec `FIELD_ENCRYPTION_KEY` et limité au scope `drive.file`. `GOOGLE_OAUTH_CLIENT_SECRET` et `FIELD_ENCRYPTION_KEY` sont des secrets : `.env` seulement. Chaque compte ne voit que sa configuration et ses données ; un compte n'hérite jamais du `.env` ni du compte de service du site. En production : `COOKIE_SECURE=True`, `CSRF_TRUSTED_ORIGINS=https://ton-domaine`.
 - Le PDF du bouton PDF est fabriqué dans le navigateur et contient tout ton patrimoine : rien n'est envoyé au serveur, mais le fichier téléchargé est à garder comme une donnée sensible.
 
