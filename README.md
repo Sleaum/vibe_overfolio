@@ -84,6 +84,7 @@ overfolio/
 │       ├── components/
 │       │   ├── Header.vue, Footer.vue   # en-tête : titre, date des positions, menus, devise, bouton PDF, compte, langue, clair / sombre
 │       │   ├── ConversionNote.vue  # phrase « montants convertis de … en … » sous le titre d'une page
+│       │   ├── PageState.vue       # états d'une page ou d'un graphique : chargement, table illisible, données inadaptées, rien à afficher
 │       │   ├── SectionLayout.vue   # rubriques à menu (Charts, Models, Simulation) : menu à gauche, onglets défilants sur mobile
 │       │   ├── AmountModeToggle.vue # bouton Brut / Net et sa phrase d'aide, en haut du menu de Charts et Models
 │       │   ├── AccountMenu.vue     # en-tête : Connexion, ou photo du compte et menu (e-mail, Se déconnecter)
@@ -96,7 +97,7 @@ overfolio/
 │       │   └── charts/             # AssetColorSettings, CurrencyPicker (devises du graphique par devise), WindowsPicker (pastilles de périodes : Volatility, Snapshot), BaseChart, ChartView, ChartCard, ChartGroup, DataTableView, ShareBars, StrategyCard, WorldMapCard
 │       ├── i18n/                   # langues : index.js (liste, langue de départ), fr.json, en.json, th.json (textes),
 │       │                           #   menu.js (noms des menus, toujours en anglais)
-│       ├── composables/            # useTable (charge une table), useTheme (clair / sombre), useLocale (langue), useReducedMotion
+│       ├── composables/            # useTable (charge une table), usePageModel (tables d'une page, modèle et état), useTheme (clair / sombre), useLocale (langue), useReducedMotion
 │       └── lib/
 │           ├── api.js              # appels /api/… (jeton CSRF ajouté aux requêtes qui modifient)
 │           ├── auth.js             # état de la connexion (session), se connecter, se déconnecter
@@ -754,7 +755,8 @@ D'une table de la base à un graphique affiché :
 
 ```
 Page (views/*.vue)
-  │  useTable('portfolio')                  composables/useTable.js
+  │  usePageModel({ required, optional,     composables/usePageModel.js (un useTable par table)
+  │                 build })                état : PageState.vue
   ▼
 lib/api.js ──► GET /api/data/<onglet>/ ──► PostgreSQL
   │  { columns, rows }
@@ -784,6 +786,26 @@ composants Vue       script d'avant-      BaseChart.vue                         
 (bg-paper,           affichage : classe   (recolore en                          (bouton de
  text-ink…)          « dark » sur <html>  sombre)                               l'en-tête)
 ```
+
+**États d'une page ou d'un graphique.** Snapshot, Strategy et Simulation, ainsi que chaque graphique (`ChartView.vue` pour la page d'un graphique, `ChartCard.vue` pour les cartes des pages groupées), passent par `usePageModel`. Celui-ci charge les tables obligatoires et facultatives, construit le modèle de la page, et en tire `status` :
+
+- `loading` ;
+- `error` : une table obligatoire n'a pas pu être lue (`missingTable` si elle n'est pas encore en base) ;
+- `problem` : les données ne conviennent pas ; une `DataError` devient un message lisible, toute autre erreur est un bug, montré en console ;
+- `empty` ;
+- `ready`.
+
+Une table facultative absente n'empêche pas la page de s'afficher. Avec `waitOptional`, la page attend sa réponse avant de se construire (Strategy attend `stock`, Simulation attend `inout` et `history`).
+
+`PageState.vue` affiche ces états, et la page ou le graphique dans son emplacement par défaut. Ce qui change d'un endroit à l'autre :
+
+| Prop | Rôle |
+|---|---|
+| `kind` | `page` ou `chart` : textes et encadrés |
+| `loadingText` | texte du chargement |
+| `loadingHeight`, `emptyHeight` | hauteur des encadrés |
+| `emptyLink` | lien vers la page GoogleSheet quand il n'y a rien à afficher (page d'un graphique) |
+| `errorTitle` | un seul encadré pour toute erreur (Simulation : « Impossible de préparer la simulation ») |
 
 La classe `dark` sur `<html>` décide de tout : les composants n'utilisent que des noms de couleur (`bg-paper`, `text-ink`) et ne savent pas dans quel mode ils sont.
 

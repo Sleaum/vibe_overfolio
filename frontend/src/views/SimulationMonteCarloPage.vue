@@ -16,26 +16,17 @@
       <ConversionNote :table="portfolio.data.value" class="mt-2" />
     </header>
 
-    <div
-      v-if="status === 'loading'"
-      role="status"
-      class="mt-10 flex h-80 items-center justify-center rounded-xl bg-wash text-ink-2 motion-safe:animate-pulse"
+    <!-- Une table illisible ou des positions inutilisables : un seul encadré, « Impossible de préparer la simulation » -->
+    <PageState
+      :status="status"
+      :error="error"
+      :problem="start?.problem"
+      :reload="reload"
+      table="portfolio"
+      kind="page"
+      :loading-text="t('snapshotPage.loading')"
+      :error-title="t('simulationPage.prepareError')"
     >
-      {{ t('snapshotPage.loading') }}
-    </div>
-
-    <div v-else-if="status === 'error'" role="alert" class="mt-10 rounded-xl border border-danger-line bg-danger-wash p-6">
-      <p class="font-semibold text-danger">{{ t('simulationPage.prepareError') }}</p>
-      <p class="mt-1 text-ink">{{ problem }}</p>
-      <div class="mt-4 flex flex-wrap gap-3">
-        <AppButton :to="{ path: '/sheet', query: { onglet: 'portfolio' } }" variant="secondary" size="sm">{{
-          t('chartUi.openSheet')
-        }}</AppButton>
-        <AppButton variant="secondary" size="sm" @click="portfolio.reload">{{ t('chartUi.retry') }}</AppButton>
-      </div>
-    </div>
-
-    <template v-else>
       <!-- Repères -->
       <section aria-labelledby="titre-resultats" class="mt-10">
         <h2 id="titre-resultats" class="sr-only">{{ t('simulationPage.results') }}</h2>
@@ -170,7 +161,7 @@
         </ul>
         <p class="mt-4 text-sm">{{ t('simulationPage.notAdvice') }}</p>
       </section>
-    </template>
+    </PageState>
   </div>
 </template>
 
@@ -179,10 +170,11 @@ import { useI18n } from 'vue-i18n'
 import { tList } from '../i18n/index.js'
 import { computed, defineComponent, h, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import AppButton from '../components/ui/AppButton.vue'
+import PageState from '../components/PageState.vue'
 import SegmentedControl from '../components/ui/SegmentedControl.vue'
 import BaseChart from '../components/charts/BaseChart.vue'
 import DataTableView from '../components/charts/DataTableView.vue'
-import { useTable } from '../composables/useTable.js'
+import { usePageModel } from '../composables/usePageModel.js'
 import { DataError } from '../lib/aggregate.js'
 import { fanOption } from '../lib/charts/simulationFan.js'
 import { capitalize, currencyLabel, currencySymbol, formatAmount, formatDateLong, formatMonthYear, formatNumber, percent } from '../lib/format.js'
@@ -237,30 +229,26 @@ const NumberField = defineComponent({
 
 /* ---------- Données ---------- */
 
-const portfolio = useTable('portfolio')
-const inout = useTable('inout') // facultative
-const history = useTable('history') // facultative
-
-const start = computed(() => {
-  if (!portfolio.data.value) return null
-  try {
-    const read = readPortfolio(portfolio.data.value)
+// Positions de portfolio (obligatoire) ; inout et history (facultatives) donnent le versement et l'objectif proposés :
+// la page attend leur réponse avant de se préparer
+const {
+  status,
+  model: start,
+  error,
+  tables,
+  reload,
+} = usePageModel({
+  required: ['portfolio'],
+  optional: ['inout', 'history'],
+  waitOptional: true,
+  failedKey: 'simulationPage.readFailed',
+  build: ({ portfolio }) => {
+    const read = readPortfolio(portfolio)
     if (!read.assets.length) throw new DataError(t('simulationPage.noPositive'))
     return { ...read, date: read.date || new Date().toISOString().slice(0, 10) }
-  } catch (err) {
-    return {
-      problem: err instanceof DataError ? err.message : t('simulationPage.readFailed', { message: err?.message ?? t('chartUi.unknownError') }),
-    }
-  }
+  },
 })
-const settled = (table) => Boolean(table.data.value || table.error.value)
-const status = computed(() => {
-  if (portfolio.error.value) return 'error'
-  if (!start.value || !settled(inout) || !settled(history)) return 'loading'
-  if (start.value.problem) return 'error'
-  return 'ready'
-})
-const problem = computed(() => start.value?.problem ?? portfolio.error.value?.message ?? '')
+const { portfolio, inout, history } = tables
 const startLabel = computed(() => (start.value?.date ? formatDateLong(start.value.date) : ''))
 
 /* ---------- Hypothèses ---------- */
