@@ -84,6 +84,8 @@ overfolio/
 │       ├── components/
 │       │   ├── Header.vue, Footer.vue   # en-tête : titre, date des positions, menus, devise, bouton PDF, compte, langue, clair / sombre
 │       │   ├── ConversionNote.vue  # phrase « montants convertis de … en … » sous le titre d'une page
+│       │   ├── SectionLayout.vue   # rubriques à menu (Charts, Models, Simulation) : menu à gauche, onglets défilants sur mobile
+│       │   ├── AmountModeToggle.vue # bouton Brut / Net et sa phrase d'aide, en haut du menu de Charts et Models
 │       │   ├── AccountMenu.vue     # en-tête : Connexion, ou photo du compte et menu (e-mail, Se déconnecter)
 │       │   ├── PdfProgress.vue     # bandeau de progression de l'export PDF (absent du PDF)
 │       │   ├── SheetSettings.vue   # formulaire « Connexion à Google Sheets » de la page /sheet
@@ -729,7 +731,7 @@ Bibliothèques chargées à la demande seulement : `world-atlas` et `topojson-cl
 |---|---|---|
 | `/` | `views/HeroSection.vue` et `components/landing/` | Présentation : promesse, aperçu, avantages, étapes, questions fréquentes |
 | `/sheet` | `views/SourcePage.vue` | Connexion (`SheetSettings.vue`), onglets à synchroniser (`SyncTabs.vue`), menu des onglets, tableau (en-tête fixe, recherche, 50 lignes par page), bouton Tout actualiser. `/sheet?onglet=budget` ouvre un onglet précis |
-| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : en haut à gauche le bouton Brut / Net (`lib/amounts.js`), puis le menu en colonne (liste `MENU` de `lib/charts/index.js` : Flow, Snapshot, Envelopes, Strategy, Volatility, Budget), puis « Couleurs des actifs » (`components/charts/AssetColorSettings.vue`, voir « Couleurs des graphiques »), page choisie à droite. `/graphiques` ouvre Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets |
+| `/graphiques` | `views/GraphiquesLayout.vue` | Mise en page de la rubrique : en haut à gauche le bouton Brut / Net (`lib/amounts.js`), puis le menu en colonne (liste `MENU` de `lib/charts/index.js` : Flow, Snapshot, Envelopes, Strategy, Volatility, Budget), puis « Couleurs des actifs » (`components/charts/AssetColorSettings.vue`, voir « Couleurs des graphiques »), page choisie à droite. `/graphiques` ouvre Flow. Les six pages et `/graphiques/<nom>` s'affichent dans cette mise en page ; sur mobile, le menu devient une rangée d'onglets. Menu, onglets et largeurs : `components/SectionLayout.vue`, commun aux rubriques Charts, Models et Simulation (voir « Rubriques à menu ») |
 | `/graphiques/<nom>` | `views/GraphiquePage.vue` et `components/charts/ChartView.vue` | Un graphique : titre, date des données, explication, source des chiffres, vue tableau. `flux-budget` ou l'un des graphiques de Flow, Envelopes ou Volatility (leur fil d'Ariane passe par leur page) |
 | `/portfolio-flow` | `views/PortfolioFlowPage.vue` et `components/charts/ChartGroup.vue` | L'historique mois par mois : les graphiques de Flow sur une seule page (« Tes dettes » en plus en mode Brut), avec un choix d'année (`?annee=2026`) qui remplace les pages 2024, 2025 et 2026 de l'ancien rapport |
 | `/enveloppes` | `views/EnvelopesPage.vue` et `lib/charts/envelopes.js` | Les enveloppes de placement (celles qui contiennent des actions, des ETF ou des fonds) : anneau enveloppe → instrument, évolution, répartition par sous-type et par zone. Montants bruts ou nets selon le bouton Brut / Net |
@@ -972,6 +974,18 @@ La page `/modeles/target` sert à viser une répartition pour une année donnée
 | Plan d'actions | Une ligne par année jusqu'à l'année visée, une colonne par catégorie (`buildPlan`). Chaque année, les versements (12 × le versement mensuel) vont d'abord aux catégories sous leur cible, au prorata de ce qui leur manque ; s'il en reste, il est réparti selon la cible. Rien n'est vendu avant la dernière année ; si la cible n'est pas atteinte à ce moment-là (à 0,5 point près), le plan vend ce qui dépasse (en rouge) et rachète ce qui manque. Une phrase dit l'année où la cible est atteinte par les seuls versements, ou qu'il faudra vendre. Hypothèses : pas de rendement ni d'inflation, montants d'aujourd'hui dans la devise d'affichage |
 
 **Où est gardée la cible** : sur le profil (`model_target`, `PUT /api/profile/`), celui du compte connecté, sinon celui du site : elle se retrouve sur tous les appareils. Chargée avec le profil au démarrage et à chaque connexion ; enregistrée 0,6 s après le dernier changement ; « Tout effacer » l'efface du profil.
+
+### Rubriques à menu
+
+Charts, Models et Simulation partagent `components/SectionLayout.vue` : menu en colonne à gauche, page choisie à droite ; sur petit écran, une rangée d'onglets au-dessus de la page, qui défile, et l'onglet actif y est ramené au milieu à chaque changement de page. Chaque rubrique ne déclare que ce qui lui est propre :
+
+| Rubrique | Entrées | Entrée active | Largeurs (colonne, contenu) | Au-dessus / sous le menu |
+|---|---|---|---|---|
+| Charts (`views/GraphiquesLayout.vue`) | `MENU` de `lib/charts/index.js` | `menuKeyFor` : un graphique ouvert seul allume l'entrée de son groupe | `lg:w-56`, `page-container` | Brut / Net ; couleurs des actifs |
+| Models (`views/ModelsLayout.vue`) | Target, Classic | adresse de la page | `lg:w-48`, `max-w-[88rem]` (tableau de Classic) | Brut / Net |
+| Simulation (`views/SimulationLayout.vue`) | `SIMULATION_MENU` de `lib/simulationMenu.js` ; mention « bientôt » (`badge`) sur les méthodes à venir | adresse de la page | `lg:w-52`, `max-w-[88rem]` | — |
+
+Le bouton Brut / Net est `components/AmountModeToggle.vue`. Pour une nouvelle rubrique : une vue qui passe `title` (nom de `MENU_NAMES`), `items` (`[{ key, to, title, badge? }]`), `width` (`{ column, content }`, classes Tailwind écrites en entier) et, si besoin, `active-key` et les emplacements `above-menu` / `below-menu`.
 
 ### Ajouter un graphique
 
