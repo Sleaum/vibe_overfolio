@@ -2,6 +2,8 @@
 //
 //   GET  /api/data/                 -> [{ name, row_count, synced_at }]
 //   GET  /api/data/<onglet>/        -> { name, columns[], rows[{colonne: valeur}], row_count, synced_at }
+//                                      ?values=clean : rows lues par le serveur (noms canoniques, nombres, dates ISO),
+//                                      plus { types, sheet_names, invalid_cells } ; ?values=raw (défaut) : cellules de la feuille
 //   POST /api/data/sync/            -> relit tous les onglets de la liste -> { tabs[{ name, ok, row_count, message }], saved, failed }
 //   POST /api/data/<onglet>/sync/   -> relit un seul onglet (route gardée, non utilisée par le site)
 //   GET    /api/sheet-config/       -> paramètres d'accès au Google Sheet (la clé privée n'est jamais renvoyée)
@@ -111,10 +113,12 @@ export const listTables = () => request('/api/data/')
 
 // currency : devise d'affichage (lib/displayCurrency.js) ; absente = montants en euros.
 // projection : history avec en plus le mois prochain, tiré de portfolio (graphiques de Flow).
-export function getTable(name, currency = '', { projection = false } = {}) {
+// values : 'raw' (cellules de la feuille, page GoogleSheet) ou 'clean' (lues par googlesheet/schema.py) ; absent = raw.
+export function getTable(name, currency = '', { projection = false, values = '' } = {}) {
   const query = new URLSearchParams()
   if (currency) query.set('currency', currency)
   if (projection) query.set('projection', '1')
+  if (values) query.set('values', values)
   const search = query.toString()
   return request(`/api/data/${encodeURIComponent(name)}/${search ? `?${search}` : ''}`)
 }

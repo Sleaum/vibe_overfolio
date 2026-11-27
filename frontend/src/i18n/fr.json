@@ -117,6 +117,7 @@
     "fx_unreachable": "Les taux de change de la BCE n’ont pas pu être relus : les devises sont calculées avec les derniers taux connus.",
     "fx_invalid": "Le fichier de taux de la BCE est illisible : les devises sont calculées avec les derniers taux connus.",
     "invalid_currency": "Devise non valable.",
+    "invalid_values": "Forme des données non valable (valeurs possibles : {values}).",
     "invalid_model_target": "Cible non valable."
   },
   "data": {

@@ -117,6 +117,7 @@
     "fx_unreachable": "ECB exchange rates could not be read again: currencies use the latest known rates.",
     "fx_invalid": "The ECB rates file is unreadable: currencies use the latest known rates.",
     "invalid_currency": "Invalid currency.",
+    "invalid_values": "Invalid data shape (possible values: {values}).",
     "invalid_model_target": "Invalid target."
   },
   "data": {
