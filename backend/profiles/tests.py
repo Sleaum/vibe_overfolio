@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from .models import Profile
-from .views import current_profile
+from .services import current_profile
 
 
 class ProfileAssetColorsTests(TestCase):

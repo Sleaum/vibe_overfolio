@@ -4,28 +4,14 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view
 
 from fx.rates import ISO_CODES
-from googlesheet.errors import error_response
+from core.errors import error_response
 
-from .models import Profile
+from .services import current_profile
 
 # Au plus 200 types d'actifs, nom de 100 caractères au plus, couleur au format #rrggbb
 MAX_ASSET_COLORS = 200
 MAX_NAME_LENGTH = 100
 COLOR = re.compile(r"^#[0-9a-f]{6}$")
-
-
-def current_profile(request):
-    """
-    Profil de la personne qui appelle l'API.
-
-    Compte connecté (session) : son profil (créé au premier appel s'il manque). Sinon, le profil du site
-    (sans utilisateur), celui des visiteurs non connectés.
-    """
-    user = getattr(request, "user", None)
-    if user is not None and user.is_authenticated:
-        profile, _ = Profile.objects.get_or_create(user=user)
-        return profile
-    return Profile.site_profile()
 
 
 def _serialize(profile):

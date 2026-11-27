@@ -8,7 +8,7 @@ class Profile(models.Model):
 
     Tant qu'il n'y a pas de comptes, un seul profil existe, sans utilisateur (`user` vide) : il vaut pour tout le site.
     Quand la connexion sera branchée (page /newpage, compte Google ou autre), chaque utilisateur aura le sien :
-    voir `current_profile` dans views.py.
+    voir `current_profile` dans services.py.
     """
 
     user = models.OneToOneField(

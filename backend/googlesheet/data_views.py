@@ -1,19 +1,22 @@
 import os
+from functools import wraps
 
 from django.core.cache import cache
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
+from rest_framework.permissions import SAFE_METHODS
+
+from core.errors import error_response
+from fx.rates import ISO_CODES
+from profiles.services import current_profile
 
 from . import config
 from .currencies import HISTORY_TABLE, merged_rows
 from .daily import previous_day
-from .projection import projected_rows
-from fx.rates import ISO_CODES
 from .models import SheetTable
-from profiles.views import current_profile
-from .errors import error_response
+from .projection import projected_rows
 from .services import SheetError, open_spreadsheet, worksheet_titles
-from .sync import DEFAULT_TABS, configured_tabs, sync_sheets
+from .sync import sync_sheets
 
 # Délai minimal entre deux synchronisations de la même table (secondes)
 SYNC_COOLDOWN = int(os.getenv("SYNC_COOLDOWN_SECONDS", "10"))
@@ -21,7 +24,7 @@ SYNC_COOLDOWN = int(os.getenv("SYNC_COOLDOWN_SECONDS", "10"))
 
 def _sort_key(table: SheetTable, order=None):
     """Ordre des onglets : celui de la liste de synchronisation d'abord, puis les autres par nom."""
-    order = order if order is not None else DEFAULT_TABS
+    order = order if order is not None else config.DEFAULT_TABS
     if table.name in order:
         return (0, order.index(table.name), table.name)
     return (1, 0, table.name)
@@ -36,11 +39,59 @@ def _iso(value):
     return value.isoformat() if value else None
 
 
+def with_owner(view):
+    """
+    Passe à la vue le propriétaire de la requête (le site, ou le compte connecté), après `request`.
+
+    En lecture, celui de la session. Pour une requête qui modifie, config.owner_for_change contrôle aussi l'en-tête
+    X-Sheet-Scope : si la session a changé depuis l'affichage de la page, la requête est refusée (401 ou 409).
+    """
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if request.method in SAFE_METHODS:
+            owner = config.request_owner(request)
+        else:
+            try:
+                owner = config.owner_for_change(request)
+            except config.ScopeMismatch as exc:
+                return error_response(str(exc), exc.code, exc.status)
+        return view(request, owner, *args, **kwargs)
+
+    return wrapper
+
+
+def _sync_locked(owner, lock_name, tabs=None):
+    """
+    Synchronise sous un verrou : deux clics rapprochés ne relisent pas deux fois la feuille.
+
+    Renvoie (résultats, None), ou (None, réponse d'erreur) : 429 si une synchronisation vient d'avoir lieu, sinon
+    l'erreur du document. Le verrou dure SYNC_COOLDOWN secondes après un succès ; il est libéré tout de suite si le
+    document ne s'ouvre pas ou si aucun onglet n'est enregistré, pour qu'on puisse réessayer après avoir corrigé.
+    """
+    lock_key = f"sheet-sync-lock:{_owner_key(owner)}:{lock_name}"
+    if not cache.add(lock_key, 1, SYNC_COOLDOWN):
+        return None, error_response(
+            f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes.",
+            "sync_too_soon",
+            429,
+            {"seconds": SYNC_COOLDOWN},
+        )
+    try:
+        results = sync_sheets(config.doc_name(owner), tabs=tabs, owner=owner)
+    except SheetError as exc:
+        cache.delete(lock_key)
+        return None, error_response(str(exc), exc.code, exc.status, exc.params)
+    if not any(result.ok for result in results):
+        cache.delete(lock_key)
+    return results, None
+
+
 @api_view(["GET"])
-def table_list(request):
+@with_owner
+def table_list(request, owner):
     """GET /api/data/ : liste des tables recopiées en base (celles du compte connecté, sinon celles du site)."""
-    owner = config.request_owner(request)
-    order = configured_tabs(owner)
+    order = config.sync_tabs(owner)
     tables = sorted(SheetTable.objects.filter(user=owner), key=lambda table: _sort_key(table, order))
     return JsonResponse(
         [
@@ -52,10 +103,11 @@ def table_list(request):
 
 
 @api_view(["GET"])
-def table_detail(request, name):
+@with_owner
+def table_detail(request, owner, name):
     """GET /api/data/<onglet>/ : colonnes (dans l'ordre) et lignes d'une table (du compte connecté, sinon du site)."""
     try:
-        table = SheetTable.objects.get(user=config.request_owner(request), name=name)
+        table = SheetTable.objects.get(user=owner, name=name)
     except SheetTable.DoesNotExist:
         return error_response(
             f"Table '{name}' introuvable en base. Lance la synchronisation : python manage.py sync_sheets",
@@ -99,65 +151,36 @@ def table_detail(request, name):
 
 
 @api_view(["POST"])
-def table_sync(request, name):
+@with_owner
+def table_sync(request, owner, name):
     """
     POST /api/data/<onglet>/sync/ : relit l'onglet dans Google Sheets et met la base à jour.
     Seuls les onglets de la liste de synchronisation sont acceptés.
     """
-    try:
-        owner = config.owner_for_change(request)
-    except config.ScopeMismatch as exc:
-        return error_response(str(exc), exc.code, exc.status)
-    if name not in configured_tabs(owner):
+    if name not in config.sync_tabs(owner):
         return error_response(f"Onglet '{name}' non synchronisable", "tab_not_syncable", 404, {"name": name})
 
-    lock_key = f"sheet-sync-lock:{_owner_key(owner)}:{name}"
-    if not cache.add(lock_key, 1, SYNC_COOLDOWN):
-        return error_response(
-            f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes.",
-            "sync_too_soon",
-            429,
-            {"seconds": SYNC_COOLDOWN},
-        )
-
-    try:
-        result = sync_sheets(config.doc_name(owner), tabs=[name], owner=owner)[0]
-    except SheetError as exc:
-        cache.delete(lock_key)
-        return error_response(str(exc), exc.code, exc.status, exc.params)
-
+    results, error = _sync_locked(owner, name, tabs=[name])
+    if error:
+        return error
+    result = results[0]
     if not result.ok:
-        cache.delete(lock_key)
         return error_response(result.message or "Synchronisation impossible", result.code or "sync_failed", 502, result.params)
 
     return JsonResponse({"name": name, "row_count": result.rows, "columns": result.columns})
 
 
 @api_view(["POST"])
-def sync_all(request):
+@with_owner
+def sync_all(request, owner):
     """
     POST /api/data/sync/ : relit tous les onglets de la liste de synchronisation et met la base à jour.
     Un onglet en erreur garde ses anciennes données et n'empêche pas les autres.
     200 si au moins un onglet a été enregistré, 502 si aucun.
     """
-    try:
-        owner = config.owner_for_change(request)
-    except config.ScopeMismatch as exc:
-        return error_response(str(exc), exc.code, exc.status)
-    lock_key = f"sheet-sync-lock:{_owner_key(owner)}:__all__"
-    if not cache.add(lock_key, 1, SYNC_COOLDOWN):
-        return error_response(
-            f"Synchronisation déjà faite à l'instant, réessaie dans {SYNC_COOLDOWN} secondes.",
-            "sync_too_soon",
-            429,
-            {"seconds": SYNC_COOLDOWN},
-        )
-
-    try:
-        results = sync_sheets(config.doc_name(owner), owner=owner)
-    except SheetError as exc:
-        cache.delete(lock_key)
-        return error_response(str(exc), exc.code, exc.status, exc.params)
+    results, error = _sync_locked(owner, "__all__")
+    if error:
+        return error
 
     tabs = [
         {"name": r.tab, "ok": r.ok, "row_count": r.rows, "message": r.message, "code": r.code, "params": r.params}
@@ -165,7 +188,6 @@ def sync_all(request):
     ]
     saved = sum(1 for r in results if r.ok)
     if not saved:
-        cache.delete(lock_key)
         detail = " ; ".join(f"{t['name']} : {t['message'] or 'erreur'}" for t in tabs)
         return error_response(f"Aucun onglet n'a pu être actualisé ({detail})", "no_tab_saved", 502, tabs=tabs)
 
@@ -182,7 +204,8 @@ def sync_all(request):
 
 
 @api_view(["GET", "PUT", "DELETE"])
-def sheet_config(request):
+@with_owner
+def sheet_config(request, owner):
     """
     /api/sheet-config/ : paramètres d'accès au Google Sheet (page GoogleSheet).
 
@@ -193,10 +216,6 @@ def sheet_config(request):
     DELETE -> efface les valeurs saisies : le .env s'applique de nouveau (site), ou plus rien (compte).
     Compte connecté : sa propre configuration, sans repli sur le .env du site.
     """
-    try:
-        owner = config.request_owner(request) if request.method == "GET" else config.owner_for_change(request)
-    except config.ScopeMismatch as exc:
-        return error_response(str(exc), exc.code, exc.status)
     if request.method == "PUT":
         if not isinstance(request.data, dict):
             return error_response("Corps JSON attendu", "invalid_json", 400)
@@ -210,7 +229,8 @@ def sheet_config(request):
 
 
 @api_view(["GET", "PUT"])
-def sheet_tabs(request):
+@with_owner
+def sheet_tabs(request, owner):
     """
     /api/sheet-config/tabs/ : onglets du document (section Onglet de la page GoogleSheet).
 
@@ -218,10 +238,6 @@ def sheet_tabs(request):
     PUT -> {"sync_tabs": "portfolio, budget"} : enregistre seulement la liste des onglets à synchroniser,
            renvoie les paramètres comme GET /api/sheet-config/. 400 sync_tabs_required si la liste est vide.
     """
-    try:
-        owner = config.request_owner(request) if request.method == "GET" else config.owner_for_change(request)
-    except config.ScopeMismatch as exc:
-        return error_response(str(exc), exc.code, exc.status)
     if request.method == "PUT":
         if not isinstance(request.data, dict):
             return error_response("Corps JSON attendu", "invalid_json", 400)

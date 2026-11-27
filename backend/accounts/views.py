@@ -24,7 +24,7 @@ from django.utils.crypto import constant_time_compare
 from django.views.decorators.http import require_GET
 from rest_framework.decorators import api_view
 
-from googlesheet.errors import error_response
+from core.errors import error_response
 
 from . import drive, google
 from .services import user_for_google

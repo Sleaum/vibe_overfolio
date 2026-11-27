@@ -3,6 +3,7 @@ import hashlib
 import io
 import logging
 import re
+from contextlib import contextmanager
 from typing import Any, List, Optional, Tuple
 
 import gspread
@@ -23,7 +24,7 @@ _NUMBER_RE = re.compile(r"^-?(0|[1-9]\d*)(\.\d+)?$")
 class SheetError(Exception):
     """
     Erreur lisible par l'utilisateur, avec le code HTTP à renvoyer.
-    `code` et `params` permettent au site de l'afficher dans la langue choisie (voir errors.py).
+    `code` et `params` permettent au site de l'afficher dans la langue choisie (voir core/errors.py).
     """
     status = 500
 
@@ -43,6 +44,25 @@ class SheetNotFound(SheetError):
 
 class SheetAPIError(SheetError):
     status = 502
+
+
+@contextmanager
+def google_errors(log_details: bool = True):
+    """
+    Traduit les erreurs de l'API Google (gspread) et du réseau (requests) en SheetAPIError (502) :
+    google_api_error ou google_unreachable, avec le texte de l'erreur dans `detail`.
+
+    log_details=False : le log ne garde que le type de l'erreur. La réponse de Google peut nommer le document
+    de la personne (mode compte Google) ; elle reste dans la réponse à la page, pas dans les logs du serveur.
+    """
+    try:
+        yield
+    except gspread.exceptions.APIError as exc:
+        logger.warning("Erreur API Google Sheets : %s", exc if log_details else exc.__class__.__name__)
+        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}", "google_api_error", detail=str(exc))
+    except RequestException as exc:
+        logger.warning("Google Sheets injoignable : %s", exc if log_details else exc.__class__.__name__)
+        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
 
 
 def get_credentials(owner=None) -> dict:
@@ -233,12 +253,9 @@ class PublicSpreadsheet:
 def open_public_spreadsheet(sheet_id: str) -> PublicSpreadsheet:
     """Télécharge la feuille partagée par lien. Erreur claire si elle n'est pas publique."""
     url = PUBLIC_EXPORT_URL.format(sheet_id=sheet_id)
-    try:
+    with google_errors():
         response = requests.get(url, timeout=PUBLIC_EXPORT_TIMEOUT, stream=True)
         content = response.raw.read(PUBLIC_EXPORT_MAX_BYTES + 1, decode_content=True)
-    except RequestException as exc:
-        logger.warning("Google Sheets injoignable : %s", exc)
-        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
     if len(content) > PUBLIC_EXPORT_MAX_BYTES:
         raise SheetAPIError("Feuille trop volumineuse pour être téléchargée.", "public_export_too_big")
     # Un fichier Excel est une archive zip (« PK ») ; sinon Google a renvoyé une page de connexion ou d'erreur
@@ -261,12 +278,9 @@ def worksheet_titles(spreadsheet) -> List[str]:
     """Noms des onglets du document, dans l'ordre (les deux modes)."""
     if isinstance(spreadsheet, PublicSpreadsheet):
         return spreadsheet.worksheet_titles()
-    try:
+    # Aussi appelée en mode compte Google : pas de détail dans les logs
+    with google_errors(log_details=False):
         return [worksheet.title for worksheet in spreadsheet.worksheets()]
-    except gspread.exceptions.APIError as exc:
-        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}", "google_api_error", detail=str(exc))
-    except RequestException as exc:
-        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
 
 
 def open_google_account_spreadsheet(owner, sheet_id: str):
@@ -279,18 +293,14 @@ def open_google_account_spreadsheet(owner, sheet_id: str):
         error = SheetConfigError(str(exc), exc.code)
         error.status = exc.status
         raise error
-    try:
-        return client.open_by_key(sheet_id)
-    except gspread.exceptions.SpreadsheetNotFound:
-        raise SheetNotFound(
-            "Feuille introuvable ou plus autorisée : choisis-la de nouveau dans le sélecteur de Google.",
-            "google_sheet_not_found",
-        )
-    except gspread.exceptions.APIError as exc:
-        logger.warning("Erreur API Google Sheets (compte Google) : %s", exc.__class__.__name__)
-        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}", "google_api_error", detail=str(exc))
-    except RequestException as exc:
-        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
+    with google_errors(log_details=False):
+        try:
+            return client.open_by_key(sheet_id)
+        except gspread.exceptions.SpreadsheetNotFound:
+            raise SheetNotFound(
+                "Feuille introuvable ou plus autorisée : choisis-la de nouveau dans le sélecteur de Google.",
+                "google_sheet_not_found",
+            )
 
 
 def open_spreadsheet(doc_name: str, owner=None):
@@ -321,41 +331,29 @@ def open_spreadsheet(doc_name: str, owner=None):
 
     client = get_client(owner)
     sheet_id = config.sheet_id(owner)
-    try:
-        return client.open_by_key(sheet_id) if sheet_id else client.open(doc_name)
-    except gspread.exceptions.SpreadsheetNotFound:
-        email = get_credentials(owner).get("client_email") or "le compte de service"
-        what = "l'identifiant du document" if sheet_id else f"le nom '{doc_name}'"
-        raise SheetNotFound(
-            f"Feuille introuvable (vérifie {what}) ou non partagée avec {email}.",
-            "sheet_not_found_by_id" if sheet_id else "sheet_not_found_by_name",
-            name=doc_name or "",
-            email=email,
-        )
-    except gspread.exceptions.APIError as exc:
-        logger.warning("Erreur API Google Sheets : %s", exc)
-        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}", "google_api_error", detail=str(exc))
-    except RequestException as exc:
-        logger.warning("Google Sheets injoignable : %s", exc)
-        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
+    with google_errors():
+        try:
+            return client.open_by_key(sheet_id) if sheet_id else client.open(doc_name)
+        except gspread.exceptions.SpreadsheetNotFound:
+            email = get_credentials(owner).get("client_email") or "le compte de service"
+            what = "l'identifiant du document" if sheet_id else f"le nom '{doc_name}'"
+            raise SheetNotFound(
+                f"Feuille introuvable (vérifie {what}) ou non partagée avec {email}.",
+                "sheet_not_found_by_id" if sheet_id else "sheet_not_found_by_name",
+                name=doc_name or "",
+                email=email,
+            )
 
 
 def read_worksheet_values(spreadsheet, sheet_name: Optional[str] = None) -> List[List[Any]]:
     """Grille brute d'un onglet (le premier si sheet_name est vide)."""
     if isinstance(spreadsheet, PublicSpreadsheet):
         return spreadsheet.values(sheet_name)
-    try:
-        worksheet = (
-            spreadsheet.worksheet(sheet_name) if sheet_name else spreadsheet.get_worksheet(0)
-        )
+    with google_errors():
+        try:
+            worksheet = spreadsheet.worksheet(sheet_name) if sheet_name else spreadsheet.get_worksheet(0)
+        except gspread.exceptions.WorksheetNotFound:
+            raise SheetNotFound(f"Onglet '{sheet_name}' introuvable.", "tab_not_found", tab=sheet_name)
         if worksheet is None:
             raise SheetNotFound("Le document ne contient aucun onglet.", "no_tabs")
         return _read_values(worksheet)
-    except gspread.exceptions.WorksheetNotFound:
-        raise SheetNotFound(f"Onglet '{sheet_name}' introuvable.", "tab_not_found", tab=sheet_name)
-    except gspread.exceptions.APIError as exc:
-        logger.warning("Erreur API Google Sheets : %s", exc)
-        raise SheetAPIError(f"Erreur de l'API Google Sheets : {exc}", "google_api_error", detail=str(exc))
-    except RequestException as exc:
-        logger.warning("Google Sheets injoignable : %s", exc)
-        raise SheetAPIError(f"Google Sheets est injoignable : {exc}", "google_unreachable", detail=str(exc))
