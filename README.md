@@ -12,8 +12,11 @@ overfolio/
 │   ├── overfolio/                  # projet Django : configuration
 │   │   ├── settings.py
 │   │   └── urls.py                 # routage principal
-│   ├── core/                       # code partagé par les apps, sans modèle (simple paquet Python, pas une app Django)
-│   │   └── errors.py               # forme commune des erreurs de l'API (message, code, params)
+│   ├── core/                       # code partagé par les apps (app Django sans modèle)
+│   │   ├── errors.py               # forme commune des erreurs de l'API (message, code, params)
+│   │   ├── crypto.py               # chiffrement des secrets en base : FIELD_ENCRYPTION_KEY, sinon clé dérivée de SECRET_KEY
+│   │   ├── tests.py
+│   │   └── management/commands/rotate_encryption_key.py   # rechiffre les secrets avec la première clé
 │   ├── googlesheet/                # app : lecture et copie du Google Sheet
 │   │   ├── services.py             # connexion Google, lecture des onglets ; google_errors() traduit les erreurs de Google
 │   │   ├── data_views.py           # /api/data/ et /api/sheet-config/ ; with_owner : propriétaire de la requête, contrôle de X-Sheet-Scope
@@ -24,7 +27,7 @@ overfolio/
 │   │   ├── daily.py                # total de portfolio gardé chaque jour : variation « 24h » de Snapshot
 │   │   ├── currencies.py           # devises calculées avec les taux BCE (history, portfolio dans une autre devise)
 │   │   ├── projection.py           # mois prochain de history pour Flow : positions de portfolio, datées du 1er du mois suivant
-│   │   ├── admin.py, tests.py, tests_currencies.py, tests_daily.py, tests_history.py, tests_queries.py, tests_services.py, tests_sync.py
+│   │   ├── admin.py, tests.py, tests_currencies.py, tests_daily.py, tests_history.py, tests_encryption.py, tests_queries.py, tests_services.py, tests_sync.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
 │   ├── accounts/                   # app : connexion avec Google (session Django)
@@ -174,7 +177,7 @@ GOOGLE_OAUTH_REDIRECT_URI=http://localhost/api/auth/google/callback/
 # Mode 3 de la page GoogleSheet « Compte Google » (facultatif, en plus des trois lignes ci-dessus)
 GOOGLE_PICKER_API_KEY=...                 # clé API limitée à l'API Google Picker
 GOOGLE_CLOUD_PROJECT_NUMBER=123456789012  # numéro (pas l'ID) du projet Google Cloud
-FIELD_ENCRYPTION_KEY=...                  # clé Fernet : chiffre les jetons Google en base
+FIELD_ENCRYPTION_KEY=...                  # clé Fernet : chiffre les secrets en base (sans elle : clé dérivée de SECRET_KEY ; le mode 3 l'exige)
 ```
 
 Générer une `SECRET_KEY` :
@@ -194,7 +197,8 @@ python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | vide | Client OAuth « Application Web » de Google Cloud, pour la connexion avec Google (voir « Connexion avec Google »). Vides : bouton grisé, site utilisable sans compte |
 | `GOOGLE_OAUTH_REDIRECT_URI` | vide | Adresse de retour après Google, **identique** à celle déclarée dans Google Cloud : `http://localhost/api/auth/google/callback/` (Docker), `http://localhost:5173/api/auth/google/callback/` (Vite en développement), `https://ton-domaine/api/auth/google/callback/` (production) |
 | `GOOGLE_PICKER_API_KEY`, `GOOGLE_CLOUD_PROJECT_NUMBER` | vide | Mode 3 « Compte Google » de la page GoogleSheet : clé API du sélecteur de fichiers de Google et numéro du projet (voir « Mode 3 : compte Google »). Vides : mode 3 indisponible |
-| `FIELD_ENCRYPTION_KEY` | vide | Clé de chiffrement des jetons Google gardés en base (mode 3). À générer une fois : `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. **Secret** ; la changer oblige chacun à autoriser de nouveau l'accès à sa feuille |
+| `FIELD_ENCRYPTION_KEY` | vide | Clé de chiffrement des secrets gardés en base : compte de service de la page GoogleSheet, jeton du mode 3 (voir « Chiffrement des secrets »). À générer une fois : `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Plusieurs clés séparées par des virgules pendant une rotation. Vide : le compte de service est chiffré avec une clé dérivée de `SECRET_KEY`, et le mode 3 est indisponible. **Secret** ; la changer sans garder l'ancienne oblige à ressaisir le compte de service et à autoriser de nouveau le mode 3 |
+| `SECRET_KEY_FALLBACKS` | vide | Anciennes `SECRET_KEY`, séparées par des virgules, le temps d'un changement de `SECRET_KEY` : sessions encore valables, secrets en base encore lisibles (voir « Chiffrement des secrets ») |
 | `COOKIE_SECURE` | `False` | `True` en production (HTTPS) : cookies de session et CSRF envoyés seulement en HTTPS |
 | `CSRF_TRUSTED_ORIGINS` | celles de `CORS_ALLOWED_ORIGINS` (`http://localhost:5173,http://127.0.0.1:5173`) | Origines acceptées pour les requêtes qui modifient quand l'hôte reçu par Django diffère (proxy de Vite). En production derrière HTTPS : `https://ton-domaine`. En Docker seul (sans Vite), `CSRF_TRUSTED_ORIGINS=http://localhost` évite de faire confiance au port 5173, où une autre application pourrait tourner |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Noms et adresses par lesquels on ouvre le site. Pour y accéder depuis un téléphone du même Wi-Fi, ajouter l'adresse IP locale du PC (`ipconfig` sous Windows), par exemple `localhost,127.0.0.1,192.168.1.20`, puis ouvrir `http://192.168.1.20` sur le téléphone |
@@ -552,8 +556,7 @@ erDiagram
     bigint id PK
     int user_id FK, UK "vide = site"
     varchar method "google ou vide"
-    varchar client_email "compte de service"
-    text private_key
+    text service_account "JSON chiffré du compte de service"
     varchar sheet_id
     varchar doc_name
     varchar sync_tabs
@@ -606,7 +609,7 @@ Le schéma ne montre que les tables du projet ; Django ajoute les siennes (sessi
 | `googlesheet_sheettable` | `SheetTable` | Une ligne par onglet et par propriétaire (`user` vide = site, sinon un compte ; nom unique par propriétaire) : nom, ordre des colonnes, ligne d'en-tête, nombre de lignes, date de synchronisation, `source` (document d'origine : son identifiant, ou `nom:<nom>` ; vide pour les tables d'avant ce champ), `currency` (devise des montants, lue au-dessus de l'en-tête : case M1 de `portfolio`), `rates_applied_at` (dernier calcul des devises) |
 | `googlesheet_sheetrow` | `SheetRow` | Une ligne par ligne de données, sous la forme JSON `{colonne: valeur}` : n'importe quelle structure de feuille passe sans migration. `computed` : ce que le site calcule avec les taux BCE à la synchronisation, sans toucher aux valeurs de la feuille (`fx` : le relevé dans chaque devise, pour `history`) |
 | `googlesheet_portfolioday` | `PortfolioDay` | Total de `portfolio` gardé à chaque synchronisation, une ligne par jour et par propriétaire (la dernière synchronisation du jour remplace la précédente ; jour du serveur, en UTC) : actifs, dettes, devise de la feuille, document d'origine (`source` : un total d'une autre feuille n'est jamais comparé). Sert à la variation « 24h » de Snapshot (`googlesheet/daily.py`) |
-| `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur |
+| `googlesheet_sheetconfig` | `SheetConfig` | Paramètres d'accès saisis sur la page GoogleSheet : une ligne pour le site (absente tant que rien n'est enregistré : le `.env` s'applique), une par compte connecté (jamais de repli sur le `.env`) ; une seule par propriétaire (contrainte `uniq_sheetconfig_owner`). `method` = `google` pour le mode 3. La clé privée n'est jamais renvoyée au navigateur. Le compte de service, clé privée comprise, est dans `service_account` : un JSON chiffré (voir « Chiffrement des secrets »), jamais renvoyé au navigateur |
 | `profiles_profile` | `Profile` | Réglages gardés en base : couleurs des types d'actifs (`asset_colors`), mode clair / sombre (`theme`), devises affichées dans « Patrimoine par devise » (`chart_currencies`, vide = toutes), devise d'affichage de Charts et Simulation (`display_currency`, vide = euro) et périodes de Volatility (`volatility_months`, en mois, vide = 1, 3 et 12) et de Snapshot (`performance_days`, en jours, vide = 30, 90 et 365) : gardées ici pour un compte, dans le navigateur pour un visiteur. Cible de Models > Target (`model_target` : année, base, pourcentages, versement mensuel), toujours sur le profil. Un profil sans utilisateur pour le site (visiteurs non connectés), puis un par compte connecté (voir « Connexion avec Google ») |
 | `accounts_googleaccount` | `GoogleAccount` | Compte Google d'un utilisateur : identifiant Google `sub` (unique), e-mail, nom, photo. Mode 3 : jeton de rafraîchissement Google **chiffré** (`drive_refresh_token`, vide si l'accès n'est pas accordé) |
 | `fx_exchangerate` | `ExchangeRate` | Taux de référence de l'euro publiés par la BCE : une ligne par jour de cotation et par devise (unique), taux = unités de la devise pour 1 EUR. Communs à tous |
@@ -1161,6 +1164,7 @@ cd frontend && npm audit && npm outdated
 | Le sélecteur de Google ne s'ouvre pas, ou affiche « The API developer key is invalid » | Clé API absente, non limitée à l'API Google Picker, ou site non autorisé dans ses restrictions | Vérifier `GOOGLE_PICKER_API_KEY` et les restrictions de la clé (sites `http://localhost/*`…) ; activer l'API Google Picker |
 | Synchronisation en mode 3 : « Feuille introuvable ou plus autorisée » | Feuille supprimée, ou choisie par un autre compte | « Choisir une autre feuille » dans la carte 3 |
 | `google_not_authorized` après un changement de `FIELD_ENCRYPTION_KEY` | Les jetons gardés ne se déchiffrent plus | Autoriser de nouveau l'accès (carte 3) |
+| Compte de service vide sur la page GoogleSheet après un changement de `FIELD_ENCRYPTION_KEY` ou de `SECRET_KEY` (log « Compte de service enregistré illisible ») | Ancienne clé retirée avant `rotate_encryption_key` | Remettre l'ancienne clé (`FIELD_ENCRYPTION_KEY=nouvelle,ancienne` ou `SECRET_KEY_FALLBACKS`) puis lancer la commande, ou importer de nouveau le fichier JSON du compte de service |
 | « Onglet 'history' introuvable » après la mise à jour | L'onglet s'appelle encore `_history` dans la feuille | Le renommer `history` dans Google Sheets, puis Tout actualiser |
 | Page GoogleSheet : « Les taux de change de la BCE n'ont pas pu être relus » | Le backend n'accède pas à `www.ecb.europa.eu` (réseau, pare-feu) | Les taux déjà en base servent ; vérifier l'accès Internet du backend, puis `update_fx_rates --recompute` |
 | Phrase en rouge « lignes sans taux de la BCE pour leur jour ne sont pas comptées » | Pas de taux en base pour ces jours (première synchronisation sans accès à la BCE, ou date antérieure à la devise) | Rétablir l'accès à la BCE, puis Tout actualiser |
@@ -1179,6 +1183,7 @@ cd frontend && npm audit && npm outdated
 ## Sécurité
 
 - `.env` ne doit jamais être commité, ni les fichiers `env` ou `backend/overfolio/.env`, ni une clé SSH ou un fichier JSON de compte de service : le `.gitignore` de la racine les exclut. Un fichier déjà suivi par git n'est pas concerné par le `.gitignore` : le retirer avec `git rm --cached <fichier>`. Si une clé privée a été exposée (capture d'écran, commit), la révoquer dans Google Cloud (IAM → Comptes de service → Clés) et en générer une nouvelle.
+- Les secrets gardés en base (compte de service saisi sur la page, jeton du mode 3) sont chiffrés : voir « Chiffrement des secrets » ci-dessous.
 - Le mode « lien public » exige une feuille lisible par quiconque a son lien : elle contient l'intégralité du patrimoine. Pour une feuille privée, utilise un compte de service et partage-la seulement avec `CLIENT_EMAIL`.
 - Passer à `DEBUG=False` (lu dans `.env`) et restreindre `ALLOWED_HOSTS` en production : en mode debug, une page d'erreur montre des valeurs internes.
 - Paquets du backend : toutes les versions sont fixées dans `backend/requirements.txt` (Django 5.2, version à support long jusqu'en avril 2028). Vérifier régulièrement les failles connues avec `pip-audit` (voir « Commandes utiles »), puis monter les versions et reconstruire l'image (`./init.sh`).
@@ -1186,6 +1191,39 @@ cd frontend && npm audit && npm outdated
 - Les routes `/api/data/` et `/api/sheet-config/` sont publiques sans connexion : les restreindre avant toute exposition sur Internet.
 - Connexion avec Google : flux « authorization code » côté serveur avec `state` (à usage unique) et PKCE, jeton d'identité vérifié (signature, destinataire, e-mail vérifié), compte retrouvé par `sub`, nouvelle clé de session à la connexion, adresse de retour limitée aux pages du site. Aucun mot de passe n'est gardé ; le seul jeton Google gardé (mode 3) est chiffré avec `FIELD_ENCRYPTION_KEY` et limité au scope `drive.file`. `GOOGLE_OAUTH_CLIENT_SECRET` et `FIELD_ENCRYPTION_KEY` sont des secrets : `.env` seulement. Chaque compte ne voit que sa configuration et ses données ; un compte n'hérite jamais du `.env` ni du compte de service du site. En production : `COOKIE_SECURE=True`, `CSRF_TRUSTED_ORIGINS=https://ton-domaine`.
 - Le PDF du bouton PDF est fabriqué dans le navigateur et contient tout ton patrimoine : rien n'est envoyé au serveur, mais le fichier téléchargé est à garder comme une donnée sensible.
+
+### Chiffrement des secrets
+
+Deux secrets sont gardés en base, chiffrés avec Fernet (AES-128 et HMAC, `backend/core/crypto.py`) :
+
+- le compte de service saisi sur la page GoogleSheet, clé privée comprise : `googlesheet_sheetconfig.service_account`, un JSON chiffré ;
+- le jeton du mode 3 : `accounts_googleaccount.drive_refresh_token`.
+
+**Clé de chiffrement** : `FIELD_ENCRYPTION_KEY` si elle est réglée, sinon une clé dérivée de `SECRET_KEY` (HKDF-SHA256, avec un sel propre à cet usage). Le compte de service est donc toujours chiffré, sans rien régler. Le mode 3, lui, exige `FIELD_ENCRYPTION_KEY`.
+
+**Déchiffrement** : toutes les clés connues sont essayées, celles de `FIELD_ENCRYPTION_KEY` puis celles dérivées de `SECRET_KEY` et de `SECRET_KEY_FALLBACKS`. Ajouter `FIELD_ENCRYPTION_KEY` après coup ne rend donc rien illisible.
+
+**Ce que ça protège** : une sauvegarde ou un export de la base, un accès à PostgreSQL. Pas une fuite du `.env`, qui contient les clés.
+
+**Si la clé change sans que l'ancienne soit gardée**, le compte de service enregistré devient illisible. Le site ne plante pas :
+
+- la page GoogleSheet montre un compte de service vide (`private_key_set` faux) ;
+- le mode passe au lien public si un lien est enregistré ;
+- il suffit d'importer de nouveau le fichier JSON du compte de service ;
+- le mode 3 demande d'autoriser de nouveau l'accès.
+
+**Rotation de `FIELD_ENCRYPTION_KEY`**
+
+1. Générer une nouvelle clé : `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+2. Dans `.env` : `FIELD_ENCRYPTION_KEY=nouvelle,ancienne` (la première chiffre, toutes déchiffrent). Si `FIELD_ENCRYPTION_KEY` était vide jusque-là, la nouvelle seule suffit : la clé dérivée de `SECRET_KEY` déchiffre encore. Puis `docker compose up -d --force-recreate backend`.
+3. Rechiffrer : `docker compose exec backend python manage.py rotate_encryption_key` (avec `--dry-run` pour compter d'abord). La commande rechiffre les comptes de service et, si `FIELD_ENCRYPTION_KEY` est réglée, les jetons du mode 3. Elle signale les valeurs qu'aucune clé ne déchiffre et les laisse telles quelles.
+4. Retirer l'ancienne : `FIELD_ENCRYPTION_KEY=nouvelle`, puis recréer le backend.
+
+**Changement de `SECRET_KEY`** (sans `FIELD_ENCRYPTION_KEY` ; avec elle, les secrets n'en dépendent pas)
+
+1. Mettre la nouvelle dans `SECRET_KEY` et l'ancienne dans `SECRET_KEY_FALLBACKS`, puis recréer le backend. Les sessions ouvertes restent valables aussi.
+2. `docker compose exec backend python manage.py rotate_encryption_key`.
+3. Vider `SECRET_KEY_FALLBACKS`, puis recréer le backend.
 
 ## Notes pour la production
 

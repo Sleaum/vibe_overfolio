@@ -14,6 +14,10 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 if not SECRET_KEY:
     raise ValueError("SECRET_KEY not found in environment variables")
 
+# Anciennes SECRET_KEY, séparées par des virgules, gardées le temps d'un changement : Django les accepte encore pour
+# les sessions et les signatures, et core/crypto.py pour déchiffrer les secrets en base (voir README, « Chiffrement »)
+SECRET_KEY_FALLBACKS = [key.strip() for key in os.getenv('SECRET_KEY_FALLBACKS', '').split(',') if key.strip()]
+
 # SECURITY WARNING: don't run with debug turned on in production!
 # Lu dans le .env (DEBUG=False en production : une page d'erreur de debug montre des valeurs internes)
 DEBUG = os.getenv('DEBUG', 'True').strip().lower() in ('1', 'true', 'yes', 'on')
@@ -36,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'core',
     'googlesheet',
     'profiles',
     'accounts',

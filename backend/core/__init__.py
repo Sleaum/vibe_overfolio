@@ -1,1 +1,1 @@
-"""Code partagé par les apps du backend (accounts, fx, googlesheet, profiles), sans modèle : pas une app Django."""
+"""Code partagé par les apps du backend (accounts, fx, googlesheet, profiles) : erreurs de l'API, chiffrement. Sans modèle."""
