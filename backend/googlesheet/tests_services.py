@@ -1,11 +1,12 @@
 """Erreurs de gspread et de requests traduites en SheetAPIError : mêmes codes, messages et paramètres partout."""
+from types import MappingProxyType
 from unittest import mock
 
 import gspread
 from django.test import TestCase
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from . import services
+from . import config, services
 from .services import SheetAPIError, SheetNotFound
 
 
@@ -64,26 +65,33 @@ class GoogleErrorTranslationTests(TestCase):
             services.read_worksheet_values(empty)
         self.assertEqual(caught.exception.code, "no_tabs")
 
-    def service_account_open(self, side_effect):
+    def service_account_settings(self):
+        values = {
+            **config.default_values(),
+            "project_id": "projet",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nABC\n-----END PRIVATE KEY-----\n",
+            "client_email": "sa@x.iam",
+            "sheet_id": "id-du-site",
+            "method": "",
+        }
+        return config.SheetSettings(None, "page", MappingProxyType(values))
+
+    def client_failing_with(self, side_effect):
         client = mock.Mock()
         client.open_by_key.side_effect = side_effect
-        return mock.patch.multiple(
-            "googlesheet.config",
-            access_mode=mock.Mock(return_value="service_account"),
-            sheet_id=mock.Mock(return_value="id-du-site"),
-        ), mock.patch.object(services, "get_client", return_value=client)
+        return mock.patch.object(services, "get_client", return_value=client)
 
     def test_open_spreadsheet_with_service_account(self):
+        settings = self.service_account_settings()
+        self.assertEqual(settings.mode, "service_account")
         for side_effect, check in ((api_error(), self.assert_api_error), (RequestsConnectionError("réseau coupé"), self.assert_unreachable)):
-            config_patch, client_patch = self.service_account_open(side_effect)
-            with config_patch, client_patch:
-                check(lambda: services.open_spreadsheet("overfolio"))
+            with self.client_failing_with(side_effect):
+                check(lambda: services.open_spreadsheet(settings))
 
     def test_open_spreadsheet_not_found_names_the_account(self):
-        config_patch, client_patch = self.service_account_open(gspread.exceptions.SpreadsheetNotFound())
-        with config_patch, client_patch, mock.patch.object(services, "get_credentials", return_value={"client_email": "sa@x.iam"}):
+        with self.client_failing_with(gspread.exceptions.SpreadsheetNotFound()):
             with self.assertRaises(SheetNotFound) as caught:
-                services.open_spreadsheet("overfolio")
+                services.open_spreadsheet(self.service_account_settings())
         self.assertEqual(caught.exception.code, "sheet_not_found_by_id")
         self.assertEqual(caught.exception.params, {"name": "overfolio", "email": "sa@x.iam"})
 

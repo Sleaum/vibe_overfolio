@@ -19,12 +19,12 @@ overfolio/
 │   │   ├── data_views.py           # /api/data/ et /api/sheet-config/ ; with_owner : propriétaire de la requête, contrôle de X-Sheet-Scope
 │   │   ├── data_urls.py
 │   │   ├── models.py               # SheetTable, SheetRow, SheetConfig, PortfolioDay, par propriétaire (voir « Base de données »)
-│   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env
+│   │   ├── config.py               # paramètres d'accès : page GoogleSheet, sinon .env ; load_settings() -> SheetSettings, lu une fois par requête
 │   │   ├── sync.py                 # copie des onglets vers la base, puis devises recalculées et total du jour de portfolio
 │   │   ├── daily.py                # total de portfolio gardé chaque jour : variation « 24h » de Snapshot
 │   │   ├── currencies.py           # devises calculées avec les taux BCE (history, portfolio dans une autre devise)
 │   │   ├── projection.py           # mois prochain de history pour Flow : positions de portfolio, datées du 1er du mois suivant
-│   │   ├── admin.py, tests.py, tests_currencies.py, tests_daily.py, tests_history.py, tests_services.py, tests_sync.py
+│   │   ├── admin.py, tests.py, tests_currencies.py, tests_daily.py, tests_history.py, tests_queries.py, tests_services.py, tests_sync.py
 │   │   ├── migrations/
 │   │   └── management/commands/sync_sheets.py
 │   ├── accounts/                   # app : connexion avec Google (session Django)
@@ -314,7 +314,7 @@ compte Google + feuille choisie ──► API Google Sheets (gspread) ───�
 
 ### Par compte
 
-Sans connexion, la page GoogleSheet règle la **feuille du site** (repli sur le `.env`) et montre les **données du site**. Connecté avec Google, chacun a **sa propre configuration et ses propres données** : sa ligne `googlesheet_sheetconfig`, ses tables `googlesheet_sheettable`, invisibles pour les autres comptes et pour les visiteurs. Un compte part de zéro : il n'hérite ni du `.env`, ni de la configuration ou des données du site (sinon tout compte pourrait lire la feuille du site). Le compte de service du `.env` n'est jamais proposé à un compte, et sa clé jamais reprise. Côté serveur, tout passe par le propriétaire de la requête (`config.request_owner(request)` : l'utilisateur connecté, sinon `None` pour le site) : `config.py`, `sync.py`, `services.open_spreadsheet()` et `data_views.py`. La commande `sync_sheets` travaille pour le site.
+Sans connexion, la page GoogleSheet règle la **feuille du site** (repli sur le `.env`) et montre les **données du site**. Connecté avec Google, chacun a **sa propre configuration et ses propres données** : sa ligne `googlesheet_sheetconfig`, ses tables `googlesheet_sheettable`, invisibles pour les autres comptes et pour les visiteurs. Un compte part de zéro : il n'hérite ni du `.env`, ni de la configuration ou des données du site (sinon tout compte pourrait lire la feuille du site). Le compte de service du `.env` n'est jamais proposé à un compte, et sa clé jamais reprise. Côté serveur, tout passe par le propriétaire de la requête (`config.request_owner(request)` : l'utilisateur connecté, sinon `None` pour le site). Sa configuration est lue **une fois** par requête : `config.load_settings(owner)` renvoie un `SheetSettings` (valeurs en vigueur, `source` `page`/`env`/`none`, `mode`, `sheet_id`, `tabs`, `credentials`, propriétaire), en lecture seule, que `data_views.py` passe tel quel à `services.open_spreadsheet()` et à `sync.sync_sheets()`. La commande `sync_sheets` travaille pour le site (`--doc` change seulement le nom du document).
 
 **Session changée pendant que la page est ouverte** : chaque modification (enregistrer, effacer, onglets, Tout actualiser) porte l'en-tête `X-Sheet-Scope` (`account` ou `site`), la configuration que la page affiche. Si la session a expiré ou changé dans un autre onglet, le serveur refuse (`session_expired`, `scope_changed`) au lieu d'écrire dans une autre configuration — sinon une feuille privée pourrait finir dans celle du site, lisible par tous — et la page se recharge.
 

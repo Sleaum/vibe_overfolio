@@ -371,7 +371,8 @@ class PerAccountSheetTests(AccountBase):
                 mock.patch("googlesheet.sync.read_worksheet_values", return_value=values):
             response = self.post(alice, "/api/data/sync/")
         self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(opened.call_args.args[1], alice_user)
+        self.assertEqual(opened.call_args.args[0].owner, alice_user)
+        self.assertEqual(opened.call_args.args[0].sheet_id, "id-alice")
         self.assertEqual(alice.get("/api/data/portfolio/").json()["rows"], [{"Asset": "crypto", "Assets Master Currency": 10}])
         # Les tables du site ne sont ni écrasées ni retirées
         self.assertEqual(sorted(SheetTable.objects.filter(user=None).values_list("name", flat=True)), ["ancien", "portfolio"])
